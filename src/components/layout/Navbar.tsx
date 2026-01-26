@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, GraduationCap, User, LogOut, Mail, BookOpen, UserX, Calendar, BarChart3, FileText, ClipboardList } from "lucide-react";
+import { Menu, X, GraduationCap, User, LogOut, Mail, BookOpen, UserX, Calendar, BarChart3, FileText, ClipboardList, FolderOpen } from "lucide-react";
 import { GlassButton } from "@/components/ui/glass-button";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { PushNotificationToggle } from "@/components/notifications/PushNotificationToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,7 @@ const userLinks = [
   { name: "Emploi du temps", path: "/emploi-du-temps", icon: Calendar },
   { name: "Paiements", path: "/paiements", icon: CreditCard },
   { name: "Rendez-vous", path: "/rendez-vous", icon: CalendarDays },
+  { name: "Documents", path: "/documents", icon: FolderOpen },
   { name: "Analytique", path: "/analytics", icon: BarChart3 },
   { name: "Bulletins", path: "/bulletins", icon: FileText },
 ];
@@ -114,6 +116,7 @@ export const Navbar = () => {
                   );
                 })}
                 <NotificationBell />
+                <PushNotificationToggle />
                 <div className="w-px h-6 bg-border/50 mx-1" />
                 <Link
                   to="/dashboard"

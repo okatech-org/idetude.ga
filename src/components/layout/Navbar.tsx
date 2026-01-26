@@ -14,12 +14,17 @@ const navLinks = [
   { name: "Démo", path: "/demo" },
 ];
 
+import { MessageSquare, CreditCard, CalendarDays } from "lucide-react";
+
 const userLinks = [
+  { name: "Chat", path: "/chat", icon: MessageSquare },
   { name: "Messages", path: "/messages", icon: Mail },
   { name: "Notes", path: "/notes", icon: BookOpen },
   { name: "Devoirs", path: "/devoirs", icon: ClipboardList },
   { name: "Absences", path: "/absences", icon: UserX },
   { name: "Emploi du temps", path: "/emploi-du-temps", icon: Calendar },
+  { name: "Paiements", path: "/paiements", icon: CreditCard },
+  { name: "Rendez-vous", path: "/rendez-vous", icon: CalendarDays },
   { name: "Analytique", path: "/analytics", icon: BarChart3 },
   { name: "Bulletins", path: "/bulletins", icon: FileText },
 ];

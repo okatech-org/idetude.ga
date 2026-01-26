@@ -19,6 +19,9 @@ import Schedule from "./pages/Schedule";
 import Analytics from "./pages/Analytics";
 import ReportCards from "./pages/ReportCards";
 import Assignments from "./pages/Assignments";
+import Chat from "./pages/Chat";
+import Payments from "./pages/Payments";
+import Appointments from "./pages/Appointments";
 import UsersManagement from "./pages/admin/UsersManagement";
 import EstablishmentsManagement from "./pages/admin/EstablishmentsManagement";
 import NotFound from "./pages/NotFound";
@@ -49,6 +52,9 @@ const App = () => (
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/bulletins" element={<ReportCards />} />
               <Route path="/devoirs" element={<Assignments />} />
+              <Route path="/chat" element={<Chat />} />
+              <Route path="/paiements" element={<Payments />} />
+              <Route path="/rendez-vous" element={<Appointments />} />
               <Route path="/admin/users" element={<UsersManagement />} />
               <Route path="/admin/establishments" element={<EstablishmentsManagement />} />
               <Route path="*" element={<NotFound />} />

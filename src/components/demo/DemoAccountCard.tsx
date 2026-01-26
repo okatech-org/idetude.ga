@@ -39,15 +39,19 @@ export const DemoAccountCard = ({ account, compact = false }: DemoAccountCardPro
     setIsLoggingIn(true);
     
     try {
-      // First, try to initialize demo account if it's a super_admin
-      if (account.email.includes("superadmin@demo")) {
-        try {
-          await supabase.functions.invoke("init-demo-accounts", {
-            body: { action: "init" },
-          });
-        } catch (initError) {
-          console.log("Demo init (might already exist):", initError);
-        }
+      // First, try to initialize demo account (creates user if not exists)
+      try {
+        await supabase.functions.invoke("init-demo-accounts", {
+          body: { 
+            action: "init",
+            email: account.email,
+            password: account.password,
+            name: account.name,
+            displayRole: account.role,
+          },
+        });
+      } catch (initError) {
+        console.log("Demo init (might already exist):", initError);
       }
 
       // Sign in with the demo credentials

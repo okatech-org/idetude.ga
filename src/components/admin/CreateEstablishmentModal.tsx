@@ -106,13 +106,10 @@ const EDUCATION_CYCLES = {
 const ESTABLISHMENT_TYPES = [
   { value: "maternelle", label: "Maternelle", defaultCycles: ["maternelle"], icon: "🏒" },
   { value: "primaire", label: "École Primaire", defaultCycles: ["primaire"], icon: "📚" },
-  { value: "maternelle_primaire", label: "Maternelle + Primaire", defaultCycles: ["maternelle", "primaire"], icon: "🏫" },
   { value: "college", label: "Collège", defaultCycles: ["college"], icon: "🎓" },
   { value: "lycee", label: "Lycée", defaultCycles: ["lycee"], icon: "📖" },
-  { value: "college_lycee", label: "Collège + Lycée", defaultCycles: ["college", "lycee"], icon: "🏛️" },
   { value: "technique", label: "Lycée Technique/Professionnel", defaultCycles: ["technique"], icon: "🔧" },
   { value: "superieur", label: "Enseignement Supérieur", defaultCycles: ["superieur"], icon: "🎓" },
-  { value: "complexe", label: "Complexe Scolaire (Tout)", defaultCycles: ["maternelle", "primaire", "college", "lycee"], icon: "🏢" },
   { value: "universite", label: "Université", defaultCycles: ["superieur"], icon: "🏛️" },
 ];
 
@@ -514,7 +511,7 @@ export const CreateEstablishmentModal = ({
               <div className="space-y-2">
                 <Label>Type(s) d'établissement * <span className="text-xs text-muted-foreground">(au moins un)</span></Label>
                 <div className="flex flex-wrap gap-2">
-                  {ESTABLISHMENT_TYPES.filter(t => !["complexe", "college_lycee", "primaire_college"].includes(t.value)).map((typeOption) => {
+                  {ESTABLISHMENT_TYPES.map((typeOption) => {
                     const isSelected = form.types.includes(typeOption.value);
                     return (
                       <button

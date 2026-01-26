@@ -14,6 +14,194 @@ export type Database = {
   }
   public: {
     Tables: {
+      absences: {
+        Row: {
+          absence_date: string
+          absence_type: string
+          created_at: string
+          end_time: string | null
+          id: string
+          is_justified: boolean
+          justification: string | null
+          justified_at: string | null
+          justified_by: string | null
+          recorded_by: string
+          start_time: string | null
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          absence_date: string
+          absence_type?: string
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          is_justified?: boolean
+          justification?: string | null
+          justified_at?: string | null
+          justified_by?: string | null
+          recorded_by: string
+          start_time?: string | null
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          absence_date?: string
+          absence_type?: string
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          is_justified?: boolean
+          justification?: string | null
+          justified_at?: string | null
+          justified_by?: string | null
+          recorded_by?: string
+          start_time?: string | null
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "absences_justified_by_fkey"
+            columns: ["justified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absences_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "absences_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grades: {
+        Row: {
+          coefficient: number
+          created_at: string
+          description: string | null
+          grade: number
+          grade_type: string
+          id: string
+          school_year: string
+          student_id: string
+          subject: string
+          teacher_id: string
+          trimester: number
+          updated_at: string
+        }
+        Insert: {
+          coefficient?: number
+          created_at?: string
+          description?: string | null
+          grade: number
+          grade_type?: string
+          id?: string
+          school_year: string
+          student_id: string
+          subject: string
+          teacher_id: string
+          trimester: number
+          updated_at?: string
+        }
+        Update: {
+          coefficient?: number
+          created_at?: string
+          description?: string | null
+          grade?: number
+          grade_type?: string
+          id?: string
+          school_year?: string
+          student_id?: string
+          subject?: string
+          teacher_id?: string
+          trimester?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grades_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grades_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_read: boolean
+          parent_message_id: string | null
+          recipient_id: string
+          sender_id: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          parent_message_id?: string | null
+          recipient_id: string
+          sender_id: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          parent_message_id?: string | null
+          recipient_id?: string
+          sender_id?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_parent_message_id_fkey"
+            columns: ["parent_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

@@ -125,6 +125,21 @@ interface ClassStudent {
   };
 }
 
+interface LinguisticSection {
+  id: string;
+  name: string;
+  code: string | null;
+  teaching_language: string;
+  is_default: boolean;
+  color: string | null;
+}
+
+interface ClassSection {
+  id: string;
+  class_id: string;
+  section_id: string;
+}
+
 const typeLabels: Record<string, string> = {
   direction: "Direction",
   department: "Département",
@@ -145,6 +160,8 @@ const EstablishmentConfig = () => {
   const [classes, setClasses] = useState<Class[]>([]);
   const [classTeachers, setClassTeachers] = useState<ClassTeacher[]>([]);
   const [classStudents, setClassStudents] = useState<ClassStudent[]>([]);
+  const [linguisticSections, setLinguisticSections] = useState<LinguisticSection[]>([]);
+  const [classSections, setClassSections] = useState<ClassSection[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal states
@@ -186,6 +203,7 @@ const EstablishmentConfig = () => {
     school_year: "2024-2025",
     capacity: 30,
     room: "",
+    linguistic_section_ids: [] as string[],
   });
 
   useEffect(() => {
@@ -333,7 +351,26 @@ const EstablishmentConfig = () => {
         } else {
           setClassStudents([]);
         }
+
+        // Fetch class sections (linguistic sections association)
+        const { data: clsSectionsData, error: clsSectionsError } = await supabase
+          .from("class_sections")
+          .select("*")
+          .in("class_id", classIds);
+
+        if (clsSectionsError) throw clsSectionsError;
+        setClassSections(clsSectionsData || []);
       }
+
+      // Fetch linguistic sections for this establishment
+      const { data: lingSectionsData, error: lingSectionsError } = await supabase
+        .from("linguistic_sections")
+        .select("*")
+        .eq("establishment_id", establishmentId)
+        .order("order_index");
+
+      if (lingSectionsError) throw lingSectionsError;
+      setLinguisticSections(lingSectionsData || []);
     } catch (error) {
       console.error("Error fetching establishment data:", error);
       toast.error("Erreur lors du chargement des données");
@@ -428,6 +465,8 @@ const EstablishmentConfig = () => {
     if (!establishmentId || !classForm.name || !classForm.level) return;
 
     try {
+      let classId = editingClass?.id;
+
       if (editingClass) {
         const { error } = await supabase
           .from("classes")
@@ -443,9 +482,8 @@ const EstablishmentConfig = () => {
           .eq("id", editingClass.id);
 
         if (error) throw error;
-        toast.success("Classe modifiée");
       } else {
-        const { error } = await supabase.from("classes").insert({
+        const { data, error } = await supabase.from("classes").insert({
           establishment_id: establishmentId,
           name: classForm.name,
           code: classForm.code || null,
@@ -454,12 +492,36 @@ const EstablishmentConfig = () => {
           school_year: classForm.school_year,
           capacity: classForm.capacity,
           room: classForm.room || null,
-        });
+        }).select("id").single();
 
         if (error) throw error;
-        toast.success("Classe créée");
+        classId = data.id;
       }
 
+      // Gérer les associations de sections linguistiques
+      if (classId) {
+        // Supprimer les anciennes associations
+        await supabase
+          .from("class_sections")
+          .delete()
+          .eq("class_id", classId);
+
+        // Ajouter les nouvelles associations
+        if (classForm.linguistic_section_ids.length > 0) {
+          const insertData = classForm.linguistic_section_ids.map(sectionId => ({
+            class_id: classId,
+            section_id: sectionId,
+          }));
+
+          const { error: insertError } = await supabase
+            .from("class_sections")
+            .insert(insertData);
+
+          if (insertError) throw insertError;
+        }
+      }
+
+      toast.success(editingClass ? "Classe modifiée" : "Classe créée");
       setShowClassModal(false);
       resetClassForm();
       fetchEstablishmentData();
@@ -522,7 +584,7 @@ const EstablishmentConfig = () => {
   };
 
   const resetClassForm = () => {
-    setClassForm({ name: "", code: "", level: "", section: "", school_year: "2024-2025", capacity: 30, room: "" });
+    setClassForm({ name: "", code: "", level: "", section: "", school_year: "2024-2025", capacity: 30, room: "", linguistic_section_ids: [] });
     setEditingClass(null);
   };
 
@@ -552,6 +614,9 @@ const EstablishmentConfig = () => {
 
   const openEditClass = (cls: Class) => {
     setEditingClass(cls);
+    const currentSectionIds = classSections
+      .filter(cs => cs.class_id === cls.id)
+      .map(cs => cs.section_id);
     setClassForm({
       name: cls.name,
       code: cls.code || "",
@@ -560,6 +625,7 @@ const EstablishmentConfig = () => {
       school_year: cls.school_year,
       capacity: cls.capacity || 30,
       room: cls.room || "",
+      linguistic_section_ids: currentSectionIds,
     });
     setShowClassModal(true);
   };
@@ -568,6 +634,10 @@ const EstablishmentConfig = () => {
   const getUsersForPosition = (posId: string) => userPositions.filter((up) => up.position_id === posId);
   const getTeachersForClass = (classId: string) => classTeachers.filter((ct) => ct.class_id === classId);
   const getStudentsForClass = (classId: string) => classStudents.filter((cs) => cs.class_id === classId);
+  const getSectionsForClass = (classId: string) => {
+    const sectionIds = classSections.filter(cs => cs.class_id === classId).map(cs => cs.section_id);
+    return linguisticSections.filter(ls => sectionIds.includes(ls.id));
+  };
 
   const handlePositionClick = (position: Position) => {
     setSelectedPosition(position);
@@ -893,8 +963,8 @@ const EstablishmentConfig = () => {
                 {classes.map((cls) => {
                   const teachers = getTeachersForClass(cls.id);
                   const mainTeacher = teachers.find((t) => t.is_main_teacher);
-
                   const students = getStudentsForClass(cls.id);
+                  const sections = getSectionsForClass(cls.id);
 
                   return (
                     <GlassCard key={cls.id} className="p-4" solid>
@@ -935,6 +1005,23 @@ const EstablishmentConfig = () => {
                           </GlassButton>
                         </div>
                       </div>
+
+                      {/* Linguistic Sections */}
+                      {sections.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border/50">
+                          <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                            <Languages className="h-3 w-3" />
+                            Sections linguistiques :
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {sections.map((section) => (
+                              <Badge key={section.id} variant="secondary" className="text-xs">
+                                {section.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Teachers */}
                       {teachers.length > 0 && (
@@ -1258,6 +1345,58 @@ const EstablishmentConfig = () => {
                 placeholder="Ex: Salle 101"
               />
             </div>
+
+            {/* Sections linguistiques */}
+            {linguisticSections.length > 0 && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Languages className="h-4 w-4" />
+                  Sections linguistiques
+                </Label>
+                <div className="flex flex-wrap gap-2 p-3 border rounded-lg bg-muted/20">
+                  {linguisticSections.map((section) => {
+                    const isSelected = classForm.linguistic_section_ids.includes(section.id);
+                    return (
+                      <button
+                        key={section.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setClassForm({
+                              ...classForm,
+                              linguistic_section_ids: classForm.linguistic_section_ids.filter(
+                                (id) => id !== section.id
+                              ),
+                            });
+                          } else {
+                            setClassForm({
+                              ...classForm,
+                              linguistic_section_ids: [
+                                ...classForm.linguistic_section_ids,
+                                section.id,
+                              ],
+                            });
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted hover:bg-muted/80"
+                        }`}
+                      >
+                        {section.name}
+                        {section.code && (
+                          <span className="ml-1 opacity-70">({section.code})</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Cliquez pour sélectionner/désélectionner les sections
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <GlassButton variant="outline" onClick={() => setShowClassModal(false)}>

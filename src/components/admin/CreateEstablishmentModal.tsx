@@ -166,19 +166,31 @@ export const CreateEstablishmentModal = ({
   
   const [form, setForm] = useState({
     name: "",
-    code: "",
     type: "college" as string,
     address: "",
     phone: "",
     email: "",
     country_code: "GA",
     selectedLevels: [] as string[],
-    student_capacity: 500,
     group_id: groupId || null as string | null,
     options: [] as string[],
     latitude: null as number | null,
     longitude: null as number | null,
   });
+
+  // Génération automatique du code unique
+  const generateUniqueCode = () => {
+    const typePrefix = form.type.substring(0, 3).toUpperCase();
+    const nameWords = form.name.trim().split(/\s+/);
+    const nameInitials = nameWords
+      .slice(0, 3)
+      .map(word => word.charAt(0).toUpperCase())
+      .join("");
+    const countryCode = form.country_code.toUpperCase();
+    const randomSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
+    
+    return `${typePrefix}-${nameInitials || "XXX"}-${countryCode}-${randomSuffix}`;
+  };
 
   const fetchGroups = async () => {
     try {
@@ -230,14 +242,12 @@ export const CreateEstablishmentModal = ({
       setGeoAddress(null);
       setForm({
         name: "",
-        code: "",
         type: "college",
         address: "",
         phone: "",
         email: "",
         country_code: "GA",
         selectedLevels: [],
-        student_capacity: 500,
         group_id: groupId || null,
         options: [],
         latitude: null,
@@ -425,16 +435,16 @@ export const CreateEstablishmentModal = ({
 
     setLoading(true);
     try {
+      const autoCode = generateUniqueCode();
       const { error } = await supabase.from("establishments").insert({
         name: form.name,
-        code: form.code || null,
+        code: autoCode,
         type: form.type,
         address: form.address || null,
         phone: form.phone || null,
         email: form.email || null,
         country_code: form.country_code,
         levels: getSelectedLevelsDisplay(),
-        student_capacity: form.student_capacity,
         group_id: form.group_id,
         options: form.options.length > 0 ? form.options : null,
         latitude: form.latitude,
@@ -496,14 +506,6 @@ export const CreateEstablishmentModal = ({
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Code unique</Label>
-                  <Input
-                    value={form.code}
-                    onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-                    placeholder="Ex: LYC-EXC-LBV"
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label>Type d'établissement *</Label>
                   <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
                     <SelectTrigger>
@@ -564,18 +566,6 @@ export const CreateEstablishmentModal = ({
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Capacité d'élèves
-                  </Label>
-                  <Input
-                    type="number"
-                    value={form.student_capacity}
-                    onChange={(e) => setForm({ ...form, student_capacity: parseInt(e.target.value) || 500 })}
-                    min={1}
-                  />
                 </div>
               </div>
 

@@ -14,6 +14,9 @@ import Dashboard from "./pages/Dashboard";
 import Messages from "./pages/Messages";
 import Grades from "./pages/Grades";
 import Absences from "./pages/Absences";
+import Schedule from "./pages/Schedule";
+import Analytics from "./pages/Analytics";
+import ReportCards from "./pages/ReportCards";
 import UsersManagement from "./pages/admin/UsersManagement";
 import EstablishmentsManagement from "./pages/admin/EstablishmentsManagement";
 import NotFound from "./pages/NotFound";
@@ -39,6 +42,9 @@ const App = () => (
             <Route path="/messages" element={<Messages />} />
             <Route path="/notes" element={<Grades />} />
             <Route path="/absences" element={<Absences />} />
+            <Route path="/emploi-du-temps" element={<Schedule />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/bulletins" element={<ReportCards />} />
             <Route path="/admin/users" element={<UsersManagement />} />
             <Route path="/admin/establishments" element={<EstablishmentsManagement />} />
             <Route path="*" element={<NotFound />} />

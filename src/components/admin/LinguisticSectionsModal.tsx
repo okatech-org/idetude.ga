@@ -10,14 +10,17 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Languages, 
   Plus,
   Trash2,
   Edit,
-  GraduationCap
+  GraduationCap,
+  Upload
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
+import { MultiFileImport, AnalysisResult } from "./MultiFileImport";
 
 interface LinguisticSectionsModalProps {
   open: boolean;
@@ -65,6 +68,7 @@ export const LinguisticSectionsModal = ({
   const [sections, setSections] = useState<LinguisticSection[]>([]);
   const [editingSection, setEditingSection] = useState<LinguisticSection | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<"list" | "import">("list");
   
   const [form, setForm] = useState({
     name: "",
@@ -209,11 +213,24 @@ export const LinguisticSectionsModal = ({
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="h-[55vh] pr-4">
-          <div className="space-y-4">
-            {/* Liste des sections */}
-            {!showForm && (
-              <>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "list" | "import")} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="list" className="flex items-center gap-2">
+              <Languages className="h-4 w-4" />
+              Sections ({sections.length})
+            </TabsTrigger>
+            <TabsTrigger value="import" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Import IA
+            </TabsTrigger>
+          </TabsList>
+
+          <ScrollArea className="h-[50vh] pr-4">
+            <TabsContent value="list" className="mt-0">
+              <div className="space-y-4">
+                {/* Liste des sections */}
+                {!showForm && (
+                  <>
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
                     Définissez les sections linguistiques pour organiser vos classes par langue d'enseignement
@@ -365,7 +382,47 @@ export const LinguisticSectionsModal = ({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </TabsContent>
+
+            <TabsContent value="import" className="mt-0">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold">Import intelligent de sections</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Importez un fichier décrivant les sections linguistiques de votre établissement.
+                  </p>
+                </div>
+                
+                <MultiFileImport
+                  context="linguistic_sections"
+                  establishmentId={establishmentId}
+                  onAnalysisComplete={(result: AnalysisResult) => {
+                    if (result.success && Array.isArray(result.data)) {
+                      result.data.forEach((item: any) => {
+                        if (item.name) {
+                          setForm({
+                            name: item.name || "",
+                            code: item.code || "",
+                            teaching_language: item.teaching_language || "fr",
+                            is_default: item.is_default || false,
+                            description: item.description || "",
+                            color: "",
+                          });
+                        }
+                      });
+                      
+                      if (result.data.length > 0) {
+                        toast.success(`${result.data.length} section(s) détectée(s).`);
+                        setShowForm(true);
+                        setActiveTab("list");
+                      }
+                    }
+                  }}
+                />
+              </div>
+            </TabsContent>
+          </ScrollArea>
+        </Tabs>
 
         <DialogFooter>
           <GlassButton variant="outline" onClick={() => onOpenChange(false)}>

@@ -4,8 +4,10 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { GlassCard } from "@/components/ui/glass-card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download } from "lucide-react";
+import { Loader2, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download, Sparkles } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MultiFileImport, AnalysisResult } from "./MultiFileImport";
 
 interface ImportUsersModalProps {
   open: boolean;
@@ -153,7 +155,19 @@ parent@exemple.com,MotDePasse123,Pierre,DURAND,parent_primary`;
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <Tabs defaultValue="csv" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="csv" className="flex items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Import CSV
+            </TabsTrigger>
+            <TabsTrigger value="ai" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              Import IA
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="csv" className="space-y-4 mt-0">
           {/* Template Download */}
           <GlassCard className="p-4" solid>
             <p className="text-sm text-muted-foreground mb-2">
@@ -247,7 +261,50 @@ parent@exemple.com,MotDePasse123,Pierre,DURAND,parent_primary`;
               Importer {parsedUsers.length} utilisateur(s)
             </GlassButton>
           </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="ai" className="space-y-4 mt-0">
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold">Import intelligent</h4>
+                <p className="text-sm text-muted-foreground">
+                  Importez n'importe quel fichier (CSV, image, PDF) contenant des informations utilisateurs. L'IA analysera et extraira les données.
+                </p>
+              </div>
+              
+              <MultiFileImport
+                context="users"
+                onAnalysisComplete={(result: AnalysisResult) => {
+                  if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+                    // Convert AI results to ParsedUser format
+                    const users = result.data.map((item: any) => ({
+                      email: item.email || "",
+                      password: "TempPass123!",
+                      firstName: item.firstName || item.first_name || "",
+                      lastName: item.lastName || item.last_name || "",
+                      role: item.role || "student",
+                      status: "pending" as const,
+                    })).filter((u: any) => u.email);
+                    
+                    if (users.length > 0) {
+                      setParsedUsers(users);
+                      toast.success(`${users.length} utilisateur(s) détecté(s). Vérifiez et importez.`);
+                    }
+                  }
+                }}
+              />
+              
+              <GlassCard className="p-4" solid>
+                <h5 className="font-medium text-sm mb-2">Formats acceptés :</h5>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Listes CSV/Excel exportées d'autres systèmes</li>
+                  <li>• Photos de listes imprimées</li>
+                  <li>• Documents PDF avec tableaux</li>
+                </ul>
+              </GlassCard>
+            </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

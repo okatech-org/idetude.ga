@@ -22,9 +22,11 @@ import {
   Plus,
   Trash2,
   GraduationCap,
-  Edit
+  Edit,
+  Upload
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
+import { MultiFileImport, AnalysisResult } from "./MultiFileImport";
 
 interface SubjectConfigModalProps {
   open: boolean;
@@ -290,7 +292,7 @@ export const SubjectConfigModal = ({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="list" className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4" />
               Matières ({subjects.length})
@@ -302,6 +304,10 @@ export const SubjectConfigModal = ({
             <TabsTrigger value="add" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               {editingSubject ? "Modifier" : "Ajouter"}
+            </TabsTrigger>
+            <TabsTrigger value="import" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Import IA
             </TabsTrigger>
           </TabsList>
 
@@ -601,6 +607,61 @@ export const SubjectConfigModal = ({
                   placeholder="Description de la matière..."
                   rows={2}
                 />
+              </div>
+            </TabsContent>
+
+            {/* Import IA */}
+            <TabsContent value="import" className="space-y-4 mt-0">
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold">Import intelligent de matières</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Importez un fichier CSV, une image d'emploi du temps ou un document PDF. 
+                    L'IA analysera le contenu et pré-remplira les matières.
+                  </p>
+                </div>
+                
+                <MultiFileImport
+                  context="subjects"
+                  establishmentId={establishmentId}
+                  onAnalysisComplete={(result: AnalysisResult) => {
+                    if (result.success && Array.isArray(result.data)) {
+                      // Pre-fill subjects from AI analysis
+                      result.data.forEach((item: any) => {
+                        if (item.name) {
+                          setForm({
+                            name: item.name || "",
+                            code: item.code || "",
+                            category: item.category || "general",
+                            is_language: item.is_language || false,
+                            language_code: item.language_code || "",
+                            language_level: item.language_level || "",
+                            coefficient: item.coefficient || 1,
+                            hours_per_week: item.hours_per_week || 2,
+                            is_mandatory: item.is_mandatory !== false,
+                            color: "",
+                            description: item.description || "",
+                          });
+                        }
+                      });
+                      
+                      if (result.data.length > 0) {
+                        toast.success(`${result.data.length} matière(s) détectée(s). Vérifiez et ajoutez-les.`);
+                        setActiveTab("add");
+                      }
+                    }
+                  }}
+                />
+                
+                {/* Suggestions */}
+                <GlassCard className="p-4" solid>
+                  <h5 className="font-medium text-sm mb-2">Formats recommandés :</h5>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• CSV avec colonnes : nom, code, catégorie, coefficient</li>
+                    <li>• Image d'un emploi du temps ou liste de matières</li>
+                    <li>• PDF de programme scolaire</li>
+                  </ul>
+                </GlassCard>
               </div>
             </TabsContent>
           </ScrollArea>

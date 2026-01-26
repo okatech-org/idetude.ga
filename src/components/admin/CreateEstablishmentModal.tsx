@@ -148,92 +148,129 @@ const TYPE_QUALIFICATIONS: Record<string, string[]> = {
   ],
 };
 
-// Systèmes éducatifs / Nature de l'éducation - Liste complète internationale
+// Systèmes éducatifs / Nature de l'éducation - Liste complète internationale (sans options bilingues/hybrides)
 const EDUCATION_SYSTEMS = [
   // Systèmes francophones
-  { value: "francophone", label: "Francophone (France)", icon: "🇫🇷", description: "Baccalauréat français (BEPC, BAC)" },
-  { value: "belge", label: "Belge", icon: "🇧🇪", description: "Système belge francophone" },
-  { value: "suisse", label: "Suisse", icon: "🇨🇭", description: "Maturité suisse / Certificat fédéral" },
-  { value: "canadien_fr", label: "Canadien Francophone", icon: "🇨🇦", description: "Système québécois (DES, DEC)" },
+  { value: "francophone", label: "Francophone (France)", icon: "🇫🇷", description: "Baccalauréat français (BEPC, BAC)", mainLanguage: "fr" },
+  { value: "belge", label: "Belge", icon: "🇧🇪", description: "Système belge francophone", mainLanguage: "fr" },
+  { value: "suisse", label: "Suisse", icon: "🇨🇭", description: "Maturité suisse / Certificat fédéral", mainLanguage: "fr" },
+  { value: "canadien_fr", label: "Canadien Francophone", icon: "🇨🇦", description: "Système québécois (DES, DEC)", mainLanguage: "fr" },
   
   // Systèmes anglophones
-  { value: "britannique", label: "Britannique", icon: "🇬🇧", description: "GCSE, IGCSE, A-Levels, O-Levels" },
-  { value: "americain", label: "Américain", icon: "🇺🇸", description: "High School Diploma, AP, SAT/ACT" },
-  { value: "canadien_en", label: "Canadien Anglophone", icon: "🇨🇦", description: "Système canadien anglophone" },
-  { value: "australien", label: "Australien", icon: "🇦🇺", description: "HSC, VCE, ATAR" },
-  { value: "neo_zelandais", label: "Néo-Zélandais", icon: "🇳🇿", description: "NCEA (National Certificate)" },
-  { value: "irlandais", label: "Irlandais", icon: "🇮🇪", description: "Leaving Certificate" },
-  { value: "sud_africain", label: "Sud-Africain", icon: "🇿🇦", description: "National Senior Certificate (NSC)" },
+  { value: "britannique", label: "Britannique", icon: "🇬🇧", description: "GCSE, IGCSE, A-Levels, O-Levels", mainLanguage: "en" },
+  { value: "americain", label: "Américain", icon: "🇺🇸", description: "High School Diploma, AP, SAT/ACT", mainLanguage: "en" },
+  { value: "canadien_en", label: "Canadien Anglophone", icon: "🇨🇦", description: "Système canadien anglophone", mainLanguage: "en" },
+  { value: "australien", label: "Australien", icon: "🇦🇺", description: "HSC, VCE, ATAR", mainLanguage: "en" },
+  { value: "neo_zelandais", label: "Néo-Zélandais", icon: "🇳🇿", description: "NCEA (National Certificate)", mainLanguage: "en" },
+  { value: "irlandais", label: "Irlandais", icon: "🇮🇪", description: "Leaving Certificate", mainLanguage: "en" },
+  { value: "sud_africain", label: "Sud-Africain", icon: "🇿🇦", description: "National Senior Certificate (NSC)", mainLanguage: "en" },
   
   // Systèmes internationaux
-  { value: "ib", label: "Baccalauréat International (IB)", icon: "🌐", description: "Programme IB (PYP, MYP, DP)" },
-  { value: "cambridge", label: "Cambridge International", icon: "📚", description: "Cambridge IGCSE, AS/A Level" },
-  { value: "wassce", label: "WASSCE (Afrique de l'Ouest)", icon: "🌍", description: "West African Senior School Certificate" },
+  { value: "ib", label: "Baccalauréat International (IB)", icon: "🌐", description: "Programme IB (PYP, MYP, DP)", mainLanguage: "multi" },
+  { value: "cambridge", label: "Cambridge International", icon: "📚", description: "Cambridge IGCSE, AS/A Level", mainLanguage: "en" },
+  { value: "wassce", label: "WASSCE (Afrique de l'Ouest)", icon: "🌍", description: "West African Senior School Certificate", mainLanguage: "en" },
   
   // Systèmes germaniques
-  { value: "allemand", label: "Allemand", icon: "🇩🇪", description: "Abitur, Realschulabschluss" },
-  { value: "autrichien", label: "Autrichien", icon: "🇦🇹", description: "Matura autrichienne" },
+  { value: "allemand", label: "Allemand", icon: "🇩🇪", description: "Abitur, Realschulabschluss", mainLanguage: "de" },
+  { value: "autrichien", label: "Autrichien", icon: "🇦🇹", description: "Matura autrichienne", mainLanguage: "de" },
   
   // Systèmes hispaniques/lusophones
-  { value: "espagnol", label: "Espagnol", icon: "🇪🇸", description: "Bachillerato, Selectividad/EBAU" },
-  { value: "mexicain", label: "Mexicain", icon: "🇲🇽", description: "Bachillerato mexicain" },
-  { value: "portugais", label: "Portugais", icon: "🇵🇹", description: "Ensino Secundário" },
-  { value: "bresilien", label: "Brésilien", icon: "🇧🇷", description: "ENEM, Vestibular" },
+  { value: "espagnol", label: "Espagnol", icon: "🇪🇸", description: "Bachillerato, Selectividad/EBAU", mainLanguage: "es" },
+  { value: "mexicain", label: "Mexicain", icon: "🇲🇽", description: "Bachillerato mexicain", mainLanguage: "es" },
+  { value: "portugais", label: "Portugais", icon: "🇵🇹", description: "Ensino Secundário", mainLanguage: "pt" },
+  { value: "bresilien", label: "Brésilien", icon: "🇧🇷", description: "ENEM, Vestibular", mainLanguage: "pt" },
   
   // Systèmes asiatiques
-  { value: "chinois", label: "Chinois", icon: "🇨🇳", description: "Gaokao, Zhongkao" },
-  { value: "japonais", label: "Japonais", icon: "🇯🇵", description: "Juken (examens d'entrée universitaire)" },
-  { value: "coreen", label: "Coréen", icon: "🇰🇷", description: "Suneung (CSAT)" },
-  { value: "indien", label: "Indien", icon: "🇮🇳", description: "CBSE, ICSE, ISC, State Boards" },
-  { value: "singapourien", label: "Singapourien", icon: "🇸🇬", description: "O-Level, A-Level singapourien" },
-  { value: "hong_kong", label: "Hong Kong", icon: "🇭🇰", description: "HKDSE (Diploma of Secondary Education)" },
-  { value: "taiwanais", label: "Taïwanais", icon: "🇹🇼", description: "Système taïwanais" },
-  { value: "indonesien", label: "Indonésien", icon: "🇮🇩", description: "Ujian Nasional (UN)" },
-  { value: "malaysien", label: "Malaisien", icon: "🇲🇾", description: "SPM, STPM" },
-  { value: "philippin", label: "Philippin", icon: "🇵🇭", description: "K-12 philippin" },
-  { value: "vietnamien", label: "Vietnamien", icon: "🇻🇳", description: "Thi THPT Quốc gia" },
-  { value: "thailandais", label: "Thaïlandais", icon: "🇹🇭", description: "Système thaïlandais" },
+  { value: "chinois", label: "Chinois", icon: "🇨🇳", description: "Gaokao, Zhongkao", mainLanguage: "zh" },
+  { value: "japonais", label: "Japonais", icon: "🇯🇵", description: "Juken (examens d'entrée universitaire)", mainLanguage: "ja" },
+  { value: "coreen", label: "Coréen", icon: "🇰🇷", description: "Suneung (CSAT)", mainLanguage: "ko" },
+  { value: "indien", label: "Indien", icon: "🇮🇳", description: "CBSE, ICSE, ISC, State Boards", mainLanguage: "hi" },
+  { value: "singapourien", label: "Singapourien", icon: "🇸🇬", description: "O-Level, A-Level singapourien", mainLanguage: "en" },
+  { value: "hong_kong", label: "Hong Kong", icon: "🇭🇰", description: "HKDSE (Diploma of Secondary Education)", mainLanguage: "zh" },
+  { value: "taiwanais", label: "Taïwanais", icon: "🇹🇼", description: "Système taïwanais", mainLanguage: "zh" },
+  { value: "indonesien", label: "Indonésien", icon: "🇮🇩", description: "Ujian Nasional (UN)", mainLanguage: "id" },
+  { value: "malaysien", label: "Malaisien", icon: "🇲🇾", description: "SPM, STPM", mainLanguage: "ms" },
+  { value: "philippin", label: "Philippin", icon: "🇵🇭", description: "K-12 philippin", mainLanguage: "en" },
+  { value: "vietnamien", label: "Vietnamien", icon: "🇻🇳", description: "Thi THPT Quốc gia", mainLanguage: "vi" },
+  { value: "thailandais", label: "Thaïlandais", icon: "🇹🇭", description: "Système thaïlandais", mainLanguage: "th" },
   
   // Systèmes arabes/islamiques
-  { value: "arabe", label: "Arabe", icon: "🇸🇦", description: "Système arabe standard" },
-  { value: "islamique", label: "Islamique / Coranique", icon: "☪️", description: "Madrasah, Maktab, études islamiques" },
-  { value: "egyptien", label: "Égyptien", icon: "🇪🇬", description: "Thanaweya Amma" },
-  { value: "marocain", label: "Marocain", icon: "🇲🇦", description: "Baccalauréat marocain" },
-  { value: "algerien", label: "Algérien", icon: "🇩🇿", description: "BEF, Baccalauréat algérien" },
-  { value: "tunisien", label: "Tunisien", icon: "🇹🇳", description: "Baccalauréat tunisien" },
-  { value: "emirien", label: "Émirien (EAU)", icon: "🇦🇪", description: "Système des Émirats" },
-  { value: "iranien", label: "Iranien", icon: "🇮🇷", description: "Diplom, Konkoor" },
+  { value: "arabe", label: "Arabe", icon: "🇸🇦", description: "Système arabe standard", mainLanguage: "ar" },
+  { value: "islamique", label: "Islamique / Coranique", icon: "☪️", description: "Madrasah, Maktab, études islamiques", mainLanguage: "ar" },
+  { value: "egyptien", label: "Égyptien", icon: "🇪🇬", description: "Thanaweya Amma", mainLanguage: "ar" },
+  { value: "marocain", label: "Marocain", icon: "🇲🇦", description: "Baccalauréat marocain", mainLanguage: "ar" },
+  { value: "algerien", label: "Algérien", icon: "🇩🇿", description: "BEF, Baccalauréat algérien", mainLanguage: "ar" },
+  { value: "tunisien", label: "Tunisien", icon: "🇹🇳", description: "Baccalauréat tunisien", mainLanguage: "ar" },
+  { value: "emirien", label: "Émirien (EAU)", icon: "🇦🇪", description: "Système des Émirats", mainLanguage: "ar" },
+  { value: "iranien", label: "Iranien", icon: "🇮🇷", description: "Diplom, Konkoor", mainLanguage: "fa" },
   
   // Systèmes slaves/Europe de l'Est
-  { value: "russe", label: "Russe", icon: "🇷🇺", description: "EGE (Examen d'État unifié)" },
-  { value: "polonais", label: "Polonais", icon: "🇵🇱", description: "Matura polonaise" },
-  { value: "tcheque", label: "Tchèque", icon: "🇨🇿", description: "Maturita tchèque" },
-  { value: "roumain", label: "Roumain", icon: "🇷🇴", description: "Bacalaureat roumain" },
-  { value: "ukrainien", label: "Ukrainien", icon: "🇺🇦", description: "ZNO (test externe)" },
+  { value: "russe", label: "Russe", icon: "🇷🇺", description: "EGE (Examen d'État unifié)", mainLanguage: "ru" },
+  { value: "polonais", label: "Polonais", icon: "🇵🇱", description: "Matura polonaise", mainLanguage: "pl" },
+  { value: "tcheque", label: "Tchèque", icon: "🇨🇿", description: "Maturita tchèque", mainLanguage: "cs" },
+  { value: "roumain", label: "Roumain", icon: "🇷🇴", description: "Bacalaureat roumain", mainLanguage: "ro" },
+  { value: "ukrainien", label: "Ukrainien", icon: "🇺🇦", description: "ZNO (test externe)", mainLanguage: "uk" },
   
   // Systèmes nordiques
-  { value: "finlandais", label: "Finlandais", icon: "🇫🇮", description: "Ylioppilastutkinto" },
-  { value: "suedois", label: "Suédois", icon: "🇸🇪", description: "Gymnasieexamen" },
-  { value: "norvegien", label: "Norvégien", icon: "🇳🇴", description: "Vitnemål (Certificat)" },
-  { value: "danois", label: "Danois", icon: "🇩🇰", description: "Studentereksamen" },
+  { value: "finlandais", label: "Finlandais", icon: "🇫🇮", description: "Ylioppilastutkinto", mainLanguage: "fi" },
+  { value: "suedois", label: "Suédois", icon: "🇸🇪", description: "Gymnasieexamen", mainLanguage: "sv" },
+  { value: "norvegien", label: "Norvégien", icon: "🇳🇴", description: "Vitnemål (Certificat)", mainLanguage: "no" },
+  { value: "danois", label: "Danois", icon: "🇩🇰", description: "Studentereksamen", mainLanguage: "da" },
   
   // Autres
-  { value: "italien", label: "Italien", icon: "🇮🇹", description: "Esame di Stato (Maturità)" },
-  { value: "neerlandais", label: "Néerlandais", icon: "🇳🇱", description: "VWO, HAVO, VMBO" },
-  { value: "grec", label: "Grec", icon: "🇬🇷", description: "Apolitirio, Panellinies" },
-  { value: "turc", label: "Turc", icon: "🇹🇷", description: "YKS, LGS" },
-  { value: "israelien", label: "Israélien", icon: "🇮🇱", description: "Bagrut" },
-  { value: "pakistanais", label: "Pakistanais", icon: "🇵🇰", description: "Matriculation, Intermediate, O/A Levels" },
-  { value: "bangladais", label: "Bangladais", icon: "🇧🇩", description: "SSC, HSC" },
-  { value: "sri_lankais", label: "Sri Lankais", icon: "🇱🇰", description: "GCE O/L, GCE A/L" },
-  
-  // Options bilingues/hybrides
-  { value: "bilingue_fr_en", label: "Bilingue Français-Anglais", icon: "🌍", description: "Programme bilingue FR/EN" },
-  { value: "bilingue_fr_ar", label: "Bilingue Français-Arabe", icon: "🌍", description: "Programme bilingue FR/AR" },
-  { value: "bilingue_en_ar", label: "Bilingue Anglais-Arabe", icon: "🌍", description: "Programme bilingue EN/AR" },
-  { value: "trilingue", label: "Trilingue", icon: "🌐", description: "Programme multilingue (3+ langues)" },
-  { value: "mixte", label: "Mixte / Hybride", icon: "🔀", description: "Combinaison de plusieurs systèmes" },
+  { value: "italien", label: "Italien", icon: "🇮🇹", description: "Esame di Stato (Maturità)", mainLanguage: "it" },
+  { value: "neerlandais", label: "Néerlandais", icon: "🇳🇱", description: "VWO, HAVO, VMBO", mainLanguage: "nl" },
+  { value: "grec", label: "Grec", icon: "🇬🇷", description: "Apolitirio, Panellinies", mainLanguage: "el" },
+  { value: "turc", label: "Turc", icon: "🇹🇷", description: "YKS, LGS", mainLanguage: "tr" },
+  { value: "israelien", label: "Israélien", icon: "🇮🇱", description: "Bagrut", mainLanguage: "he" },
+  { value: "pakistanais", label: "Pakistanais", icon: "🇵🇰", description: "Matriculation, Intermediate, O/A Levels", mainLanguage: "ur" },
+  { value: "bangladais", label: "Bangladais", icon: "🇧🇩", description: "SSC, HSC", mainLanguage: "bn" },
+  { value: "sri_lankais", label: "Sri Lankais", icon: "🇱🇰", description: "GCE O/L, GCE A/L", mainLanguage: "si" },
 ];
+
+// Langues d'enseignement additionnelles
+const TEACHING_LANGUAGES = [
+  { value: "fr", label: "Français", icon: "🇫🇷" },
+  { value: "en", label: "Anglais", icon: "🇬🇧" },
+  { value: "ar", label: "Arabe", icon: "🇸🇦" },
+  { value: "es", label: "Espagnol", icon: "🇪🇸" },
+  { value: "de", label: "Allemand", icon: "🇩🇪" },
+  { value: "zh", label: "Chinois (Mandarin)", icon: "🇨🇳" },
+  { value: "pt", label: "Portugais", icon: "🇵🇹" },
+  { value: "ru", label: "Russe", icon: "🇷🇺" },
+  { value: "ja", label: "Japonais", icon: "🇯🇵" },
+  { value: "ko", label: "Coréen", icon: "🇰🇷" },
+  { value: "it", label: "Italien", icon: "🇮🇹" },
+  { value: "nl", label: "Néerlandais", icon: "🇳🇱" },
+  { value: "tr", label: "Turc", icon: "🇹🇷" },
+  { value: "hi", label: "Hindi", icon: "🇮🇳" },
+  { value: "he", label: "Hébreu", icon: "🇮🇱" },
+  { value: "sw", label: "Swahili", icon: "🇰🇪" },
+  { value: "local", label: "Langue locale", icon: "🌍" },
+];
+
+// Helper pour déterminer le type linguistique
+const getLanguageDesignation = (systemCount: number, additionalLanguagesCount: number): { label: string; icon: string } | null => {
+  const totalLanguages = systemCount + additionalLanguagesCount;
+  
+  if (systemCount > 1) {
+    return { label: "Mixte / Hybride", icon: "🔀" };
+  }
+  
+  if (totalLanguages === 2) {
+    return { label: "Bilingue", icon: "🌍" };
+  }
+  
+  if (totalLanguages === 3) {
+    return { label: "Trilingue", icon: "🌐" };
+  }
+  
+  if (totalLanguages > 3) {
+    return { label: "Multilingue", icon: "🌐" };
+  }
+  
+  return null;
+};
 
 interface TypeWithQualification {
   type: string;
@@ -291,7 +328,8 @@ export const CreateEstablishmentModal = ({
   
   const [form, setForm] = useState({
     name: "",
-    educationSystem: "" as string,
+    educationSystems: [] as string[], // Multiple systems allowed
+    additionalLanguages: [] as string[], // Additional teaching languages
     typesWithQualification: [] as TypeWithQualification[],
     address: "",
     phone: "",
@@ -303,6 +341,9 @@ export const CreateEstablishmentModal = ({
     latitude: null as number | null,
     longitude: null as number | null,
   });
+  
+  // Computed language designation
+  const languageDesignation = getLanguageDesignation(form.educationSystems.length, form.additionalLanguages.length);
 
   // Génération automatique du code unique
   const generateUniqueCode = () => {
@@ -375,7 +416,8 @@ export const CreateEstablishmentModal = ({
       setGeoAddress(null);
       setForm({
         name: "",
-        educationSystem: "",
+        educationSystems: [],
+        additionalLanguages: [],
         typesWithQualification: [],
         address: "",
         phone: "",
@@ -556,8 +598,8 @@ export const CreateEstablishmentModal = ({
       return;
     }
 
-    if (!form.educationSystem) {
-      toast.error("Veuillez sélectionner un système éducatif");
+    if (form.educationSystems.length === 0) {
+      toast.error("Veuillez sélectionner au moins un système éducatif");
       return;
     }
 
@@ -601,10 +643,16 @@ export const CreateEstablishmentModal = ({
         .map(twq => twq.qualification ? `${twq.type}:${twq.qualification}` : twq.type)
         .join(",");
       
-      // Ajouter le système éducatif aux options
+      // Ajouter les systèmes éducatifs et langues aux options
       const allOptions = [...form.options];
-      if (form.educationSystem) {
-        allOptions.unshift(`system:${form.educationSystem}`);
+      form.educationSystems.forEach(sys => {
+        allOptions.push(`system:${sys}`);
+      });
+      form.additionalLanguages.forEach(lang => {
+        allOptions.push(`lang:${lang}`);
+      });
+      if (languageDesignation) {
+        allOptions.push(`designation:${languageDesignation.label.toLowerCase().replace(/ \/ /g, "_").replace(/ /g, "_")}`);
       }
       
       const { error } = await supabase.from("establishments").insert({
@@ -675,17 +723,62 @@ export const CreateEstablishmentModal = ({
                 />
               </div>
 
-              {/* Système éducatif */}
+              {/* Système(s) éducatif(s) */}
               <div className="space-y-2">
-                <Label>Système éducatif * <span className="text-xs text-muted-foreground">(nature de l'éducation)</span></Label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="flex items-center justify-between">
+                  <Label>Système(s) éducatif(s) * <span className="text-xs text-muted-foreground">(sélection multiple possible)</span></Label>
+                  {languageDesignation && (
+                    <Badge variant="outline" className="bg-primary/10 border-primary text-primary">
+                      {languageDesignation.icon} {languageDesignation.label}
+                    </Badge>
+                  )}
+                </div>
+                
+                {/* Systèmes sélectionnés */}
+                {form.educationSystems.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    {form.educationSystems.map(sysValue => {
+                      const system = EDUCATION_SYSTEMS.find(s => s.value === sysValue);
+                      return system ? (
+                        <Badge key={sysValue} variant="secondary" className="gap-2 pr-1">
+                          <span>{system.icon}</span>
+                          <span>{system.label}</span>
+                          <button
+                            type="button"
+                            onClick={() => setForm({
+                              ...form,
+                              educationSystems: form.educationSystems.filter(s => s !== sysValue)
+                            })}
+                            className="ml-1 hover:bg-destructive/20 rounded p-0.5"
+                          >
+                            ✕
+                          </button>
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-1">
                   {EDUCATION_SYSTEMS.map((system) => {
-                    const isSelected = form.educationSystem === system.value;
+                    const isSelected = form.educationSystems.includes(system.value);
                     return (
                       <button
                         key={system.value}
                         type="button"
-                        onClick={() => setForm({ ...form, educationSystem: system.value })}
+                        onClick={() => {
+                          if (isSelected) {
+                            setForm({
+                              ...form,
+                              educationSystems: form.educationSystems.filter(s => s !== system.value)
+                            });
+                          } else {
+                            setForm({
+                              ...form,
+                              educationSystems: [...form.educationSystems, system.value]
+                            });
+                          }
+                        }}
                         className={cn(
                           "p-3 rounded-lg border text-left transition-all",
                           isSelected
@@ -700,11 +793,89 @@ export const CreateEstablishmentModal = ({
                           </span>
                           {isSelected && <span className="ml-auto text-primary">✓</span>}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">{system.description}</p>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{system.description}</p>
                       </button>
                     );
                   })}
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  💡 Sélectionnez plusieurs systèmes pour un établissement "Mixte / Hybride"
+                </p>
+              </div>
+
+              {/* Langues d'enseignement additionnelles */}
+              <div className="space-y-2">
+                <Label>Langues d'enseignement additionnelles <span className="text-xs text-muted-foreground">(optionnel - détermine bilingue/trilingue/multilingue)</span></Label>
+                
+                {form.additionalLanguages.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-secondary/30 border">
+                    {form.additionalLanguages.map(langValue => {
+                      const lang = TEACHING_LANGUAGES.find(l => l.value === langValue);
+                      return lang ? (
+                        <Badge key={langValue} variant="outline" className="gap-2 pr-1">
+                          <span>{lang.icon}</span>
+                          <span>{lang.label}</span>
+                          <button
+                            type="button"
+                            onClick={() => setForm({
+                              ...form,
+                              additionalLanguages: form.additionalLanguages.filter(l => l !== langValue)
+                            })}
+                            className="ml-1 hover:bg-destructive/20 rounded p-0.5"
+                          >
+                            ✕
+                          </button>
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  {TEACHING_LANGUAGES.map((lang) => {
+                    const isSelected = form.additionalLanguages.includes(lang.value);
+                    // Ne pas afficher si c'est la langue principale du système sélectionné
+                    const isMainLanguage = form.educationSystems.some(sysValue => {
+                      const system = EDUCATION_SYSTEMS.find(s => s.value === sysValue);
+                      return system?.mainLanguage === lang.value;
+                    });
+                    
+                    if (isMainLanguage) return null;
+                    
+                    return (
+                      <button
+                        key={lang.value}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setForm({
+                              ...form,
+                              additionalLanguages: form.additionalLanguages.filter(l => l !== lang.value)
+                            });
+                          } else {
+                            setForm({
+                              ...form,
+                              additionalLanguages: [...form.additionalLanguages, lang.value]
+                            });
+                          }
+                        }}
+                        className={cn(
+                          "px-3 py-2 rounded-lg border text-sm font-medium transition-all flex items-center gap-2",
+                          isSelected
+                            ? "bg-secondary border-secondary-foreground/20"
+                            : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50"
+                        )}
+                      >
+                        <span>{lang.icon}</span>
+                        <span>{lang.label}</span>
+                        {isSelected && <span className="text-primary">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  📚 Ces langues s'ajoutent à la langue principale du système éducatif choisi
+                </p>
               </div>
 
               <div className="space-y-3">
@@ -1121,11 +1292,38 @@ export const CreateEstablishmentModal = ({
               <div className="p-4 rounded-lg border bg-muted/30">
                 <h4 className="font-medium mb-2">Récapitulatif</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Système:</span>{" "}
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Système(s):</span>{" "}
                     <span className="font-medium">
-                      {EDUCATION_SYSTEMS.find(s => s.value === form.educationSystem)?.icon}{" "}
-                      {EDUCATION_SYSTEMS.find(s => s.value === form.educationSystem)?.label || "Non défini"}
+                      {form.educationSystems.length > 0
+                        ? form.educationSystems.map(sysValue => {
+                            const sys = EDUCATION_SYSTEMS.find(s => s.value === sysValue);
+                            return sys ? `${sys.icon} ${sys.label}` : sysValue;
+                          }).join(", ")
+                        : "Non défini"}
+                      {languageDesignation && (
+                        <Badge variant="outline" className="ml-2 bg-primary/10 border-primary text-primary text-xs">
+                          {languageDesignation.icon} {languageDesignation.label}
+                        </Badge>
+                      )}
+                    </span>
+                  </div>
+                  {form.additionalLanguages.length > 0 && (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">Langues add.:</span>{" "}
+                      <span className="font-medium">
+                        {form.additionalLanguages.map(langValue => {
+                          const lang = TEACHING_LANGUAGES.find(l => l.value === langValue);
+                          return lang ? `${lang.icon} ${lang.label}` : langValue;
+                        }).join(", ")}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <span className="text-muted-foreground">Pays:</span>{" "}
+                    <span className="font-medium">
+                      {COUNTRIES.find(c => c.code === form.country_code)?.flag}{" "}
+                      {COUNTRIES.find(c => c.code === form.country_code)?.name}
                     </span>
                   </div>
                   <div>

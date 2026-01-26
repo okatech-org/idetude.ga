@@ -31,13 +31,12 @@ import ResourceAnalytics from "./pages/ResourceAnalytics";
 import Competencies from "./pages/Competencies";
 import DataExport from "./pages/DataExport";
 import UsersManagement from "./pages/admin/UsersManagement";
+import EstablishmentsManagement from "./pages/admin/EstablishmentsManagement";
 import EstablishmentConfig from "./pages/admin/EstablishmentConfig";
 import CommentModeration from "./pages/admin/CommentModeration";
 import CountriesManagement from "./pages/admin/CountriesManagement";
 import RegionsManagement from "./pages/admin/RegionsManagement";
-import SchoolGroupsList from "./pages/admin/SchoolGroupsList";
-import SchoolGroupsConfig from "./pages/admin/SchoolGroupsConfig";
-import EstablishmentsList from "./pages/admin/EstablishmentsList";
+import SchoolGroupsManagement from "./pages/admin/SchoolGroupsManagement";
 import GlobalAnalytics from "./pages/admin/GlobalAnalytics";
 import ActivityLog from "./pages/admin/ActivityLog";
 import GlobalExport from "./pages/admin/GlobalExport";
@@ -82,13 +81,12 @@ const App = () => (
               <Route path="/competences" element={<Competencies />} />
               <Route path="/export" element={<DataExport />} />
               <Route path="/admin/users" element={<UsersManagement />} />
-              <Route path="/admin/establishments" element={<EstablishmentsList />} />
+              <Route path="/admin/establishments" element={<EstablishmentsManagement />} />
               <Route path="/admin/establishments/config" element={<EstablishmentConfig />} />
               <Route path="/admin/moderation" element={<CommentModeration />} />
               <Route path="/admin/countries" element={<CountriesManagement />} />
               <Route path="/admin/regions" element={<RegionsManagement />} />
-              <Route path="/admin/groups" element={<SchoolGroupsList />} />
-              <Route path="/admin/groups/config" element={<SchoolGroupsConfig />} />
+              <Route path="/admin/groups" element={<SchoolGroupsManagement />} />
               <Route path="/admin/analytics" element={<GlobalAnalytics />} />
               <Route path="/admin/activity" element={<ActivityLog />} />
               <Route path="/admin/export" element={<GlobalExport />} />

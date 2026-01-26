@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -166,7 +167,7 @@ export const CreateEstablishmentModal = ({
   
   const [form, setForm] = useState({
     name: "",
-    type: "college" as string,
+    types: ["college"] as string[],
     address: "",
     phone: "",
     email: "",
@@ -180,7 +181,7 @@ export const CreateEstablishmentModal = ({
 
   // Génération automatique du code unique
   const generateUniqueCode = () => {
-    const typePrefix = form.type.substring(0, 3).toUpperCase();
+    const typePrefix = form.types[0]?.substring(0, 3).toUpperCase() || "ETB";
     const nameWords = form.name.trim().split(/\s+/);
     const nameInitials = nameWords
       .slice(0, 3)
@@ -219,20 +220,26 @@ export const CreateEstablishmentModal = ({
     }
   }, [open]);
 
-  // Mettre à jour les niveaux sélectionnés quand le type change
+  // Mettre à jour les niveaux sélectionnés quand les types changent
   useEffect(() => {
-    const estType = ESTABLISHMENT_TYPES.find(t => t.value === form.type);
-    if (estType) {
-      const defaultLevels: string[] = [];
-      estType.defaultCycles.forEach(cycle => {
-        const cycleData = EDUCATION_CYCLES[cycle as keyof typeof EDUCATION_CYCLES];
-        if (cycleData) {
-          cycleData.levels.forEach(level => defaultLevels.push(level.id));
-        }
-      });
-      setForm(prev => ({ ...prev, selectedLevels: defaultLevels }));
-    }
-  }, [form.type]);
+    const defaultLevels: string[] = [];
+    form.types.forEach(typeValue => {
+      const estType = ESTABLISHMENT_TYPES.find(t => t.value === typeValue);
+      if (estType) {
+        estType.defaultCycles.forEach(cycle => {
+          const cycleData = EDUCATION_CYCLES[cycle as keyof typeof EDUCATION_CYCLES];
+          if (cycleData) {
+            cycleData.levels.forEach(level => {
+              if (!defaultLevels.includes(level.id)) {
+                defaultLevels.push(level.id);
+              }
+            });
+          }
+        });
+      }
+    });
+    setForm(prev => ({ ...prev, selectedLevels: defaultLevels }));
+  }, [form.types.join(",")]);
 
   const handleOpen = (isOpen: boolean) => {
     if (isOpen) {
@@ -242,7 +249,7 @@ export const CreateEstablishmentModal = ({
       setGeoAddress(null);
       setForm({
         name: "",
-        type: "college",
+        types: ["college"],
         address: "",
         phone: "",
         email: "",
@@ -439,7 +446,7 @@ export const CreateEstablishmentModal = ({
       const { error } = await supabase.from("establishments").insert({
         name: form.name,
         code: autoCode,
-        type: form.type,
+        type: form.types.join(","),
         address: form.address || null,
         phone: form.phone || null,
         email: form.email || null,
@@ -464,7 +471,7 @@ export const CreateEstablishmentModal = ({
     }
   };
 
-  const showOptions = ["lycee", "college_lycee", "technique", "complexe"].includes(form.type);
+  const showOptions = form.types.some(t => ["lycee", "technique"].includes(t));
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
@@ -504,25 +511,41 @@ export const CreateEstablishmentModal = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Type d'établissement *</Label>
-                  <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ESTABLISHMENT_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          <span className="flex items-center gap-2">
-                            <span>{type.icon}</span>
-                            <span>{type.label}</span>
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-2">
+                <Label>Type(s) d'établissement * <span className="text-xs text-muted-foreground">(au moins un)</span></Label>
+                <div className="flex flex-wrap gap-2">
+                  {ESTABLISHMENT_TYPES.filter(t => !["complexe", "college_lycee", "primaire_college"].includes(t.value)).map((typeOption) => {
+                    const isSelected = form.types.includes(typeOption.value);
+                    return (
+                      <button
+                        key={typeOption.value}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            if (form.types.length > 1) {
+                              setForm({ ...form, types: form.types.filter((t) => t !== typeOption.value) });
+                            }
+                          } else {
+                            setForm({ ...form, types: [...form.types, typeOption.value] });
+                          }
+                        }}
+                        className={cn(
+                          "px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all flex items-center gap-2",
+                          isSelected
+                            ? "bg-primary/10 text-primary border-primary"
+                            : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50"
+                        )}
+                      >
+                        <span>{typeOption.icon}</span>
+                        <span>{typeOption.label}</span>
+                        {isSelected && <span>✓</span>}
+                      </button>
+                    );
+                  })}
                 </div>
+                {form.types.length === 0 && (
+                  <p className="text-sm text-destructive">Veuillez sélectionner au moins un type</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -846,9 +869,9 @@ export const CreateEstablishmentModal = ({
                 <h4 className="font-medium mb-2">Récapitulatif</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Type:</span>{" "}
+                    <span className="text-muted-foreground">Type(s):</span>{" "}
                     <span className="font-medium">
-                      {ESTABLISHMENT_TYPES.find(t => t.value === form.type)?.label}
+                      {form.types.map(t => ESTABLISHMENT_TYPES.find(et => et.value === t)?.label).filter(Boolean).join(", ")}
                     </span>
                   </div>
                   <div>

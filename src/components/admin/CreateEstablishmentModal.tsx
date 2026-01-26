@@ -714,10 +714,14 @@ export const CreateEstablishmentModal = ({
                   )}
                 </div>
 
-                {/* Affichage des coordonnées (non modifiables) */}
+                {/* Adresse détectée + Coordonnées GPS (non modifiables) */}
                 {form.latitude !== null && form.longitude !== null && (
-                  <div className="pt-2 border-t">
-                    <p className="text-xs text-muted-foreground mb-2">Coordonnées GPS (non modifiables) :</p>
+                  <div className="pt-2 border-t space-y-3">
+                    {geoAddress && (
+                      <div className="p-3 rounded-lg bg-muted/50 border">
+                        <p className="text-sm text-foreground">{geoAddress}</p>
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
                         <Label className="text-xs">Latitude</Label>
@@ -737,16 +741,6 @@ export const CreateEstablishmentModal = ({
                           className="bg-muted cursor-not-allowed"
                         />
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Adresse détectée (non modifiable) */}
-                {geoAddress && (
-                  <div className="pt-2 border-t">
-                    <Label className="text-xs text-muted-foreground">Adresse détectée (non modifiable) :</Label>
-                    <div className="mt-1 p-3 rounded-lg bg-muted/50 border">
-                      <p className="text-sm text-foreground">{geoAddress}</p>
                     </div>
                   </div>
                 )}

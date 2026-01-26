@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { 
   Building2, MapPin, GraduationCap, Users, Globe, Phone, Mail, 
-  CheckCircle2, XCircle, MapPinned, School, Languages
+  CheckCircle2, XCircle, MapPinned, School, Languages, Edit2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -16,6 +16,7 @@ interface ConfirmationStepProps {
   staff: StaffMember[];
   languageDesignation: { label: string; icon: string; totalLanguages: number } | null;
   groupName?: string;
+  onNavigateToTab?: (tab: string) => void;
 }
 
 interface SectionProps {
@@ -23,21 +24,34 @@ interface SectionProps {
   icon: React.ReactNode;
   children: React.ReactNode;
   status?: "complete" | "incomplete" | "optional";
+  tabTarget?: string;
+  onEdit?: (tab: string) => void;
 }
 
-const Section = ({ title, icon, children, status = "complete" }: SectionProps) => (
-  <div className="space-y-3">
+const Section = ({ title, icon, children, status = "complete", tabTarget, onEdit }: SectionProps) => (
+  <div className="space-y-3 group">
     <div className="flex items-center justify-between">
       <h4 className="font-medium flex items-center gap-2">
         {icon}
         {title}
       </h4>
-      {status === "complete" && (
-        <CheckCircle2 className="h-4 w-4 text-green-500" />
-      )}
-      {status === "incomplete" && (
-        <XCircle className="h-4 w-4 text-destructive" />
-      )}
+      <div className="flex items-center gap-2">
+        {status === "complete" && (
+          <CheckCircle2 className="h-4 w-4 text-green-500" />
+        )}
+        {status === "incomplete" && (
+          <XCircle className="h-4 w-4 text-destructive" />
+        )}
+        {tabTarget && onEdit && (
+          <button
+            onClick={() => onEdit(tabTarget)}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"
+            title="Modifier cette section"
+          >
+            <Edit2 className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+          </button>
+        )}
+      </div>
     </div>
     <div className="pl-6 space-y-2 text-sm">
       {children}
@@ -57,6 +71,7 @@ export const ConfirmationStep = ({
   staff,
   languageDesignation,
   groupName,
+  onNavigateToTab,
 }: ConfirmationStepProps) => {
   // Compute full name preview
   const fullName = (() => {
@@ -86,26 +101,41 @@ export const ConfirmationStep = ({
     return acc;
   }, [] as Array<typeof STAFF_TYPES[number] & { count: number }>);
 
+  const handleEdit = (tab: string) => {
+    onNavigateToTab?.(tab);
+  };
+
   return (
     <div className="space-y-6">
       <div className="text-center pb-4">
         <h3 className="text-lg font-semibold">Récapitulatif de l'établissement</h3>
-        <p className="text-sm text-muted-foreground">Vérifiez les informations avant de créer</p>
+        <p className="text-sm text-muted-foreground">
+          Vérifiez les informations avant de créer
+          {onNavigateToTab && <span className="block text-xs mt-1">Survolez une section pour la modifier</span>}
+        </p>
       </div>
 
       {/* Full name preview */}
-      <div className="p-4 rounded-lg bg-gradient-to-r from-primary/10 via-background to-secondary/10 border-2 border-primary/30 text-center">
+      <div 
+        className={cn(
+          "p-4 rounded-lg bg-gradient-to-r from-primary/10 via-background to-secondary/10 border-2 border-primary/30 text-center",
+          onNavigateToTab && "cursor-pointer hover:border-primary/50 transition-colors"
+        )}
+        onClick={() => handleEdit("informations")}
+      >
         <p className="text-xs text-muted-foreground mb-1">Nom complet de l'établissement</p>
         <p className="text-xl font-bold text-primary">{fullName || "—"}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {/* Identification */}
-        <div className="p-4 rounded-lg border bg-card space-y-4">
+        <div className="p-4 rounded-lg border bg-card space-y-4 hover:border-primary/30 transition-colors">
           <Section 
             title="Identification" 
             icon={<Building2 className="h-4 w-4 text-primary" />}
             status={formData.name && formData.typesWithQualification.length > 0 ? "complete" : "incomplete"}
+            tabTarget="informations"
+            onEdit={handleEdit}
           >
             <InfoRow label="Nom" value={formData.name} />
             <InfoRow 
@@ -134,6 +164,8 @@ export const ConfirmationStep = ({
             title="Système éducatif" 
             icon={<Globe className="h-4 w-4 text-primary" />}
             status={formData.educationSystems.length > 0 ? "complete" : "incomplete"}
+            tabTarget="informations"
+            onEdit={handleEdit}
           >
             <InfoRow 
               label="Système(s)" 
@@ -165,11 +197,13 @@ export const ConfirmationStep = ({
         </div>
 
         {/* Niveaux & Contact */}
-        <div className="p-4 rounded-lg border bg-card space-y-4">
+        <div className="p-4 rounded-lg border bg-card space-y-4 hover:border-primary/30 transition-colors">
           <Section 
             title="Niveaux scolaires" 
             icon={<GraduationCap className="h-4 w-4 text-primary" />}
             status={formData.selectedLevels.length > 0 ? "complete" : "incomplete"}
+            tabTarget="niveaux"
+            onEdit={handleEdit}
           >
             <InfoRow 
               label="Niveaux" 
@@ -201,6 +235,8 @@ export const ConfirmationStep = ({
             title="Localisation & Contact" 
             icon={<MapPinned className="h-4 w-4 text-primary" />}
             status={hasLocation ? "complete" : "incomplete"}
+            tabTarget="informations"
+            onEdit={handleEdit}
           >
             <InfoRow 
               label="Pays" 
@@ -227,11 +263,13 @@ export const ConfirmationStep = ({
 
       {/* Personnel summary */}
       {staff.length > 0 && (
-        <div className="p-4 rounded-lg border bg-card">
+        <div className="p-4 rounded-lg border bg-card hover:border-primary/30 transition-colors">
           <Section 
             title={`Personnel (${staff.length} membre${staff.length > 1 ? "s" : ""})`}
             icon={<Users className="h-4 w-4 text-primary" />}
             status="optional"
+            tabTarget="administration"
+            onEdit={handleEdit}
           >
             <div className="flex flex-wrap gap-2">
               {staffByType.map(type => (

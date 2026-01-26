@@ -409,6 +409,9 @@ export const CreateEstablishmentModal = ({
   const [systemSearchTerm, setSystemSearchTerm] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<string[]>(["francophone", "anglophone", "international"]);
   
+  // Éléments pour le nom complet configurable
+  type NameElement = 'type' | 'qualification' | 'designation' | 'name';
+  
   const [form, setForm] = useState({
     name: "",
     educationSystems: [] as string[], // Multiple systems allowed
@@ -423,6 +426,7 @@ export const CreateEstablishmentModal = ({
     options: [] as string[],
     latitude: null as number | null,
     longitude: null as number | null,
+    nameElementsOrder: ['type', 'qualification', 'designation', 'name'] as NameElement[], // Ordre configurable
   });
   
   // Langues d'enseignement dérivées des systèmes sélectionnés
@@ -533,6 +537,7 @@ export const CreateEstablishmentModal = ({
         options: [],
         latitude: null,
         longitude: null,
+        nameElementsOrder: ['type', 'qualification', 'designation', 'name'],
       });
     }
     onOpenChange(isOpen);
@@ -823,10 +828,125 @@ export const CreateEstablishmentModal = ({
                 <Input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ex: Lycée d'Excellence de Libreville"
+                  placeholder="Ex: Saint-Michel"
                   className="text-base"
                 />
               </div>
+
+              {/* Prévisualisation du nom complet configurable */}
+              {(form.name || form.typesWithQualification.length > 0 || languageDesignation) && (
+                <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-r from-primary/5 to-secondary/5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold flex items-center gap-2">
+                      <School className="h-4 w-4" />
+                      Prévisualisation du nom complet
+                    </Label>
+                    <span className="text-xs text-muted-foreground">Réorganisez les éléments ci-dessous</span>
+                  </div>
+                  
+                  {/* Nom complet généré */}
+                  <div className="p-3 rounded-lg bg-background border-2 border-primary/30">
+                    <p className="text-lg font-semibold text-center">
+                      {(() => {
+                        const elements: Record<string, string> = {
+                          type: form.typesWithQualification[0] 
+                            ? ESTABLISHMENT_TYPES.find(t => t.value === form.typesWithQualification[0].type)?.label || ""
+                            : "",
+                          qualification: form.typesWithQualification[0]?.qualification || "",
+                          designation: languageDesignation?.label || "",
+                          name: form.name || "..."
+                        };
+                        
+                        return form.nameElementsOrder
+                          .map(key => elements[key])
+                          .filter(Boolean)
+                          .join(" ");
+                      })()}
+                    </p>
+                  </div>
+                  
+                  {/* Réorganisation des éléments */}
+                  <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground">Cliquez sur les flèches pour réorganiser :</p>
+                    <div className="flex flex-wrap gap-2">
+                      {form.nameElementsOrder.map((element, index) => {
+                        const elementLabels: Record<string, { label: string; color: string; value: string }> = {
+                          type: { 
+                            label: "Type", 
+                            color: "bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300",
+                            value: form.typesWithQualification[0] 
+                              ? ESTABLISHMENT_TYPES.find(t => t.value === form.typesWithQualification[0].type)?.label || "—"
+                              : "—"
+                          },
+                          qualification: { 
+                            label: "Qualification", 
+                            color: "bg-purple-500/10 border-purple-500/30 text-purple-700 dark:text-purple-300",
+                            value: form.typesWithQualification[0]?.qualification || "—"
+                          },
+                          designation: { 
+                            label: "Désignation", 
+                            color: "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300",
+                            value: languageDesignation?.label || "—"
+                          },
+                          name: { 
+                            label: "Nom", 
+                            color: "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300",
+                            value: form.name || "—"
+                          },
+                        };
+                        
+                        const info = elementLabels[element];
+                        
+                        return (
+                          <div key={element} className={cn(
+                            "flex items-center gap-1 px-2 py-1.5 rounded-lg border text-sm",
+                            info.color
+                          )}>
+                            {/* Flèche gauche */}
+                            <button
+                              type="button"
+                              disabled={index === 0}
+                              onClick={() => {
+                                const newOrder = [...form.nameElementsOrder];
+                                [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+                                setForm({ ...form, nameElementsOrder: newOrder });
+                              }}
+                              className={cn(
+                                "p-0.5 rounded hover:bg-background/50",
+                                index === 0 && "opacity-30 cursor-not-allowed"
+                              )}
+                            >
+                              ◀
+                            </button>
+                            
+                            <div className="flex flex-col items-center min-w-[60px]">
+                              <span className="text-[10px] font-medium opacity-70">{info.label}</span>
+                              <span className="font-semibold text-xs truncate max-w-[80px]">{info.value}</span>
+                            </div>
+                            
+                            {/* Flèche droite */}
+                            <button
+                              type="button"
+                              disabled={index === form.nameElementsOrder.length - 1}
+                              onClick={() => {
+                                const newOrder = [...form.nameElementsOrder];
+                                [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+                                setForm({ ...form, nameElementsOrder: newOrder });
+                              }}
+                              className={cn(
+                                "p-0.5 rounded hover:bg-background/50",
+                                index === form.nameElementsOrder.length - 1 && "opacity-30 cursor-not-allowed"
+                              )}
+                            >
+                              ▶
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Système(s) éducatif(s) */}
               <div className="space-y-2">

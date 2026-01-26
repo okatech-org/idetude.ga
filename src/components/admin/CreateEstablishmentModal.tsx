@@ -148,20 +148,90 @@ const TYPE_QUALIFICATIONS: Record<string, string[]> = {
   ],
 };
 
-// Systèmes éducatifs / Nature de l'éducation
+// Systèmes éducatifs / Nature de l'éducation - Liste complète internationale
 const EDUCATION_SYSTEMS = [
-  { value: "francophone", label: "Francophone", icon: "🇫🇷", description: "Système français (BEPC, BAC...)" },
-  { value: "anglophone", label: "Anglo-saxon", icon: "🇬🇧", description: "Système britannique/américain (GCSE, A-Level...)" },
-  { value: "arabe", label: "Arabe", icon: "🇸🇦", description: "Système arabe / Coranique" },
-  { value: "chinois", label: "Chinois", icon: "🇨🇳", description: "Système chinois (Gaokao)" },
-  { value: "bilingue_fr_en", label: "Bilingue FR/EN", icon: "🌍", description: "Programme bilingue Français-Anglais" },
-  { value: "ib", label: "Baccalauréat International (IB)", icon: "🌐", description: "Programme IB" },
-  { value: "americain", label: "Américain", icon: "🇺🇸", description: "Système américain (High School Diploma, SAT)" },
-  { value: "canadien", label: "Canadien", icon: "🇨🇦", description: "Système canadien" },
-  { value: "belge", label: "Belge", icon: "🇧🇪", description: "Système belge" },
-  { value: "suisse", label: "Suisse", icon: "🇨🇭", description: "Système suisse" },
-  { value: "portugais", label: "Lusophone", icon: "🇵🇹", description: "Système portugais/brésilien" },
-  { value: "espagnol", label: "Hispanophone", icon: "🇪🇸", description: "Système espagnol" },
+  // Systèmes francophones
+  { value: "francophone", label: "Francophone (France)", icon: "🇫🇷", description: "Baccalauréat français (BEPC, BAC)" },
+  { value: "belge", label: "Belge", icon: "🇧🇪", description: "Système belge francophone" },
+  { value: "suisse", label: "Suisse", icon: "🇨🇭", description: "Maturité suisse / Certificat fédéral" },
+  { value: "canadien_fr", label: "Canadien Francophone", icon: "🇨🇦", description: "Système québécois (DES, DEC)" },
+  
+  // Systèmes anglophones
+  { value: "britannique", label: "Britannique", icon: "🇬🇧", description: "GCSE, IGCSE, A-Levels, O-Levels" },
+  { value: "americain", label: "Américain", icon: "🇺🇸", description: "High School Diploma, AP, SAT/ACT" },
+  { value: "canadien_en", label: "Canadien Anglophone", icon: "🇨🇦", description: "Système canadien anglophone" },
+  { value: "australien", label: "Australien", icon: "🇦🇺", description: "HSC, VCE, ATAR" },
+  { value: "neo_zelandais", label: "Néo-Zélandais", icon: "🇳🇿", description: "NCEA (National Certificate)" },
+  { value: "irlandais", label: "Irlandais", icon: "🇮🇪", description: "Leaving Certificate" },
+  { value: "sud_africain", label: "Sud-Africain", icon: "🇿🇦", description: "National Senior Certificate (NSC)" },
+  
+  // Systèmes internationaux
+  { value: "ib", label: "Baccalauréat International (IB)", icon: "🌐", description: "Programme IB (PYP, MYP, DP)" },
+  { value: "cambridge", label: "Cambridge International", icon: "📚", description: "Cambridge IGCSE, AS/A Level" },
+  { value: "wassce", label: "WASSCE (Afrique de l'Ouest)", icon: "🌍", description: "West African Senior School Certificate" },
+  
+  // Systèmes germaniques
+  { value: "allemand", label: "Allemand", icon: "🇩🇪", description: "Abitur, Realschulabschluss" },
+  { value: "autrichien", label: "Autrichien", icon: "🇦🇹", description: "Matura autrichienne" },
+  
+  // Systèmes hispaniques/lusophones
+  { value: "espagnol", label: "Espagnol", icon: "🇪🇸", description: "Bachillerato, Selectividad/EBAU" },
+  { value: "mexicain", label: "Mexicain", icon: "🇲🇽", description: "Bachillerato mexicain" },
+  { value: "portugais", label: "Portugais", icon: "🇵🇹", description: "Ensino Secundário" },
+  { value: "bresilien", label: "Brésilien", icon: "🇧🇷", description: "ENEM, Vestibular" },
+  
+  // Systèmes asiatiques
+  { value: "chinois", label: "Chinois", icon: "🇨🇳", description: "Gaokao, Zhongkao" },
+  { value: "japonais", label: "Japonais", icon: "🇯🇵", description: "Juken (examens d'entrée universitaire)" },
+  { value: "coreen", label: "Coréen", icon: "🇰🇷", description: "Suneung (CSAT)" },
+  { value: "indien", label: "Indien", icon: "🇮🇳", description: "CBSE, ICSE, ISC, State Boards" },
+  { value: "singapourien", label: "Singapourien", icon: "🇸🇬", description: "O-Level, A-Level singapourien" },
+  { value: "hong_kong", label: "Hong Kong", icon: "🇭🇰", description: "HKDSE (Diploma of Secondary Education)" },
+  { value: "taiwanais", label: "Taïwanais", icon: "🇹🇼", description: "Système taïwanais" },
+  { value: "indonesien", label: "Indonésien", icon: "🇮🇩", description: "Ujian Nasional (UN)" },
+  { value: "malaysien", label: "Malaisien", icon: "🇲🇾", description: "SPM, STPM" },
+  { value: "philippin", label: "Philippin", icon: "🇵🇭", description: "K-12 philippin" },
+  { value: "vietnamien", label: "Vietnamien", icon: "🇻🇳", description: "Thi THPT Quốc gia" },
+  { value: "thailandais", label: "Thaïlandais", icon: "🇹🇭", description: "Système thaïlandais" },
+  
+  // Systèmes arabes/islamiques
+  { value: "arabe", label: "Arabe", icon: "🇸🇦", description: "Système arabe standard" },
+  { value: "islamique", label: "Islamique / Coranique", icon: "☪️", description: "Madrasah, Maktab, études islamiques" },
+  { value: "egyptien", label: "Égyptien", icon: "🇪🇬", description: "Thanaweya Amma" },
+  { value: "marocain", label: "Marocain", icon: "🇲🇦", description: "Baccalauréat marocain" },
+  { value: "algerien", label: "Algérien", icon: "🇩🇿", description: "BEF, Baccalauréat algérien" },
+  { value: "tunisien", label: "Tunisien", icon: "🇹🇳", description: "Baccalauréat tunisien" },
+  { value: "emirien", label: "Émirien (EAU)", icon: "🇦🇪", description: "Système des Émirats" },
+  { value: "iranien", label: "Iranien", icon: "🇮🇷", description: "Diplom, Konkoor" },
+  
+  // Systèmes slaves/Europe de l'Est
+  { value: "russe", label: "Russe", icon: "🇷🇺", description: "EGE (Examen d'État unifié)" },
+  { value: "polonais", label: "Polonais", icon: "🇵🇱", description: "Matura polonaise" },
+  { value: "tcheque", label: "Tchèque", icon: "🇨🇿", description: "Maturita tchèque" },
+  { value: "roumain", label: "Roumain", icon: "🇷🇴", description: "Bacalaureat roumain" },
+  { value: "ukrainien", label: "Ukrainien", icon: "🇺🇦", description: "ZNO (test externe)" },
+  
+  // Systèmes nordiques
+  { value: "finlandais", label: "Finlandais", icon: "🇫🇮", description: "Ylioppilastutkinto" },
+  { value: "suedois", label: "Suédois", icon: "🇸🇪", description: "Gymnasieexamen" },
+  { value: "norvegien", label: "Norvégien", icon: "🇳🇴", description: "Vitnemål (Certificat)" },
+  { value: "danois", label: "Danois", icon: "🇩🇰", description: "Studentereksamen" },
+  
+  // Autres
+  { value: "italien", label: "Italien", icon: "🇮🇹", description: "Esame di Stato (Maturità)" },
+  { value: "neerlandais", label: "Néerlandais", icon: "🇳🇱", description: "VWO, HAVO, VMBO" },
+  { value: "grec", label: "Grec", icon: "🇬🇷", description: "Apolitirio, Panellinies" },
+  { value: "turc", label: "Turc", icon: "🇹🇷", description: "YKS, LGS" },
+  { value: "israelien", label: "Israélien", icon: "🇮🇱", description: "Bagrut" },
+  { value: "pakistanais", label: "Pakistanais", icon: "🇵🇰", description: "Matriculation, Intermediate, O/A Levels" },
+  { value: "bangladais", label: "Bangladais", icon: "🇧🇩", description: "SSC, HSC" },
+  { value: "sri_lankais", label: "Sri Lankais", icon: "🇱🇰", description: "GCE O/L, GCE A/L" },
+  
+  // Options bilingues/hybrides
+  { value: "bilingue_fr_en", label: "Bilingue Français-Anglais", icon: "🌍", description: "Programme bilingue FR/EN" },
+  { value: "bilingue_fr_ar", label: "Bilingue Français-Arabe", icon: "🌍", description: "Programme bilingue FR/AR" },
+  { value: "bilingue_en_ar", label: "Bilingue Anglais-Arabe", icon: "🌍", description: "Programme bilingue EN/AR" },
+  { value: "trilingue", label: "Trilingue", icon: "🌐", description: "Programme multilingue (3+ langues)" },
   { value: "mixte", label: "Mixte / Hybride", icon: "🔀", description: "Combinaison de plusieurs systèmes" },
 ];
 

@@ -545,7 +545,6 @@ const Appointments = () => {
               )}
             </div>
           </div>
-      </div>
     </UserLayout>
   );
 };

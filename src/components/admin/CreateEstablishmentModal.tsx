@@ -148,6 +148,23 @@ const TYPE_QUALIFICATIONS: Record<string, string[]> = {
   ],
 };
 
+// Systèmes éducatifs / Nature de l'éducation
+const EDUCATION_SYSTEMS = [
+  { value: "francophone", label: "Francophone", icon: "🇫🇷", description: "Système français (BEPC, BAC...)" },
+  { value: "anglophone", label: "Anglo-saxon", icon: "🇬🇧", description: "Système britannique/américain (GCSE, A-Level...)" },
+  { value: "arabe", label: "Arabe", icon: "🇸🇦", description: "Système arabe / Coranique" },
+  { value: "chinois", label: "Chinois", icon: "🇨🇳", description: "Système chinois (Gaokao)" },
+  { value: "bilingue_fr_en", label: "Bilingue FR/EN", icon: "🌍", description: "Programme bilingue Français-Anglais" },
+  { value: "ib", label: "Baccalauréat International (IB)", icon: "🌐", description: "Programme IB" },
+  { value: "americain", label: "Américain", icon: "🇺🇸", description: "Système américain (High School Diploma, SAT)" },
+  { value: "canadien", label: "Canadien", icon: "🇨🇦", description: "Système canadien" },
+  { value: "belge", label: "Belge", icon: "🇧🇪", description: "Système belge" },
+  { value: "suisse", label: "Suisse", icon: "🇨🇭", description: "Système suisse" },
+  { value: "portugais", label: "Lusophone", icon: "🇵🇹", description: "Système portugais/brésilien" },
+  { value: "espagnol", label: "Hispanophone", icon: "🇪🇸", description: "Système espagnol" },
+  { value: "mixte", label: "Mixte / Hybride", icon: "🔀", description: "Combinaison de plusieurs systèmes" },
+];
+
 interface TypeWithQualification {
   type: string;
   qualification: string;
@@ -204,6 +221,7 @@ export const CreateEstablishmentModal = ({
   
   const [form, setForm] = useState({
     name: "",
+    educationSystem: "" as string,
     typesWithQualification: [] as TypeWithQualification[],
     address: "",
     phone: "",
@@ -287,6 +305,7 @@ export const CreateEstablishmentModal = ({
       setGeoAddress(null);
       setForm({
         name: "",
+        educationSystem: "",
         typesWithQualification: [],
         address: "",
         phone: "",
@@ -467,6 +486,11 @@ export const CreateEstablishmentModal = ({
       return;
     }
 
+    if (!form.educationSystem) {
+      toast.error("Veuillez sélectionner un système éducatif");
+      return;
+    }
+
     if (form.typesWithQualification.length === 0) {
       toast.error("Veuillez sélectionner au moins un type d'établissement");
       return;
@@ -502,10 +526,16 @@ export const CreateEstablishmentModal = ({
     setLoading(true);
     try {
       const autoCode = generateUniqueCode();
-      // Formater les types avec qualifications pour le stockage
+      // Formater les types avec qualifications pour le stockage (inclut le système éducatif)
       const typesForDb = form.typesWithQualification
         .map(twq => twq.qualification ? `${twq.type}:${twq.qualification}` : twq.type)
         .join(",");
+      
+      // Ajouter le système éducatif aux options
+      const allOptions = [...form.options];
+      if (form.educationSystem) {
+        allOptions.unshift(`system:${form.educationSystem}`);
+      }
       
       const { error } = await supabase.from("establishments").insert({
         name: form.name,
@@ -517,7 +547,7 @@ export const CreateEstablishmentModal = ({
         country_code: form.country_code,
         levels: getSelectedLevelsDisplay(),
         group_id: form.group_id,
-        options: form.options.length > 0 ? form.options : null,
+        options: allOptions.length > 0 ? allOptions : null,
         latitude: form.latitude,
         longitude: form.longitude,
       });
@@ -573,6 +603,38 @@ export const CreateEstablishmentModal = ({
                   placeholder="Ex: Lycée d'Excellence de Libreville"
                   className="text-base"
                 />
+              </div>
+
+              {/* Système éducatif */}
+              <div className="space-y-2">
+                <Label>Système éducatif * <span className="text-xs text-muted-foreground">(nature de l'éducation)</span></Label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {EDUCATION_SYSTEMS.map((system) => {
+                    const isSelected = form.educationSystem === system.value;
+                    return (
+                      <button
+                        key={system.value}
+                        type="button"
+                        onClick={() => setForm({ ...form, educationSystem: system.value })}
+                        className={cn(
+                          "p-3 rounded-lg border text-left transition-all",
+                          isSelected
+                            ? "bg-primary/10 border-primary"
+                            : "bg-muted/30 border-transparent hover:bg-muted/50"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{system.icon}</span>
+                          <span className={cn("font-medium text-sm", isSelected ? "text-primary" : "text-foreground")}>
+                            {system.label}
+                          </span>
+                          {isSelected && <span className="ml-auto text-primary">✓</span>}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{system.description}</p>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -990,12 +1052,10 @@ export const CreateEstablishmentModal = ({
                 <h4 className="font-medium mb-2">Récapitulatif</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Type(s):</span>{" "}
+                    <span className="text-muted-foreground">Système:</span>{" "}
                     <span className="font-medium">
-                      {form.typesWithQualification.map(twq => {
-                        const typeInfo = ESTABLISHMENT_TYPES.find(t => t.value === twq.type);
-                        return twq.qualification ? `${typeInfo?.label} ${twq.qualification}` : typeInfo?.label;
-                      }).filter(Boolean).join(", ")}
+                      {EDUCATION_SYSTEMS.find(s => s.value === form.educationSystem)?.icon}{" "}
+                      {EDUCATION_SYSTEMS.find(s => s.value === form.educationSystem)?.label || "Non défini"}
                     </span>
                   </div>
                   <div>
@@ -1003,6 +1063,15 @@ export const CreateEstablishmentModal = ({
                     <span className="font-medium">
                       {COUNTRIES.find(c => c.code === form.country_code)?.flag}{" "}
                       {COUNTRIES.find(c => c.code === form.country_code)?.name}
+                    </span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">Type(s):</span>{" "}
+                    <span className="font-medium">
+                      {form.typesWithQualification.map(twq => {
+                        const typeInfo = ESTABLISHMENT_TYPES.find(t => t.value === twq.type);
+                        return twq.qualification ? `${typeInfo?.label} ${twq.qualification}` : typeInfo?.label;
+                      }).filter(Boolean).join(", ") || "Aucun"}
                     </span>
                   </div>
                   <div className="col-span-2">

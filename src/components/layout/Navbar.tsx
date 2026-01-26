@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, GraduationCap, User, LogOut } from "lucide-react";
+import { Menu, X, GraduationCap, User, LogOut, Mail, BookOpen, UserX } from "lucide-react";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,12 @@ const navLinks = [
   { name: "Sensibilisation", path: "/sensibilisation" },
   { name: "Tutoriels", path: "/tutoriels" },
   { name: "Démo", path: "/demo" },
+];
+
+const userLinks = [
+  { name: "Messages", path: "/messages", icon: Mail },
+  { name: "Notes", path: "/notes", icon: BookOpen },
+  { name: "Absences", path: "/absences", icon: UserX },
 ];
 
 export const Navbar = () => {
@@ -78,7 +84,26 @@ export const Navbar = () => {
             {isLoading ? (
               <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
             ) : user ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                {userLinks.map((link) => {
+                  const Icon = link.icon;
+                  return (
+                    <Link
+                      key={link.path}
+                      to={link.path}
+                      className={cn(
+                        "p-2 rounded-lg transition-colors",
+                        location.pathname === link.path
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-primary/5"
+                      )}
+                      title={link.name}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </Link>
+                  );
+                })}
+                <div className="w-px h-6 bg-border/50 mx-1" />
                 <Link
                   to="/dashboard"
                   className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-primary/5 transition-colors"
@@ -144,6 +169,24 @@ export const Navbar = () => {
           <div className="pt-2 border-t border-border/30 mt-2">
             {user ? (
               <div className="space-y-2">
+                {userLinks.map((link) => {
+                  const Icon = link.icon;
+                  return (
+                    <Link
+                      key={link.path}
+                      to={link.path}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                        location.pathname === link.path
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-primary/5"
+                      )}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <span className="text-sm font-medium">{link.name}</span>
+                    </Link>
+                  );
+                })}
                 <Link
                   to="/dashboard"
                   className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/5 transition-colors"

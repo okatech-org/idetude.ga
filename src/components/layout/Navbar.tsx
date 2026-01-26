@@ -15,7 +15,7 @@ const navLinks = [
   { name: "Démo", path: "/demo" },
 ];
 
-import { MessageSquare, CreditCard, CalendarDays } from "lucide-react";
+import { MessageSquare, CreditCard, CalendarDays, Users, CalendarCheck } from "lucide-react";
 
 const userLinks = [
   { name: "Chat", path: "/chat", icon: MessageSquare },
@@ -27,6 +27,8 @@ const userLinks = [
   { name: "Paiements", path: "/paiements", icon: CreditCard },
   { name: "Rendez-vous", path: "/rendez-vous", icon: CalendarDays },
   { name: "Documents", path: "/documents", icon: FolderOpen },
+  { name: "Groupes", path: "/groupes", icon: Users },
+  { name: "Calendrier", path: "/calendrier", icon: CalendarCheck },
   { name: "Analytique", path: "/analytics", icon: BarChart3 },
   { name: "Bulletins", path: "/bulletins", icon: FileText },
 ];

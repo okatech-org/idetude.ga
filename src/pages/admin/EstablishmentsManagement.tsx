@@ -7,6 +7,8 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { GlassInput } from "@/components/ui/glass-input";
 import { Badge } from "@/components/ui/badge";
+import { ViewEstablishmentModal } from "@/components/admin/ViewEstablishmentModal";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Search,
@@ -17,6 +19,7 @@ import {
   School as SchoolIcon,
   Plus,
   ChevronRight,
+  Eye,
 } from "lucide-react";
 import { countries, type Country, type School as SchoolType, type SchoolGroup } from "@/data/demo-accounts";
 import { useEffect } from "react";
@@ -34,6 +37,8 @@ const EstablishmentsManagement = () => {
   const { user, roles: userRoles, isLoading: authLoading } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const [selectedSchool, setSelectedSchool] = useState<{ school: SchoolType; group?: SchoolGroup; countryFlag?: string } | null>(null);
+  const [showViewModal, setShowViewModal] = useState(false);
 
   useEffect(() => {
     if (!authLoading && (!user || !userRoles.includes("super_admin"))) {
@@ -123,7 +128,7 @@ const EstablishmentsManagement = () => {
                 </p>
               </div>
             </div>
-            <GlassButton variant="primary">
+            <GlassButton variant="primary" onClick={() => toast.info("Fonctionnalité à venir (données statiques)")}>
               <Plus className="h-4 w-4" />
               Nouvel établissement
             </GlassButton>
@@ -239,6 +244,10 @@ const EstablishmentsManagement = () => {
                 <div
                   key={item.school.id}
                   className="p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => {
+                    setSelectedSchool({ school: item.school, group: item.group, countryFlag: item.country.flag });
+                    setShowViewModal(true);
+                  }}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
@@ -283,6 +292,15 @@ const EstablishmentsManagement = () => {
       </div>
 
       <Footer />
+
+      {/* View Modal */}
+      <ViewEstablishmentModal
+        open={showViewModal}
+        onOpenChange={setShowViewModal}
+        school={selectedSchool?.school || null}
+        group={selectedSchool?.group}
+        countryFlag={selectedSchool?.countryFlag}
+      />
     </div>
   );
 };

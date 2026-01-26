@@ -8,6 +8,8 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { GlassInput } from "@/components/ui/glass-input";
 import { Badge } from "@/components/ui/badge";
+import { CreateUserModal } from "@/components/admin/CreateUserModal";
+import { ImportUsersModal } from "@/components/admin/ImportUsersModal";
 import {
   Table,
   TableBody,
@@ -27,6 +29,8 @@ import {
   BookOpen,
   RefreshCw,
   Filter,
+  Plus,
+  Upload,
 } from "lucide-react";
 import {
   Select,
@@ -67,6 +71,8 @@ const UsersManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
     if (!authLoading && (!user || !userRoles.includes("super_admin"))) {
@@ -157,18 +163,30 @@ const UsersManagement = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Header */}
-          <div className="flex items-center gap-4">
-            <GlassButton variant="ghost" onClick={() => navigate("/dashboard")}>
-              <ArrowLeft className="h-4 w-4" />
-            </GlassButton>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <Users className="h-6 w-6 text-primary" />
-                Gestion des Utilisateurs
-              </h1>
-              <p className="text-muted-foreground">
-                {users.length} utilisateur(s) enregistré(s)
-              </p>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <GlassButton variant="ghost" onClick={() => navigate("/dashboard")}>
+                <ArrowLeft className="h-4 w-4" />
+              </GlassButton>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                  <Users className="h-6 w-6 text-primary" />
+                  Gestion des Utilisateurs
+                </h1>
+                <p className="text-muted-foreground">
+                  {users.length} utilisateur(s) enregistré(s)
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <GlassButton variant="outline" onClick={() => setShowImportModal(true)}>
+                <Upload className="h-4 w-4" />
+                Importer CSV
+              </GlassButton>
+              <GlassButton variant="primary" onClick={() => setShowCreateModal(true)}>
+                <Plus className="h-4 w-4" />
+                Nouvel utilisateur
+              </GlassButton>
             </div>
           </div>
 
@@ -325,6 +343,18 @@ const UsersManagement = () => {
       </div>
 
       <Footer />
+
+      {/* Modals */}
+      <CreateUserModal
+        open={showCreateModal}
+        onOpenChange={setShowCreateModal}
+        onSuccess={fetchUsers}
+      />
+      <ImportUsersModal
+        open={showImportModal}
+        onOpenChange={setShowImportModal}
+        onSuccess={fetchUsers}
+      />
     </div>
   );
 };

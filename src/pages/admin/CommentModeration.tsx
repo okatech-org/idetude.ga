@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -50,10 +51,14 @@ import {
   FileText,
   Loader2,
   RefreshCw,
+  BarChart3,
+  Ban,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { ModerationStats } from "@/components/admin/ModerationStats";
+import { BanUserModal } from "@/components/admin/BanUserModal";
 
 interface FlaggedComment {
   id: string;
@@ -96,9 +101,15 @@ const CommentModeration = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState("comments");
   const [confirmAction, setConfirmAction] = useState<{
     type: ActionType;
     ids: string[];
+  } | null>(null);
+  const [banModalData, setBanModalData] = useState<{
+    userId: string;
+    userName: string;
+    flaggedCount: number;
   } | null>(null);
 
   const isAdmin = roles.includes("super_admin") || roles.includes("school_admin");
@@ -262,6 +273,40 @@ const CommentModeration = () => {
     hidden: comments.filter(c => c.is_hidden).length,
   };
 
+  // Prepare data for ModerationStats component
+  const statsComments = useMemo(() => 
+    comments.map(c => ({
+      id: c.id,
+      is_flagged: c.is_flagged,
+      is_hidden: c.is_hidden,
+      flag_reason: c.flag_reason,
+      flagged_at: c.flagged_at,
+      hidden_at: c.hidden_at,
+      created_at: c.created_at,
+      user_id: c.user_id,
+      profiles: c.user ? { first_name: c.user.first_name, last_name: c.user.last_name } : null,
+    })), [comments]);
+
+  // Get top flagged users for ban functionality
+  const topFlaggedUsers = useMemo(() => {
+    const userCounts: Record<string, { count: number; name: string }> = {};
+    comments
+      .filter((c) => c.is_flagged)
+      .forEach((c) => {
+        const userId = c.user_id;
+        const name = c.user ? `${c.user.first_name} ${c.user.last_name}` : "Utilisateur inconnu";
+        if (!userCounts[userId]) {
+          userCounts[userId] = { count: 0, name };
+        }
+        userCounts[userId].count++;
+      });
+
+    return Object.entries(userCounts)
+      .map(([userId, data]) => ({ userId, ...data }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  }, [comments]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -313,42 +358,110 @@ const CommentModeration = () => {
             </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <GlassCard className="p-4" solid>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-amber-500/10">
-                  <Flag className="h-5 w-5 text-amber-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Signalés</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.flagged}</p>
-                </div>
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="comments" className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Commentaires
+              </TabsTrigger>
+              <TabsTrigger value="stats" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Statistiques
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="stats" className="mt-6 space-y-6">
+              <ModerationStats comments={statsComments} />
+
+              {/* Gestion des bannissements */}
+              <GlassCard className="p-6" solid>
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <Ban className="h-5 w-5 text-destructive" />
+                  Utilisateurs à risque
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Utilisateurs avec le plus de commentaires signalés. Cliquez pour bannir temporairement.
+                </p>
+                {topFlaggedUsers.length > 0 ? (
+                  <div className="space-y-2">
+                    {topFlaggedUsers.map((user) => (
+                      <div
+                        key={user.userId}
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-full bg-destructive/10">
+                            <User className="h-4 w-4 text-destructive" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{user.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {user.count} commentaire(s) signalé(s)
+                            </p>
+                          </div>
+                        </div>
+                        <GlassButton
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive hover:bg-destructive/10"
+                          onClick={() => setBanModalData({
+                            userId: user.userId,
+                            userName: user.name,
+                            flaggedCount: user.count,
+                          })}
+                        >
+                          <Ban className="h-4 w-4 mr-1" />
+                          Bannir
+                        </GlassButton>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-4">
+                    Aucun utilisateur avec des commentaires signalés
+                  </p>
+                )}
+              </GlassCard>
+            </TabsContent>
+
+            <TabsContent value="comments" className="mt-6 space-y-4">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <GlassCard className="p-4" solid>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-amber-500/10">
+                      <Flag className="h-5 w-5 text-amber-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Signalés</p>
+                      <p className="text-2xl font-bold text-foreground">{stats.flagged}</p>
+                    </div>
+                  </div>
+                </GlassCard>
+                <GlassCard className="p-4" solid>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-destructive/10">
+                      <EyeOff className="h-5 w-5 text-destructive" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Masqués</p>
+                      <p className="text-2xl font-bold text-foreground">{stats.hidden}</p>
+                    </div>
+                  </div>
+                </GlassCard>
+                <GlassCard className="p-4" solid>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <MessageSquare className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total en attente</p>
+                      <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+                    </div>
+                  </div>
+                </GlassCard>
               </div>
-            </GlassCard>
-            <GlassCard className="p-4" solid>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-destructive/10">
-                  <EyeOff className="h-5 w-5 text-destructive" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Masqués</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.hidden}</p>
-                </div>
-              </div>
-            </GlassCard>
-            <GlassCard className="p-4" solid>
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <MessageSquare className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total en attente</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.total}</p>
-                </div>
-              </div>
-            </GlassCard>
-          </div>
 
           {/* Filters & Actions */}
           <GlassCard className="p-4" solid>
@@ -535,8 +648,25 @@ const CommentModeration = () => {
               </div>
             )}
           </GlassCard>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
+
+      {/* Ban User Modal */}
+      {banModalData && (
+        <BanUserModal
+          isOpen={!!banModalData}
+          onClose={() => setBanModalData(null)}
+          userId={banModalData.userId}
+          userName={banModalData.userName}
+          flaggedCount={banModalData.flaggedCount}
+          onBanComplete={() => {
+            refetch();
+            setBanModalData(null);
+          }}
+        />
+      )}
 
       {/* Confirmation Dialog */}
       <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>

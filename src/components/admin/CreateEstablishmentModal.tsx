@@ -181,15 +181,31 @@ export const CreateEstablishmentModal = ({
   });
 
   const fetchGroups = async () => {
-    const { data, error } = await supabase
-      .from("establishment_groups")
-      .select("id,name")
-      .order("name");
-    if (error) {
-      console.error("Error fetching groups:", error);
+    try {
+      console.log("Fetching groups...");
+      const { data, error } = await supabase
+        .from("establishment_groups")
+        .select("id, name")
+        .order("name");
+      
+      if (error) {
+        console.error("Error fetching groups:", error);
+        return;
+      }
+      
+      console.log("Groups fetched:", data);
+      setGroups(data || []);
+    } catch (err) {
+      console.error("Exception fetching groups:", err);
     }
-    setGroups(data || []);
   };
+
+  // Charger les groupes au montage et quand le modal s'ouvre
+  useEffect(() => {
+    if (open) {
+      fetchGroups();
+    }
+  }, [open]);
 
   // Mettre à jour les niveaux sélectionnés quand le type change
   useEffect(() => {

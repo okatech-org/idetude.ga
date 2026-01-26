@@ -112,14 +112,40 @@ const ESTABLISHMENT_TYPES = [
   { value: "universite", label: "Université", defaultCycles: ["superieur"], icon: "🏛️" },
 ];
 
-// Qualifications suggérées pour chaque type
+// Qualifications disponibles pour chaque type (sélection uniquement)
 const TYPE_QUALIFICATIONS: Record<string, string[]> = {
-  maternelle: ["Bilingue", "Montessori", "Catholique", "Islamique", "Internationale"],
-  primaire: ["Bilingue", "Catholique", "Islamique", "Internationale", "d'Application"],
-  college: ["Général", "Technique", "Catholique", "Islamique", "International"],
-  lycee: ["Général", "Technique", "Professionnel", "Catholique", "Islamique", "International", "Scientifique", "Littéraire"],
-  superieur: ["Technique", "Professionnel", "Commerce", "Ingénierie", "Santé"],
-  universite: ["Sciences", "Lettres", "Droit", "Médecine", "Polytechnique"],
+  maternelle: [
+    "Bilingue", "Montessori", "Catholique", "Islamique", "Protestante", 
+    "Internationale", "Publique", "Privée", "Conventionnée", "Laïque"
+  ],
+  primaire: [
+    "Bilingue", "Catholique", "Islamique", "Protestante", "Internationale", 
+    "d'Application", "Publique", "Privée", "Conventionnée", "Laïque",
+    "d'Excellence", "Pilote", "Expérimentale"
+  ],
+  college: [
+    "Général", "Technique", "Catholique", "Islamique", "Protestante", 
+    "International", "Bilingue", "Public", "Privé", "Conventionné",
+    "d'Excellence", "Pilote", "d'Enseignement Général"
+  ],
+  lycee: [
+    "Général", "Technique", "Professionnel", "Scientifique", "Littéraire",
+    "Économique", "Agricole", "Hôtelier", "Maritime", "Industriel",
+    "Commercial", "Artistique", "Sportif", "Militaire",
+    "Catholique", "Islamique", "Protestante", "International", "Bilingue",
+    "Public", "Privé", "Conventionné", "d'Excellence", "Polyvalent"
+  ],
+  superieur: [
+    "Technique", "Professionnel", "Commerce", "Ingénierie", "Santé",
+    "Agriculture", "Arts", "Communication", "Informatique", "Gestion",
+    "Tourisme", "Hôtellerie", "Paramédical", "Social", "Pédagogique"
+  ],
+  universite: [
+    "Sciences", "Lettres", "Droit", "Médecine", "Polytechnique",
+    "Économie", "Gestion", "Sciences Humaines", "Sciences Sociales",
+    "Ingénierie", "Agronomie", "Pharmacie", "Odontologie", "Vétérinaire",
+    "Arts", "Théologie", "Pédagogique", "Technologique"
+  ],
 };
 
 interface TypeWithQualification {
@@ -560,21 +586,27 @@ export const CreateEstablishmentModal = ({
                     return (
                       <div key={index} className="flex items-center gap-2 p-3 rounded-lg border bg-primary/5 border-primary/20">
                         <span className="text-lg">{typeInfo?.icon}</span>
-                        <span className="font-medium">{typeInfo?.label}</span>
-                        <Input
-                          value={twq.qualification}
-                          onChange={(e) => {
+                        <span className="font-medium min-w-[100px]">{typeInfo?.label}</span>
+                        <Select
+                          value={twq.qualification || "none"}
+                          onValueChange={(v) => {
                             const updated = [...form.typesWithQualification];
-                            updated[index] = { ...twq, qualification: e.target.value };
+                            updated[index] = { ...twq, qualification: v === "none" ? "" : v };
                             setForm({ ...form, typesWithQualification: updated });
                           }}
-                          placeholder="Qualification (ex: Technique, Bilingue...)"
-                          className="flex-1 h-8 text-sm"
-                          list={`suggestions-${index}`}
-                        />
-                        <datalist id={`suggestions-${index}`}>
-                          {suggestions.map(s => <option key={s} value={s} />)}
-                        </datalist>
+                        >
+                          <SelectTrigger className="flex-1 h-8">
+                            <SelectValue placeholder="Sélectionner une qualification" />
+                          </SelectTrigger>
+                          <SelectContent position="popper" className="max-h-60 z-[9999]">
+                            <SelectItem value="none">
+                              <span className="text-muted-foreground">Sans qualification</span>
+                            </SelectItem>
+                            {suggestions.map(s => (
+                              <SelectItem key={s} value={s}>{s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         {form.typesWithQualification.length > 1 && (
                           <button
                             type="button"

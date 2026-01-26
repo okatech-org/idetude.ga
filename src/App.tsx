@@ -34,6 +34,9 @@ import UsersManagement from "./pages/admin/UsersManagement";
 import EstablishmentsManagement from "./pages/admin/EstablishmentsManagement";
 import EstablishmentConfig from "./pages/admin/EstablishmentConfig";
 import CommentModeration from "./pages/admin/CommentModeration";
+import CountriesManagement from "./pages/admin/CountriesManagement";
+import RegionsManagement from "./pages/admin/RegionsManagement";
+import SchoolGroupsManagement from "./pages/admin/SchoolGroupsManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -77,6 +80,9 @@ const App = () => (
               <Route path="/admin/establishments" element={<EstablishmentsManagement />} />
               <Route path="/admin/establishments/config" element={<EstablishmentConfig />} />
               <Route path="/admin/moderation" element={<CommentModeration />} />
+              <Route path="/admin/countries" element={<CountriesManagement />} />
+              <Route path="/admin/regions" element={<RegionsManagement />} />
+              <Route path="/admin/groups" element={<SchoolGroupsManagement />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

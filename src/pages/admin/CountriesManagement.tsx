@@ -82,19 +82,8 @@ const CountriesManagement = () => {
         .select("*")
         .order("name");
       
-      if (error) {
-        // Si la table n'existe pas, retourner les pays par défaut
-        if (error.code === "42P01") {
-          return DEFAULT_COUNTRIES.map((c, i) => ({
-            ...c,
-            id: `default-${i}`,
-            is_active: true,
-            created_at: new Date().toISOString(),
-          }));
-        }
-        throw error;
-      }
-      return data as Country[];
+      if (error) throw error;
+      return data as unknown as Country[];
     },
   });
 

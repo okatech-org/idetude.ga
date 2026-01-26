@@ -117,29 +117,8 @@ const RegionsManagement = () => {
         .select("*")
         .order("country_code, name");
 
-      if (error) {
-        // Si la table n'existe pas, retourner les régions par défaut
-        if (error.code === "42P01") {
-          const defaultRegions: Region[] = [];
-          Object.entries(REGIONS_BY_COUNTRY).forEach(([countryCode, regions]) => {
-            regions.forEach((r, i) => {
-              defaultRegions.push({
-                id: `default-${countryCode}-${i}`,
-                code: r.code,
-                name: r.name,
-                country_code: countryCode,
-                capital: r.capital,
-                description: null,
-                is_active: true,
-                created_at: new Date().toISOString(),
-              });
-            });
-          });
-          return defaultRegions;
-        }
-        throw error;
-      }
-      return data as Region[];
+      if (error) throw error;
+      return data as unknown as Region[];
     },
   });
 

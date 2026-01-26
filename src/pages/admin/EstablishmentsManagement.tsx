@@ -29,11 +29,24 @@ import {
 import { countries, type Country, type School as SchoolType, type SchoolGroup } from "@/data/demo-accounts";
 
 const typeLabels: Record<string, { label: string; color: string }> = {
+  maternelle: { label: "Maternelle", color: "bg-pink-500/10 text-pink-600 border-pink-500/20" },
   primaire: { label: "Primaire", color: "bg-green-500/10 text-green-600 border-green-500/20" },
   college: { label: "Collège", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
   lycee: { label: "Lycée", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
   superieur: { label: "Supérieur", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  technique: { label: "Technique", color: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20" },
+  universite: { label: "Université", color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" },
+};
+
+// Parser les types avec qualifications (format: "type:qualification,type2,type3:qual")
+const parseEstablishmentTypes = (typeString: string) => {
+  return typeString.split(",").map(part => {
+    const [type, qualification] = part.split(":");
+    const typeInfo = typeLabels[type];
+    const label = qualification 
+      ? `${typeInfo?.label || type} ${qualification}` 
+      : typeInfo?.label || type;
+    return { type, qualification: qualification || "", label, color: typeInfo?.color || "" };
+  });
 };
 
 interface DbEstablishment {
@@ -352,12 +365,15 @@ const EstablishmentsManagement = () => {
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-lg">{est.country_code === "GA" ? "🇬🇦" : "🇨🇩"}</span>
-                            <Badge
-                              variant="outline"
-                              className={typeLabels[est.type]?.color || ""}
-                            >
-                              {typeLabels[est.type]?.label || est.type}
-                            </Badge>
+                            {parseEstablishmentTypes(est.type).map((typeInfo, idx) => (
+                              <Badge
+                                key={idx}
+                                variant="outline"
+                                className={typeInfo.color}
+                              >
+                                {typeInfo.label}
+                              </Badge>
+                            ))}
                             {est.student_capacity && (
                               <Badge variant="secondary" className="flex items-center gap-1">
                                 <GraduationCap className="h-3 w-3" />

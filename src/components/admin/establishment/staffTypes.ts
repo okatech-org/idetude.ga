@@ -42,13 +42,13 @@ export const STAFF_CATEGORIES = [
     value: 'administrative' as StaffCategory, 
     label: 'Administratif', 
     icon: '🏢', 
-    description: 'Personnel de la structure (Direction, Administration, Technique)' 
+    description: 'Personnel de la structure (Direction, Administration, Enseignants, Technique)' 
   },
   { 
     value: 'educational' as StaffCategory, 
     label: 'Éducatif', 
     icon: '📚', 
-    description: 'Acteurs des classes (Enseignants, Élèves, Tuteurs)' 
+    description: 'Acteurs des classes (Enseignants assignés, Élèves, Tuteurs)' 
   },
 ] as const;
 
@@ -70,8 +70,7 @@ export const STAFF_TYPES_BY_CATEGORY: Record<StaffCategory, {
   educational: [
     { value: 'teacher', label: 'Enseignant', icon: '👨‍🏫', description: 'Professeur assigné à une ou plusieurs classes' },
     { value: 'student', label: 'Élève', icon: '🎓', description: 'Étudiants inscrits dans une classe' },
-    { value: 'tutor', label: 'Tuteur', icon: '👨‍👩‍👧', description: 'Parent ou tuteur légal (rattaché à l\'élève)' },
-    { value: 'private_teacher', label: 'Prof. Particulier', icon: '👩‍🏫', description: 'Ajouté par le parent ou l\'élève (rattaché à l\'élève)' },
+    { value: 'tutor', label: 'Tuteur', icon: '👨‍👩‍👧', description: 'Parent ou tuteur légal (min. 1, max. 2 par élève mineur)' },
   ],
 };
 

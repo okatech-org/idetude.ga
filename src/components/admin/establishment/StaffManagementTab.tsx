@@ -24,7 +24,6 @@ import {
   POSITIONS_BY_TYPE, 
   CONTRACT_TYPES,
   TUTOR_RELATIONS,
-  PRIVATE_TEACHER_ADDED_BY,
   requiresStudentLink,
   canBeAssignedToClasses,
   hasContract,
@@ -73,10 +72,22 @@ export const StaffManagementTab = ({
       return;
     }
 
-    // Vérifier le lien étudiant si requis
+    // Vérifier le lien étudiant si requis (pour tuteur)
     if (requiresStudentLink(staffForm.staff_type as StaffType) && !staffForm.linked_student_id) {
       toast.error("Veuillez sélectionner l'élève associé");
       return;
+    }
+
+    // Vérifier la limite de tuteurs (max 2 par élève)
+    if (staffForm.staff_type === 'tutor' && staffForm.linked_student_id) {
+      const currentTutorCount = getTutorCountForStudent(staffForm.linked_student_id, staff);
+      const isEditing = editingIndex !== null && staff[editingIndex]?.staff_type === 'tutor' && 
+        staff[editingIndex]?.linked_student_id === staffForm.linked_student_id;
+      
+      if (currentTutorCount >= 2 && !isEditing) {
+        toast.error("Cet élève a déjà 2 tuteurs (maximum autorisé)");
+        return;
+      }
     }
 
     // Vérifier l'assignation aux classes pour les enseignants éducatifs
@@ -323,7 +334,7 @@ export const StaffManagementTab = ({
           <div className="p-3 rounded-lg bg-muted/30 border">
             <p className="text-sm text-muted-foreground">
               <GraduationCap className="h-4 w-4 inline mr-1" />
-              <strong>Classes et acteurs :</strong> Enseignants assignés aux classes, élèves, tuteurs (rattachés aux élèves), professeurs particuliers.
+              <strong>Classes et acteurs :</strong> Enseignants assignés aux classes, élèves, tuteurs (min. 1, max. 2 par élève mineur).
             </p>
           </div>
           <StaffCategoryContent
@@ -353,7 +364,7 @@ export const StaffManagementTab = ({
             <DialogDescription>
               {activeCategory === 'administrative' 
                 ? "Ajoutez un membre du personnel de la structure (direction, administration, enseignant contractuel, technique)"
-                : "Ajoutez un acteur éducatif (enseignant de classe, élève, tuteur, professeur particulier)"
+                : "Ajoutez un acteur éducatif (enseignant assigné aux classes, élève, tuteur rattaché à l'élève)"
               }
             </DialogDescription>
           </DialogHeader>
@@ -521,15 +532,23 @@ export const StaffManagementTab = ({
                       {students.map((student) => {
                         const studentId = student.id || `temp-${staff.indexOf(student)}`;
                         const tutorCount = getTutorCountForStudent(studentId, staff);
+                        const isFull = tutorCount >= 2;
                         return (
                           <SelectItem 
                             key={studentId} 
                             value={studentId}
+                            disabled={staffForm.staff_type === 'tutor' && isFull}
                           >
                             <div className="flex items-center gap-2">
                               <span>{student.first_name} {student.last_name}</span>
                               {staffForm.staff_type === 'tutor' && tutorCount === 0 && (
                                 <Badge variant="destructive" className="text-xs">Sans tuteur</Badge>
+                              )}
+                              {staffForm.staff_type === 'tutor' && tutorCount === 1 && (
+                                <Badge variant="outline" className="text-xs">1 tuteur</Badge>
+                              )}
+                              {staffForm.staff_type === 'tutor' && tutorCount >= 2 && (
+                                <Badge variant="secondary" className="text-xs">Max. atteint</Badge>
                               )}
                             </div>
                           </SelectItem>
@@ -541,36 +560,6 @@ export const StaffManagementTab = ({
               </div>
             )}
 
-            {/* Qui a ajouté le prof particulier */}
-            {staffForm.staff_type === 'private_teacher' && (
-              <div className="space-y-2">
-                <Label>Ajouté par</Label>
-                <Select
-                  value={staffForm.added_by_user_type || "parent"}
-                  onValueChange={(v) => setStaffForm({ 
-                    ...staffForm, 
-                    added_by_user_type: v as 'parent' | 'student' | 'admin'
-                  })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PRIVATE_TEACHER_ADDED_BY.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        <div>
-                          <span>{option.label}</span>
-                          <span className="text-xs text-muted-foreground ml-2">- {option.description}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Un professeur particulier est ajouté par le parent (si l'élève est mineur) ou par l'élève lui-même.
-                </p>
-              </div>
-            )}
 
             {/* Poste / Fonction */}
             <div className="space-y-2">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { GlassCard } from "@/components/ui/glass-card";
 import {
   Copy,
@@ -9,10 +10,12 @@ import {
   KeyRound,
   Eye,
   EyeOff,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { type DemoAccount } from "@/data/demo-accounts";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DemoAccountCardProps {
   account: DemoAccount;
@@ -20,8 +23,10 @@ interface DemoAccountCardProps {
 }
 
 export const DemoAccountCard = ({ account, compact = false }: DemoAccountCardProps) => {
+  const navigate = useNavigate();
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const copyToClipboard = async (text: string, field: string) => {
     await navigator.clipboard.writeText(text);
@@ -30,15 +35,42 @@ export const DemoAccountCard = ({ account, compact = false }: DemoAccountCardPro
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const handleQuickLogin = () => {
-    // Copy credentials to clipboard
-    navigator.clipboard.writeText(`Email: ${account.email}\nMot de passe: ${account.password}`);
-    toast.success("Identifiants copiés ! Vous pouvez maintenant vous connecter.", {
-      action: {
-        label: "Se connecter",
-        onClick: () => window.open("/connexion", "_blank"),
-      },
-    });
+  const handleQuickLogin = async () => {
+    setIsLoggingIn(true);
+    
+    try {
+      // First, try to initialize demo account if it's a super_admin
+      if (account.email.includes("superadmin@demo")) {
+        try {
+          await supabase.functions.invoke("init-demo-accounts", {
+            body: { action: "init" },
+          });
+        } catch (initError) {
+          console.log("Demo init (might already exist):", initError);
+        }
+      }
+
+      // Sign in with the demo credentials
+      const { error } = await supabase.auth.signInWithPassword({
+        email: account.email,
+        password: account.password,
+      });
+
+      if (error) {
+        if (error.message.includes("Invalid login credentials")) {
+          toast.error("Ce compte démo n'est pas encore configuré. Contactez l'administrateur.");
+        } else {
+          toast.error(error.message);
+        }
+      } else {
+        toast.success(`Connecté en tant que ${account.name}`);
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      toast.error("Erreur lors de la connexion");
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   if (compact) {
@@ -158,10 +190,15 @@ export const DemoAccountCard = ({ account, compact = false }: DemoAccountCardPro
         {/* Quick login button */}
         <button
           onClick={handleQuickLogin}
-          className="sm:self-center px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 shrink-0"
+          disabled={isLoggingIn}
+          className="sm:self-center px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 shrink-0 disabled:opacity-50"
         >
-          <LogIn className="h-4 w-4" />
-          <span>Connexion rapide</span>
+          {isLoggingIn ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <LogIn className="h-4 w-4" />
+          )}
+          <span>{isLoggingIn ? "Connexion..." : "Connexion rapide"}</span>
         </button>
       </div>
     </GlassCard>

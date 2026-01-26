@@ -26,6 +26,8 @@ export interface StaffMember {
   is_active: boolean;
   is_class_principal?: boolean;
   linked_student_id?: string; // Pour tuteurs et professeurs particuliers
+  assigned_class_ids?: string[]; // Pour les enseignants - classes auxquelles ils sont assignés
+  added_by_user_type?: 'parent' | 'student' | 'admin'; // Pour prof particulier - qui l'a ajouté
   metadata?: Record<string, unknown>;
   // Champs temporaires pour le formulaire
   first_name?: string;
@@ -51,6 +53,8 @@ export const STAFF_CATEGORIES = [
 ] as const;
 
 // Types de personnel par catégorie
+// IMPORTANT: L'enseignant en mode Administratif = employé de la structure
+// L'enseignant en mode Éducatif = assigné à des classes spécifiques
 export const STAFF_TYPES_BY_CATEGORY: Record<StaffCategory, {
   value: StaffType;
   label: string;
@@ -60,14 +64,14 @@ export const STAFF_TYPES_BY_CATEGORY: Record<StaffCategory, {
   administrative: [
     { value: 'direction', label: 'Direction', icon: '👔', description: 'Directeur, Proviseur, Principal' },
     { value: 'admin', label: 'Administration', icon: '📋', description: 'Secrétaire, Comptable, RH' },
-    { value: 'teacher', label: 'Enseignant', icon: '👨‍🏫', description: 'Corps enseignant de l\'établissement' },
+    { value: 'teacher', label: 'Enseignant', icon: '👨‍🏫', description: 'Corps enseignant (contrat avec l\'établissement)' },
     { value: 'technical', label: 'Technique', icon: '🔧', description: 'Maintenance, sécurité, cantine' },
   ],
   educational: [
-    { value: 'teacher', label: 'Enseignant', icon: '👨‍🏫', description: 'Professeur Principal ou Remplaçant' },
-    { value: 'student', label: 'Élève', icon: '🎓', description: 'Étudiants inscrits' },
+    { value: 'teacher', label: 'Enseignant', icon: '👨‍🏫', description: 'Professeur assigné à une ou plusieurs classes' },
+    { value: 'student', label: 'Élève', icon: '🎓', description: 'Étudiants inscrits dans une classe' },
     { value: 'tutor', label: 'Tuteur', icon: '👨‍👩‍👧', description: 'Parent ou tuteur légal (rattaché à l\'élève)' },
-    { value: 'private_teacher', label: 'Prof. Particulier', icon: '👩‍🏫', description: 'Professeur particulier (rattaché à l\'élève)' },
+    { value: 'private_teacher', label: 'Prof. Particulier', icon: '👩‍🏫', description: 'Ajouté par le parent ou l\'élève (rattaché à l\'élève)' },
   ],
 };
 
@@ -179,9 +183,21 @@ export const TUTOR_RELATIONS = [
   'Autre représentant légal',
 ];
 
+// Types d'ajout pour les professeurs particuliers
+export const PRIVATE_TEACHER_ADDED_BY = [
+  { value: 'parent', label: 'Parent / Tuteur', description: 'Ajouté par un parent ou tuteur de l\'élève' },
+  { value: 'student', label: 'Élève / Étudiant', description: 'Ajouté par l\'élève lui-même (majeur)' },
+  { value: 'admin', label: 'Administration', description: 'Ajouté par l\'administration de l\'établissement' },
+] as const;
+
 // Helper: Déterminer si un type nécessite un lien avec un élève
 export const requiresStudentLink = (staffType: StaffType): boolean => {
   return staffType === 'tutor' || staffType === 'private_teacher';
+};
+
+// Helper: Déterminer si un type peut être assigné à des classes
+export const canBeAssignedToClasses = (staffType: StaffType, category: StaffCategory): boolean => {
+  return staffType === 'teacher' && category === 'educational';
 };
 
 // Helper: Déterminer si un type a un contrat
@@ -197,8 +213,36 @@ export const getCategoryForType = (staffType: StaffType): StaffCategory => {
   return 'administrative';
 };
 
+// Helper: Vérifier si un élève est mineur (pour la logique d'ajout de prof particulier)
+export const isStudentMinor = (birthDate?: string): boolean => {
+  if (!birthDate) return true; // Par défaut, considérer comme mineur
+  const birth = new Date(birthDate);
+  const today = new Date();
+  const age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    return age - 1 < 18;
+  }
+  return age < 18;
+};
+
 // Helper: Obtenir les types administratifs uniquement
 export const getAdministrativeTypes = () => STAFF_TYPES_BY_CATEGORY.administrative;
 
 // Helper: Obtenir les types éducatifs uniquement
 export const getEducationalTypes = () => STAFF_TYPES_BY_CATEGORY.educational;
+
+// Helper: Vérifier si un tuteur est requis pour un élève
+export const studentRequiresTutor = (birthDate?: string): boolean => {
+  return isStudentMinor(birthDate);
+};
+
+// Helper: Obtenir le nombre de tuteurs d'un élève
+export const getTutorCountForStudent = (studentId: string, staff: StaffMember[]): number => {
+  return staff.filter(s => s.staff_type === 'tutor' && s.linked_student_id === studentId).length;
+};
+
+// Helper: Valider qu'un élève mineur a au moins un tuteur
+export const validateStudentHasTutor = (studentId: string, staff: StaffMember[]): boolean => {
+  return getTutorCountForStudent(studentId, staff) > 0;
+};

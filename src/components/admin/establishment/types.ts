@@ -26,6 +26,7 @@ export interface EstablishmentFormData {
   latitude: number | null;
   longitude: number | null;
   nameElementsOrder: NameElement[];
+  enabledModules: string[]; // Modules activés pour cet établissement
 }
 
 export interface EstablishmentDraft {
@@ -135,6 +136,15 @@ export const CONTRACT_TYPES = [
   { value: 'intern', label: 'Stagiaire' },
 ];
 
+export const DEFAULT_ENABLED_MODULES = [
+  'messages',
+  'grades',
+  'assignments',
+  'absences',
+  'schedule',
+  'calendar',
+];
+
 export const DEFAULT_FORM_DATA: EstablishmentFormData = {
   name: "",
   educationSystems: [],
@@ -151,4 +161,5 @@ export const DEFAULT_FORM_DATA: EstablishmentFormData = {
   latitude: null,
   longitude: null,
   nameElementsOrder: ['type', 'qualification', 'designation', 'name'],
+  enabledModules: DEFAULT_ENABLED_MODULES,
 };

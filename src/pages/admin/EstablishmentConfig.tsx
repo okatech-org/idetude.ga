@@ -31,6 +31,7 @@ import {
   Network,
   UserPlus,
   Languages,
+  Settings,
 } from "lucide-react";
 import { OrgChart } from "@/components/admin/OrgChart";
 import { AssignUserModal } from "@/components/admin/AssignUserModal";
@@ -38,6 +39,7 @@ import { StudentEnrollmentModal } from "@/components/admin/StudentEnrollmentModa
 import { QuickAssignDropdown } from "@/components/admin/QuickAssignDropdown";
 import { SubjectConfigModal } from "@/components/admin/SubjectConfigModal";
 import { LinguisticSectionsModal } from "@/components/admin/LinguisticSectionsModal";
+import { ModulesConfigTab } from "@/components/admin/establishment/ModulesConfigTab";
 
 interface Establishment {
   id: string;
@@ -47,6 +49,7 @@ interface Establishment {
   address: string | null;
   levels: string | null;
   group_id: string | null;
+  enabled_modules: string[] | null;
 }
 
 interface Department {
@@ -588,6 +591,25 @@ const EstablishmentConfig = () => {
     setEditingClass(null);
   };
 
+  const handleModulesChange = async (modules: string[]) => {
+    if (!establishment) return;
+    
+    try {
+      const { error } = await supabase
+        .from("establishments")
+        .update({ enabled_modules: modules })
+        .eq("id", establishment.id);
+
+      if (error) throw error;
+
+      setEstablishment({ ...establishment, enabled_modules: modules });
+      toast.success("Modules mis à jour");
+    } catch (error) {
+      console.error("Error updating modules:", error);
+      toast.error("Erreur lors de la mise à jour des modules");
+    }
+  };
+
   const openEditDepartment = (dept: Department) => {
     setEditingDepartment(dept);
     setDepartmentForm({
@@ -724,22 +746,26 @@ const EstablishmentConfig = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="orgchart" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="orgchart" className="flex items-center gap-2">
               <Network className="h-4 w-4" />
-              Organigramme
+              <span className="hidden sm:inline">Organigramme</span>
             </TabsTrigger>
             <TabsTrigger value="admin" className="flex items-center gap-2">
               <FolderTree className="h-4 w-4" />
-              Administration
+              <span className="hidden sm:inline">Administration</span>
             </TabsTrigger>
             <TabsTrigger value="classes" className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4" />
-              Classes
+              <span className="hidden sm:inline">Classes</span>
             </TabsTrigger>
             <TabsTrigger value="pedagogy" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
-              Pédagogie
+              <span className="hidden sm:inline">Pédagogie</span>
+            </TabsTrigger>
+            <TabsTrigger value="modules" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Modules</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1134,6 +1160,14 @@ const EstablishmentConfig = () => {
                 </div>
               </GlassCard>
             </div>
+          </TabsContent>
+
+          {/* Modules Tab */}
+          <TabsContent value="modules" className="space-y-4">
+            <ModulesConfigTab
+              enabledModules={establishment?.enabled_modules || []}
+              onModulesChange={handleModulesChange}
+            />
           </TabsContent>
         </Tabs>
       </div>

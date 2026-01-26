@@ -702,6 +702,7 @@ export type Database = {
       }
       establishment_staff: {
         Row: {
+          category: string | null
           contract_type: string | null
           created_at: string
           department: string | null
@@ -709,6 +710,8 @@ export type Database = {
           establishment_id: string
           id: string
           is_active: boolean
+          is_class_principal: boolean | null
+          linked_student_id: string | null
           metadata: Json | null
           position: string | null
           staff_type: string
@@ -717,6 +720,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          category?: string | null
           contract_type?: string | null
           created_at?: string
           department?: string | null
@@ -724,6 +728,8 @@ export type Database = {
           establishment_id: string
           id?: string
           is_active?: boolean
+          is_class_principal?: boolean | null
+          linked_student_id?: string | null
           metadata?: Json | null
           position?: string | null
           staff_type: string
@@ -732,6 +738,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          category?: string | null
           contract_type?: string | null
           created_at?: string
           department?: string | null
@@ -739,6 +746,8 @@ export type Database = {
           establishment_id?: string
           id?: string
           is_active?: boolean
+          is_class_principal?: boolean | null
+          linked_student_id?: string | null
           metadata?: Json | null
           position?: string | null
           staff_type?: string
@@ -752,6 +761,13 @@ export type Database = {
             columns: ["establishment_id"]
             isOneToOne: false
             referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "establishment_staff_linked_student_id_fkey"
+            columns: ["linked_student_id"]
+            isOneToOne: false
+            referencedRelation: "establishment_staff"
             referencedColumns: ["id"]
           },
         ]

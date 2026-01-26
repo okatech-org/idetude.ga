@@ -390,11 +390,14 @@ export const CreateEstablishmentModalEnhanced = ({
         const staffRecords = staff.map(s => ({
           establishment_id: establishment.id,
           staff_type: s.staff_type,
+          category: s.category || 'administrative',
           position: s.position || null,
           department: s.department || null,
           contract_type: s.contract_type || null,
           start_date: s.start_date || null,
           is_active: s.is_active,
+          is_class_principal: s.is_class_principal || false,
+          linked_student_id: s.linked_student_id || null,
           metadata: JSON.parse(JSON.stringify(s.metadata || {})),
         }));
 

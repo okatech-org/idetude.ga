@@ -329,6 +329,42 @@ export type Database = {
           },
         ]
       }
+      class_sections: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          section_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          section_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          section_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_sections_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_sections_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "linguistic_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       class_students: {
         Row: {
           class_id: string
@@ -900,6 +936,56 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      linguistic_sections: {
+        Row: {
+          code: string | null
+          color: string | null
+          created_at: string
+          description: string | null
+          establishment_id: string
+          id: string
+          is_default: boolean | null
+          name: string
+          order_index: number | null
+          teaching_language: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          establishment_id: string
+          id?: string
+          is_default?: boolean | null
+          name: string
+          order_index?: number | null
+          teaching_language: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          establishment_id?: string
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          order_index?: number | null
+          teaching_language?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "linguistic_sections_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
             referencedColumns: ["id"]
           },
         ]
@@ -1765,6 +1851,112 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subject_levels: {
+        Row: {
+          coefficient_override: number | null
+          created_at: string
+          hours_override: number | null
+          id: string
+          is_mandatory_override: boolean | null
+          level_code: string
+          subject_id: string
+        }
+        Insert: {
+          coefficient_override?: number | null
+          created_at?: string
+          hours_override?: number | null
+          id?: string
+          is_mandatory_override?: boolean | null
+          level_code: string
+          subject_id: string
+        }
+        Update: {
+          coefficient_override?: number | null
+          created_at?: string
+          hours_override?: number | null
+          id?: string
+          is_mandatory_override?: boolean | null
+          level_code?: string
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subject_levels_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subjects: {
+        Row: {
+          category: string
+          code: string | null
+          coefficient: number | null
+          color: string | null
+          created_at: string
+          description: string | null
+          establishment_id: string
+          hours_per_week: number | null
+          icon: string | null
+          id: string
+          is_language: boolean
+          is_mandatory: boolean | null
+          language_code: string | null
+          language_level: string | null
+          name: string
+          order_index: number | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          code?: string | null
+          coefficient?: number | null
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          establishment_id: string
+          hours_per_week?: number | null
+          icon?: string | null
+          id?: string
+          is_language?: boolean
+          is_mandatory?: boolean | null
+          language_code?: string | null
+          language_level?: string | null
+          name: string
+          order_index?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          code?: string | null
+          coefficient?: number | null
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          establishment_id?: string
+          hours_per_week?: number | null
+          icon?: string | null
+          id?: string
+          is_language?: boolean
+          is_mandatory?: boolean | null
+          language_code?: string | null
+          language_level?: string | null
+          name?: string
+          order_index?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subjects_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
             referencedColumns: ["id"]
           },
         ]

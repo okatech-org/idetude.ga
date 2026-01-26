@@ -30,11 +30,14 @@ import {
   School,
   Network,
   UserPlus,
+  Languages,
 } from "lucide-react";
 import { OrgChart } from "@/components/admin/OrgChart";
 import { AssignUserModal } from "@/components/admin/AssignUserModal";
 import { StudentEnrollmentModal } from "@/components/admin/StudentEnrollmentModal";
 import { QuickAssignDropdown } from "@/components/admin/QuickAssignDropdown";
+import { SubjectConfigModal } from "@/components/admin/SubjectConfigModal";
+import { LinguisticSectionsModal } from "@/components/admin/LinguisticSectionsModal";
 
 interface Establishment {
   id: string;
@@ -150,6 +153,8 @@ const EstablishmentConfig = () => {
   const [showClassModal, setShowClassModal] = useState(false);
   const [showAssignUserModal, setShowAssignUserModal] = useState(false);
   const [showStudentEnrollmentModal, setShowStudentEnrollmentModal] = useState(false);
+  const [showSubjectConfigModal, setShowSubjectConfigModal] = useState(false);
+  const [showLinguisticSectionsModal, setShowLinguisticSectionsModal] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
   const [editingPosition, setEditingPosition] = useState<Position | null>(null);
   const [editingClass, setEditingClass] = useState<Class | null>(null);
@@ -649,7 +654,7 @@ const EstablishmentConfig = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="orgchart" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="orgchart" className="flex items-center gap-2">
               <Network className="h-4 w-4" />
               Organigramme
@@ -661,6 +666,10 @@ const EstablishmentConfig = () => {
             <TabsTrigger value="classes" className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4" />
               Classes
+            </TabsTrigger>
+            <TabsTrigger value="pedagogy" className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              Pédagogie
             </TabsTrigger>
           </TabsList>
 
@@ -982,6 +991,63 @@ const EstablishmentConfig = () => {
               </div>
             )}
           </TabsContent>
+
+          {/* Pedagogy Tab */}
+          <TabsContent value="pedagogy" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-foreground">Configuration Pédagogique</h2>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Matières */}
+              <GlassCard className="p-6" solid>
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 flex items-center justify-center">
+                    <BookOpen className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-foreground">Matières enseignées</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Configurez les matières, coefficients, et langues enseignées (LV1, LV2, LV3)
+                    </p>
+                    <GlassButton
+                      variant="primary"
+                      size="sm"
+                      className="mt-4"
+                      onClick={() => setShowSubjectConfigModal(true)}
+                    >
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Gérer les matières
+                    </GlassButton>
+                  </div>
+                </div>
+              </GlassCard>
+
+              {/* Sections linguistiques */}
+              <GlassCard className="p-6" solid>
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 flex items-center justify-center">
+                    <Languages className="h-6 w-6 text-purple-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-foreground">Sections linguistiques</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Définissez les sections par langue d'enseignement (Francophone, Anglophone, etc.)
+                    </p>
+                    <GlassButton
+                      variant="primary"
+                      size="sm"
+                      className="mt-4"
+                      onClick={() => setShowLinguisticSectionsModal(true)}
+                    >
+                      <Languages className="h-4 w-4 mr-2" />
+                      Gérer les sections
+                    </GlassButton>
+                  </div>
+                </div>
+              </GlassCard>
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -1229,6 +1295,26 @@ const EstablishmentConfig = () => {
         onSuccess={fetchEstablishmentData}
         establishmentId={establishmentId || ""}
       />
+
+      {/* Subject Config Modal */}
+      {establishmentId && (
+        <SubjectConfigModal
+          open={showSubjectConfigModal}
+          onOpenChange={setShowSubjectConfigModal}
+          establishmentId={establishmentId}
+          onSuccess={fetchEstablishmentData}
+        />
+      )}
+
+      {/* Linguistic Sections Modal */}
+      {establishmentId && (
+        <LinguisticSectionsModal
+          open={showLinguisticSectionsModal}
+          onOpenChange={setShowLinguisticSectionsModal}
+          establishmentId={establishmentId}
+          onSuccess={fetchEstablishmentData}
+        />
+      )}
     </UserLayout>
   );
 };

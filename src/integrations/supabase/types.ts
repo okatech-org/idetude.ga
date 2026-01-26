@@ -329,6 +329,95 @@ export type Database = {
           },
         ]
       }
+      competencies: {
+        Row: {
+          class_level: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          max_level: number
+          name: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          class_level: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          max_level?: number
+          name: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          class_level?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          max_level?: number
+          name?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competencies_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competency_history: {
+        Row: {
+          created_at: string
+          evaluated_by: string
+          id: string
+          new_level: number
+          notes: string | null
+          previous_level: number
+          student_competency_id: string
+        }
+        Insert: {
+          created_at?: string
+          evaluated_by: string
+          id?: string
+          new_level: number
+          notes?: string | null
+          previous_level: number
+          student_competency_id: string
+        }
+        Update: {
+          created_at?: string
+          evaluated_by?: string
+          id?: string
+          new_level?: number
+          notes?: string | null
+          previous_level?: number
+          student_competency_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competency_history_evaluated_by_fkey"
+            columns: ["evaluated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competency_history_student_competency_id_fkey"
+            columns: ["student_competency_id"]
+            isOneToOne: false
+            referencedRelation: "student_competencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_reminders: {
         Row: {
           created_at: string
@@ -675,6 +764,65 @@ export type Database = {
           {
             foreignKeyName: "payments_student_id_fkey"
             columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedagogical_resources: {
+        Row: {
+          class_level: string
+          created_at: string
+          description: string | null
+          downloads_count: number
+          external_url: string | null
+          file_url: string | null
+          id: string
+          is_public: boolean
+          resource_type: string
+          subject: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          class_level: string
+          created_at?: string
+          description?: string | null
+          downloads_count?: number
+          external_url?: string | null
+          file_url?: string | null
+          id?: string
+          is_public?: boolean
+          resource_type?: string
+          subject: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          class_level?: string
+          created_at?: string
+          description?: string | null
+          downloads_count?: number
+          external_url?: string | null
+          file_url?: string | null
+          id?: string
+          is_public?: boolean
+          resource_type?: string
+          subject?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedagogical_resources_uploaded_by_fkey"
+            columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1034,6 +1182,64 @@ export type Database = {
           {
             foreignKeyName: "shared_documents_uploaded_by_fkey"
             columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_competencies: {
+        Row: {
+          competency_id: string
+          created_at: string
+          current_level: number
+          evaluated_at: string
+          evaluated_by: string
+          id: string
+          notes: string | null
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          competency_id: string
+          created_at?: string
+          current_level?: number
+          evaluated_at?: string
+          evaluated_by: string
+          id?: string
+          notes?: string | null
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          competency_id?: string
+          created_at?: string
+          current_level?: number
+          evaluated_at?: string
+          evaluated_by?: string
+          id?: string
+          notes?: string | null
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_competencies_competency_id_fkey"
+            columns: ["competency_id"]
+            isOneToOne: false
+            referencedRelation: "competencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_competencies_evaluated_by_fkey"
+            columns: ["evaluated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_competencies_student_id_fkey"
+            columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

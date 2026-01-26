@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, GraduationCap, User, LogOut, Mail, BookOpen, UserX, Calendar, BarChart3, FileText, ClipboardList, FolderOpen } from "lucide-react";
+import { Menu, X, GraduationCap, User, LogOut } from "lucide-react";
 import { GlassButton } from "@/components/ui/glass-button";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
-import { PushNotificationToggle } from "@/components/notifications/PushNotificationToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
@@ -13,24 +11,6 @@ const navLinks = [
   { name: "Sensibilisation", path: "/sensibilisation" },
   { name: "Tutoriels", path: "/tutoriels" },
   { name: "Démo", path: "/demo" },
-];
-
-import { MessageSquare, CreditCard, CalendarDays, Users, CalendarCheck } from "lucide-react";
-
-const userLinks = [
-  { name: "Chat", path: "/chat", icon: MessageSquare },
-  { name: "Messages", path: "/messages", icon: Mail },
-  { name: "Notes", path: "/notes", icon: BookOpen },
-  { name: "Devoirs", path: "/devoirs", icon: ClipboardList },
-  { name: "Absences", path: "/absences", icon: UserX },
-  { name: "Emploi du temps", path: "/emploi-du-temps", icon: Calendar },
-  { name: "Paiements", path: "/paiements", icon: CreditCard },
-  { name: "Rendez-vous", path: "/rendez-vous", icon: CalendarDays },
-  { name: "Documents", path: "/documents", icon: FolderOpen },
-  { name: "Groupes", path: "/groupes", icon: Users },
-  { name: "Calendrier", path: "/calendrier", icon: CalendarCheck },
-  { name: "Analytique", path: "/analytics", icon: BarChart3 },
-  { name: "Bulletins", path: "/bulletins", icon: FileText },
 ];
 
 export const Navbar = () => {
@@ -99,27 +79,6 @@ export const Navbar = () => {
               <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
             ) : user ? (
               <div className="flex items-center gap-2">
-                {userLinks.map((link) => {
-                  const Icon = link.icon;
-                  return (
-                    <Link
-                      key={link.path}
-                      to={link.path}
-                      className={cn(
-                        "p-2 rounded-lg transition-colors",
-                        location.pathname === link.path
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-primary/5"
-                      )}
-                      title={link.name}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </Link>
-                  );
-                })}
-                <NotificationBell />
-                <PushNotificationToggle />
-                <div className="w-px h-6 bg-border/50 mx-1" />
                 <Link
                   to="/dashboard"
                   className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-primary/5 transition-colors"
@@ -128,7 +87,7 @@ export const Navbar = () => {
                     <User className="h-4 w-4 text-primary" />
                   </div>
                   <span className="text-sm font-medium text-foreground">
-                    {profile?.first_name || "Mon compte"}
+                    {profile?.first_name || "Mon espace"}
                   </span>
                 </Link>
                 <button
@@ -185,24 +144,6 @@ export const Navbar = () => {
           <div className="pt-2 border-t border-border/30 mt-2">
             {user ? (
               <div className="space-y-2">
-                {userLinks.map((link) => {
-                  const Icon = link.icon;
-                  return (
-                    <Link
-                      key={link.path}
-                      to={link.path}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                        location.pathname === link.path
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-primary/5"
-                      )}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span className="text-sm font-medium">{link.name}</span>
-                    </Link>
-                  );
-                })}
                 <Link
                   to="/dashboard"
                   className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/5 transition-colors"
@@ -211,7 +152,7 @@ export const Navbar = () => {
                     <User className="h-4 w-4 text-primary" />
                   </div>
                   <span className="text-sm font-medium text-foreground">
-                    {profile?.first_name || "Mon compte"}
+                    {profile?.first_name || "Mon espace"}
                   </span>
                 </Link>
                 <button

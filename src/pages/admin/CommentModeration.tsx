@@ -3,8 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { UserLayout } from "@/components/layout/UserLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -43,7 +42,6 @@ import {
   EyeOff,
   CheckCircle,
   Search,
-  ArrowLeft,
   AlertTriangle,
   MessageSquare,
   User,
@@ -308,58 +306,31 @@ const CommentModeration = () => {
   }, [comments]);
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return null; // UserLayout handles loading
   }
 
   if (!user || !isAdmin) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="container mx-auto px-4 py-24">
-          <GlassCard className="p-8 text-center" solid>
-            <Shield className="h-16 w-16 mx-auto text-destructive mb-4" />
-            <h1 className="text-2xl font-bold text-foreground mb-2">Accès refusé</h1>
-            <p className="text-muted-foreground mb-4">
-              Vous n'avez pas les permissions nécessaires pour accéder à cette page.
-            </p>
-            <GlassButton onClick={() => navigate("/dashboard")}>
-              Retour au tableau de bord
-            </GlassButton>
-          </GlassCard>
-        </div>
-        <Footer />
-      </div>
+      <UserLayout title="Accès refusé">
+        <GlassCard className="p-8 text-center max-w-md mx-auto" solid>
+          <Shield className="h-16 w-16 mx-auto text-destructive mb-4" />
+          <h1 className="text-2xl font-bold text-foreground mb-2">Accès refusé</h1>
+          <p className="text-muted-foreground mb-4">
+            Vous n'avez pas les permissions nécessaires pour accéder à cette page.
+          </p>
+          <GlassButton onClick={() => navigate("/dashboard")}>
+            Retour au tableau de bord
+          </GlassButton>
+        </GlassCard>
+      </UserLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-4">
-            <GlassButton variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
-              <ArrowLeft className="h-4 w-4" />
-            </GlassButton>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <Shield className="h-6 w-6 text-primary" />
-                Modération des commentaires
-              </h1>
-              <p className="text-muted-foreground">
-                Gérez les commentaires signalés et modérés
-              </p>
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+    <UserLayout title="Modération des commentaires">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full max-w-md grid-cols-2">
               <TabsTrigger value="comments" className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
@@ -651,8 +622,6 @@ const CommentModeration = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </div>
-
       {/* Ban User Modal */}
       {banModalData && (
         <BanUserModal
@@ -697,9 +666,7 @@ const CommentModeration = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <Footer />
-    </div>
+    </UserLayout>
   );
 };
 

@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { UserLayout } from "@/components/layout/UserLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { GlassInput } from "@/components/ui/glass-input";
@@ -73,7 +71,6 @@ const GRADE_TYPES = [
 ];
 
 const Grades = () => {
-  const navigate = useNavigate();
   const { user, roles, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
@@ -100,12 +97,6 @@ const Grades = () => {
   const isTeacher = roles.includes("teacher") || roles.includes("main_teacher");
   const isSuperAdmin = roles.includes("super_admin");
   const canManageGrades = isTeacher || isSuperAdmin;
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/auth", { replace: true });
-    }
-  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     if (user) {
@@ -326,25 +317,18 @@ const Grades = () => {
   }).filter(Boolean);
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+    return null; // UserLayout handles loading
   }
 
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+    <UserLayout title="Gestion des Notes">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
                 <GraduationCap className="h-6 w-6 text-primary" />
               </div>
               <div>
@@ -582,8 +566,6 @@ const Grades = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </div>
-
       {/* Add/Edit Grade Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="max-w-lg">
@@ -722,9 +704,7 @@ const Grades = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      <Footer />
-    </div>
+    </UserLayout>
   );
 };
 

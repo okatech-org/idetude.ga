@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BookOpen,
   Upload,
@@ -43,9 +43,13 @@ import {
   Star,
   Sparkles,
   TrendingUp,
+  MessageSquare,
+  Settings,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import { ResourceDetailModal } from "@/components/resources/ResourceDetailModal";
+import { StarRating } from "@/components/resources/StarRating";
 
 interface PedagogicalResource {
   id: string;
@@ -66,6 +70,17 @@ interface PedagogicalResource {
 interface Favorite {
   id: string;
   resource_id: string;
+}
+
+interface ResourceRating {
+  resource_id: string;
+  avg_rating: number;
+  count: number;
+}
+
+interface ResourceCommentCount {
+  resource_id: string;
+  count: number;
 }
 
 const resourceTypes = {
@@ -101,15 +116,20 @@ const classLevels = [
 ];
 
 const Resources = () => {
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
   const [resources, setResources] = useState<PedagogicalResource[]>([]);
   const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [ratings, setRatings] = useState<Map<string, ResourceRating>>(new Map());
+  const [commentCounts, setCommentCounts] = useState<Map<string, number>>(new Map());
+  const [teacherSubjects, setTeacherSubjects] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isSubjectsOpen, setIsSubjectsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
   const [activeTab, setActiveTab] = useState("all");
+  const [selectedResource, setSelectedResource] = useState<PedagogicalResource | null>(null);
   const [uploadData, setUploadData] = useState({
     title: "",
     description: "",
@@ -123,12 +143,23 @@ const Resources = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  const isTeacher = roles.some((r) =>
+    ["teacher", "main_teacher", "super_admin"].includes(r)
+  );
+
   useEffect(() => {
     if (user) {
       fetchResources();
       fetchFavorites();
+      fetchTeacherSubjects();
     }
   }, [user, subjectFilter, levelFilter]);
+
+  useEffect(() => {
+    if (resources.length > 0) {
+      fetchRatingsAndComments();
+    }
+  }, [resources]);
 
   const fetchResources = async () => {
     try {
@@ -156,6 +187,55 @@ const Resources = () => {
     }
   };
 
+  const fetchRatingsAndComments = async () => {
+    const resourceIds = resources.map((r) => r.id);
+
+    try {
+      // Fetch ratings
+      const { data: ratingsData } = await supabase
+        .from("resource_ratings")
+        .select("resource_id, rating")
+        .in("resource_id", resourceIds);
+
+      const ratingsMap = new Map<string, ResourceRating>();
+      if (ratingsData) {
+        const grouped = ratingsData.reduce((acc, r) => {
+          if (!acc[r.resource_id]) {
+            acc[r.resource_id] = { sum: 0, count: 0 };
+          }
+          acc[r.resource_id].sum += r.rating;
+          acc[r.resource_id].count += 1;
+          return acc;
+        }, {} as Record<string, { sum: number; count: number }>);
+
+        Object.entries(grouped).forEach(([id, { sum, count }]) => {
+          ratingsMap.set(id, {
+            resource_id: id,
+            avg_rating: sum / count,
+            count,
+          });
+        });
+      }
+      setRatings(ratingsMap);
+
+      // Fetch comment counts
+      const { data: commentsData } = await supabase
+        .from("resource_comments")
+        .select("resource_id")
+        .in("resource_id", resourceIds);
+
+      const commentsMap = new Map<string, number>();
+      if (commentsData) {
+        commentsData.forEach((c) => {
+          commentsMap.set(c.resource_id, (commentsMap.get(c.resource_id) || 0) + 1);
+        });
+      }
+      setCommentCounts(commentsMap);
+    } catch (error) {
+      console.error("Error fetching ratings and comments:", error);
+    }
+  };
+
   const fetchFavorites = async () => {
     if (!user) return;
     try {
@@ -168,6 +248,45 @@ const Resources = () => {
       setFavorites(data || []);
     } catch (error) {
       console.error("Error fetching favorites:", error);
+    }
+  };
+
+  const fetchTeacherSubjects = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from("teacher_subjects")
+        .select("subject")
+        .eq("teacher_id", user.id);
+
+      if (error) throw error;
+      setTeacherSubjects(data?.map((s) => s.subject) || []);
+    } catch (error) {
+      console.error("Error fetching teacher subjects:", error);
+    }
+  };
+
+  const toggleTeacherSubject = async (subject: string) => {
+    if (!user) return;
+
+    try {
+      if (teacherSubjects.includes(subject)) {
+        await supabase
+          .from("teacher_subjects")
+          .delete()
+          .eq("teacher_id", user.id)
+          .eq("subject", subject);
+        setTeacherSubjects(teacherSubjects.filter((s) => s !== subject));
+      } else {
+        await supabase.from("teacher_subjects").insert({
+          teacher_id: user.id,
+          subject,
+        });
+        setTeacherSubjects([...teacherSubjects, subject]);
+      }
+    } catch (error) {
+      console.error("Error toggling subject:", error);
+      toast.error("Erreur lors de la mise à jour");
     }
   };
 
@@ -355,17 +474,21 @@ const Resources = () => {
 
   // Get recommendations (most downloaded + similar subjects)
   const getRecommendations = () => {
-    const userFavSubjects = new Set(
-      favoriteResources.map((r) => r.subject)
-    );
+    const userFavSubjects = new Set(favoriteResources.map((r) => r.subject));
 
     return filteredResources
       .filter((r) => !isFavorite(r.id) && r.uploaded_by !== user?.id)
       .sort((a, b) => {
+        const aRating = ratings.get(a.id)?.avg_rating || 0;
+        const bRating = ratings.get(b.id)?.avg_rating || 0;
         const aScore =
-          (userFavSubjects.has(a.subject) ? 10 : 0) + a.downloads_count;
+          (userFavSubjects.has(a.subject) ? 10 : 0) +
+          a.downloads_count +
+          aRating * 2;
         const bScore =
-          (userFavSubjects.has(b.subject) ? 10 : 0) + b.downloads_count;
+          (userFavSubjects.has(b.subject) ? 10 : 0) +
+          b.downloads_count +
+          bRating * 2;
         return bScore - aScore;
       })
       .slice(0, 6);
@@ -374,7 +497,11 @@ const Resources = () => {
   // Get trending (most downloads recently)
   const getTrending = () => {
     return [...filteredResources]
-      .sort((a, b) => b.downloads_count - a.downloads_count)
+      .sort((a, b) => {
+        const aRating = ratings.get(a.id)?.avg_rating || 0;
+        const bRating = ratings.get(b.id)?.avg_rating || 0;
+        return b.downloads_count + bRating * 2 - (a.downloads_count + aRating * 2);
+      })
       .slice(0, 6);
   };
 
@@ -406,9 +533,14 @@ const Resources = () => {
       resourceTypes[resource.resource_type as keyof typeof resourceTypes]?.icon ||
       FileText;
     const isFav = isFavorite(resource.id);
+    const resourceRating = ratings.get(resource.id);
+    const commentCount = commentCounts.get(resource.id) || 0;
 
     return (
-      <GlassCard className="p-4">
+      <GlassCard
+        className="p-4 cursor-pointer hover:shadow-lg transition-shadow"
+        onClick={() => setSelectedResource(resource)}
+      >
         <div className="flex items-start gap-3">
           <div className="p-3 rounded-lg bg-primary/10">
             <TypeIcon className="h-6 w-6 text-primary" />
@@ -417,7 +549,10 @@ const Resources = () => {
             <div className="flex items-start justify-between">
               <h3 className="font-medium truncate">{resource.title}</h3>
               <button
-                onClick={() => toggleFavorite(resource.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(resource.id);
+                }}
                 className="ml-2 flex-shrink-0"
               >
                 <Heart
@@ -442,15 +577,30 @@ const Resources = () => {
                 {resource.description}
               </p>
             )}
-            {resource.tags && resource.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {resource.tags.slice(0, 3).map((tag) => (
-                  <Badge key={tag} variant="outline" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
+
+            {/* Rating and comments */}
+            <div className="flex items-center gap-3 mt-2">
+              {resourceRating && resourceRating.count > 0 ? (
+                <div className="flex items-center gap-1">
+                  <StarRating rating={resourceRating.avg_rating} size="sm" />
+                  <span className="text-xs text-muted-foreground">
+                    ({resourceRating.count})
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <Star className="h-3 w-3 text-muted-foreground/30" />
+                  <span className="text-xs text-muted-foreground">
+                    Non noté
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <MessageSquare className="h-3 w-3" />
+                <span>{commentCount}</span>
               </div>
-            )}
+            </div>
+
             <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
               <Eye className="h-3 w-3" />
               <span>{resource.downloads_count} vues</span>
@@ -469,7 +619,10 @@ const Resources = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleDownload(resource)}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownload(resource);
+            }}
             className="flex-1"
           >
             {resource.external_url ? (
@@ -488,7 +641,10 @@ const Resources = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleDelete(resource)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(resource);
+              }}
               className="text-destructive hover:text-destructive"
             >
               <Trash2 className="h-4 w-4" />
@@ -512,189 +668,226 @@ const Resources = () => {
             </p>
           </div>
 
-          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-            <DialogTrigger asChild>
-              <GlassButton>
-                <Upload className="h-4 w-4 mr-2" />
-                Ajouter une ressource
-              </GlassButton>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Ajouter une ressource</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>Type de ressource</Label>
-                  <Select
-                    value={uploadData.resource_type}
-                    onValueChange={(value) =>
-                      setUploadData((prev) => ({ ...prev, resource_type: value }))
-                    }
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(resourceTypes).map(([value, { label }]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          <div className="flex gap-2">
+            {isTeacher && (
+              <Dialog open={isSubjectsOpen} onOpenChange={setIsSubjectsOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <Settings className="h-4 w-4 mr-2" />
+                    Mes matières
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Matières enseignées</DialogTitle>
+                  </DialogHeader>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Sélectionnez vos matières pour recevoir des notifications
+                    lorsque de nouvelles ressources sont ajoutées.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {subjects.map((subject) => (
+                      <button
+                        key={subject}
+                        onClick={() => toggleTeacherSubject(subject)}
+                        className={`p-2 rounded-lg border text-sm text-left transition-colors ${
+                          teacherSubjects.includes(subject)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "border-border hover:bg-muted"
+                        }`}
+                      >
+                        {subject}
+                      </button>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
 
-                {uploadData.resource_type === "link" ? (
+            <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+              <DialogTrigger asChild>
+                <GlassButton>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Ajouter une ressource
+                </GlassButton>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Ajouter une ressource</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
                   <div>
-                    <Label>URL externe *</Label>
-                    <GlassInput
-                      value={uploadData.external_url}
-                      onChange={(e) =>
-                        setUploadData((prev) => ({
-                          ...prev,
-                          external_url: e.target.value,
-                        }))
+                    <Label>Type de ressource</Label>
+                    <Select
+                      value={uploadData.resource_type}
+                      onValueChange={(value) =>
+                        setUploadData((prev) => ({ ...prev, resource_type: value }))
                       }
-                      placeholder="https://..."
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(resourceTypes).map(([value, { label }]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {uploadData.resource_type === "link" ? (
+                    <div>
+                      <Label>URL externe *</Label>
+                      <GlassInput
+                        value={uploadData.external_url}
+                        onChange={(e) =>
+                          setUploadData((prev) => ({
+                            ...prev,
+                            external_url: e.target.value,
+                          }))
+                        }
+                        placeholder="https://..."
+                        className="mt-1"
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <Label>Fichier *</Label>
+                      <div className="mt-2 border-2 border-dashed border-border rounded-lg p-6 text-center">
+                        <input
+                          type="file"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                          id="resource-upload"
+                        />
+                        <label htmlFor="resource-upload" className="cursor-pointer">
+                          <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                          {selectedFile ? (
+                            <p className="text-sm font-medium">{selectedFile.name}</p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              Cliquez pour sélectionner (max 50 MB)
+                            </p>
+                          )}
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <Label>Titre *</Label>
+                    <GlassInput
+                      value={uploadData.title}
+                      onChange={(e) =>
+                        setUploadData((prev) => ({ ...prev, title: e.target.value }))
+                      }
+                      placeholder="Titre de la ressource"
                       className="mt-1"
                     />
                   </div>
-                ) : (
-                  <div>
-                    <Label>Fichier *</Label>
-                    <div className="mt-2 border-2 border-dashed border-border rounded-lg p-6 text-center">
-                      <input
-                        type="file"
-                        onChange={handleFileSelect}
-                        className="hidden"
-                        id="resource-upload"
-                      />
-                      <label htmlFor="resource-upload" className="cursor-pointer">
-                        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                        {selectedFile ? (
-                          <p className="text-sm font-medium">{selectedFile.name}</p>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            Cliquez pour sélectionner (max 50 MB)
-                          </p>
-                        )}
-                      </label>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Matière *</Label>
+                      <Select
+                        value={uploadData.subject}
+                        onValueChange={(value) =>
+                          setUploadData((prev) => ({ ...prev, subject: value }))
+                        }
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Sélectionner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {subjects.map((subject) => (
+                            <SelectItem key={subject} value={subject}>
+                              {subject}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label>Niveau *</Label>
+                      <Select
+                        value={uploadData.class_level}
+                        onValueChange={(value) =>
+                          setUploadData((prev) => ({ ...prev, class_level: value }))
+                        }
+                      >
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Sélectionner" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {classLevels.map((level) => (
+                            <SelectItem key={level} value={level}>
+                              {level}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                )}
 
-                <div>
-                  <Label>Titre *</Label>
-                  <GlassInput
-                    value={uploadData.title}
-                    onChange={(e) =>
-                      setUploadData((prev) => ({ ...prev, title: e.target.value }))
-                    }
-                    placeholder="Titre de la ressource"
-                    className="mt-1"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Matière *</Label>
-                    <Select
-                      value={uploadData.subject}
-                      onValueChange={(value) =>
-                        setUploadData((prev) => ({ ...prev, subject: value }))
+                    <Label>Description</Label>
+                    <Textarea
+                      value={uploadData.description}
+                      onChange={(e) =>
+                        setUploadData((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
                       }
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Sélectionner" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {subjects.map((subject) => (
-                          <SelectItem key={subject} value={subject}>
-                            {subject}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="Description de la ressource"
+                      className="mt-1"
+                    />
                   </div>
 
                   <div>
-                    <Label>Niveau *</Label>
-                    <Select
-                      value={uploadData.class_level}
-                      onValueChange={(value) =>
-                        setUploadData((prev) => ({ ...prev, class_level: value }))
+                    <Label>Tags (séparés par des virgules)</Label>
+                    <GlassInput
+                      value={uploadData.tags}
+                      onChange={(e) =>
+                        setUploadData((prev) => ({ ...prev, tags: e.target.value }))
                       }
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Sélectionner" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {classLevels.map((level) => (
-                          <SelectItem key={level} value={level}>
-                            {level}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      placeholder="algèbre, exercices, bac..."
+                      className="mt-1"
+                    />
                   </div>
-                </div>
 
-                <div>
-                  <Label>Description</Label>
-                  <Textarea
-                    value={uploadData.description}
-                    onChange={(e) =>
-                      setUploadData((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    placeholder="Description de la ressource"
-                    className="mt-1"
-                  />
-                </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="is-public"
+                      checked={uploadData.isPublic}
+                      onChange={(e) =>
+                        setUploadData((prev) => ({
+                          ...prev,
+                          isPublic: e.target.checked,
+                        }))
+                      }
+                      className="rounded"
+                    />
+                    <Label htmlFor="is-public" className="text-sm">
+                      Partager avec tous les enseignants
+                    </Label>
+                  </div>
 
-                <div>
-                  <Label>Tags (séparés par des virgules)</Label>
-                  <GlassInput
-                    value={uploadData.tags}
-                    onChange={(e) =>
-                      setUploadData((prev) => ({ ...prev, tags: e.target.value }))
-                    }
-                    placeholder="algèbre, exercices, bac..."
-                    className="mt-1"
-                  />
+                  <GlassButton
+                    onClick={handleUpload}
+                    disabled={isUploading}
+                    className="w-full"
+                  >
+                    {isUploading ? "Ajout en cours..." : "Ajouter la ressource"}
+                  </GlassButton>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="is-public"
-                    checked={uploadData.isPublic}
-                    onChange={(e) =>
-                      setUploadData((prev) => ({
-                        ...prev,
-                        isPublic: e.target.checked,
-                      }))
-                    }
-                    className="rounded"
-                  />
-                  <Label htmlFor="is-public" className="text-sm">
-                    Partager avec tous les enseignants
-                  </Label>
-                </div>
-
-                <GlassButton
-                  onClick={handleUpload}
-                  disabled={isUploading}
-                  className="w-full"
-                >
-                  {isUploading ? "Ajout en cours..." : "Ajouter la ressource"}
-                </GlassButton>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -794,6 +987,14 @@ const Resources = () => {
       </main>
 
       <Footer />
+
+      {/* Resource Detail Modal */}
+      <ResourceDetailModal
+        resource={selectedResource}
+        isOpen={!!selectedResource}
+        onClose={() => setSelectedResource(null)}
+        onDownload={handleDownload}
+      />
     </div>
   );
 };

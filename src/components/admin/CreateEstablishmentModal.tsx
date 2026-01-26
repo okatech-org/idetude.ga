@@ -282,8 +282,8 @@ const EDUCATION_SYSTEM_CATEGORIES = [
 // Flatten pour accès facile
 const EDUCATION_SYSTEMS = EDUCATION_SYSTEM_CATEGORIES.flatMap(cat => cat.systems);
 
-// Langues d'enseignement additionnelles
-const TEACHING_LANGUAGES = [
+// Langues disponibles
+const LANGUAGES = [
   { value: "fr", label: "Français", icon: "🇫🇷" },
   { value: "en", label: "Anglais", icon: "🇬🇧" },
   { value: "ar", label: "Arabe", icon: "🇸🇦" },
@@ -300,27 +300,54 @@ const TEACHING_LANGUAGES = [
   { value: "hi", label: "Hindi", icon: "🇮🇳" },
   { value: "he", label: "Hébreu", icon: "🇮🇱" },
   { value: "sw", label: "Swahili", icon: "🇰🇪" },
+  { value: "la", label: "Latin", icon: "📜" },
+  { value: "gr", label: "Grec ancien", icon: "🏛️" },
   { value: "local", label: "Langue locale", icon: "🌍" },
 ];
 
-// Helper pour déterminer le type linguistique
-const getLanguageDesignation = (systemCount: number, additionalLanguagesCount: number): { label: string; icon: string } | null => {
-  const totalLanguages = systemCount + additionalLanguagesCount;
+// Helper pour obtenir les langues principales d'enseignement à partir des systèmes sélectionnés
+const getTeachingLanguagesFromSystems = (educationSystems: string[]): string[] => {
+  const languages = new Set<string>();
+  educationSystems.forEach(sysValue => {
+    const system = EDUCATION_SYSTEMS.find(s => s.value === sysValue);
+    if (system?.mainLanguage && system.mainLanguage !== "multi") {
+      languages.add(system.mainLanguage);
+    }
+  });
+  return Array.from(languages);
+};
+
+// Helper pour déterminer le type linguistique basé sur les langues d'enseignement
+const getLanguageDesignation = (
+  educationSystems: string[], 
+  additionalTeachingLanguages: string[]
+): { label: string; icon: string; totalLanguages: number } | null => {
+  // Langues d'enseignement provenant des systèmes
+  const systemLanguages = getTeachingLanguagesFromSystems(educationSystems);
   
-  if (systemCount > 1) {
-    return { label: "Mixte / Hybride", icon: "🔀" };
+  // Combiner avec les langues d'enseignement additionnelles (sans doublons)
+  const allTeachingLanguages = new Set([...systemLanguages, ...additionalTeachingLanguages]);
+  const totalLanguages = allTeachingLanguages.size;
+  
+  // Déterminer si c'est un système mixte/hybride (plusieurs systèmes éducatifs)
+  const isMixedSystem = educationSystems.length > 1;
+  
+  if (totalLanguages === 1) {
+    return isMixedSystem 
+      ? { label: "Mixte / Hybride", icon: "🔀", totalLanguages }
+      : null;
   }
   
   if (totalLanguages === 2) {
-    return { label: "Bilingue", icon: "🌍" };
+    return { label: isMixedSystem ? "Mixte Bilingue" : "Bilingue", icon: "🌍", totalLanguages };
   }
   
   if (totalLanguages === 3) {
-    return { label: "Trilingue", icon: "🌐" };
+    return { label: isMixedSystem ? "Mixte Trilingue" : "Trilingue", icon: "🌐", totalLanguages };
   }
   
   if (totalLanguages > 3) {
-    return { label: "Multilingue", icon: "🌐" };
+    return { label: isMixedSystem ? "Mixte Multilingue" : "Multilingue", icon: "🌐", totalLanguages };
   }
   
   return null;
@@ -385,7 +412,8 @@ export const CreateEstablishmentModal = ({
   const [form, setForm] = useState({
     name: "",
     educationSystems: [] as string[], // Multiple systems allowed
-    additionalLanguages: [] as string[], // Additional teaching languages
+    additionalTeachingLanguages: [] as string[], // Langues d'enseignement additionnelles (détermine bilingue/trilingue)
+    taughtLanguages: [] as string[], // Langues enseignées comme matière
     typesWithQualification: [] as TypeWithQualification[],
     address: "",
     phone: "",
@@ -398,8 +426,11 @@ export const CreateEstablishmentModal = ({
     longitude: null as number | null,
   });
   
+  // Langues d'enseignement dérivées des systèmes sélectionnés
+  const systemTeachingLanguages = getTeachingLanguagesFromSystems(form.educationSystems);
+  
   // Computed language designation
-  const languageDesignation = getLanguageDesignation(form.educationSystems.length, form.additionalLanguages.length);
+  const languageDesignation = getLanguageDesignation(form.educationSystems, form.additionalTeachingLanguages);
   
   // Filtrer les catégories et systèmes selon la recherche
   const filteredCategories = EDUCATION_SYSTEM_CATEGORIES.map(category => ({
@@ -492,7 +523,8 @@ export const CreateEstablishmentModal = ({
       setForm({
         name: "",
         educationSystems: [],
-        additionalLanguages: [],
+        additionalTeachingLanguages: [],
+        taughtLanguages: [],
         typesWithQualification: [],
         address: "",
         phone: "",
@@ -723,8 +755,11 @@ export const CreateEstablishmentModal = ({
       form.educationSystems.forEach(sys => {
         allOptions.push(`system:${sys}`);
       });
-      form.additionalLanguages.forEach(lang => {
-        allOptions.push(`lang:${lang}`);
+      form.additionalTeachingLanguages.forEach(lang => {
+        allOptions.push(`teaching_lang:${lang}`);
+      });
+      form.taughtLanguages.forEach(lang => {
+        allOptions.push(`taught_lang:${lang}`);
       });
       if (languageDesignation) {
         allOptions.push(`designation:${languageDesignation.label.toLowerCase().replace(/ \/ /g, "_").replace(/ /g, "_")}`);
@@ -939,23 +974,135 @@ export const CreateEstablishmentModal = ({
                 </p>
               </div>
 
-              {/* Langues d'enseignement additionnelles */}
-              <div className="space-y-2">
-                <Label>Langues d'enseignement additionnelles <span className="text-xs text-muted-foreground">(optionnel - détermine bilingue/trilingue/multilingue)</span></Label>
+              {/* Langues d'enseignement - Section améliorée */}
+              <div className="space-y-3 p-4 rounded-lg border bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-base font-semibold">🗣️ Langues d'enseignement</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Langues dans lesquelles les cours sont dispensés (détermine bilingue/trilingue/multilingue)
+                    </p>
+                  </div>
+                  {languageDesignation && (
+                    <Badge variant="default" className="bg-primary text-primary-foreground">
+                      {languageDesignation.icon} {languageDesignation.label}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Langues principales automatiques (du système) */}
+                {systemTeachingLanguages.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-muted-foreground">Langues principales (du système éducatif) :</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {systemTeachingLanguages.map(langCode => {
+                        const lang = LANGUAGES.find(l => l.value === langCode);
+                        return lang ? (
+                          <Badge key={langCode} variant="secondary" className="gap-2 bg-primary/10 border-primary/30">
+                            <span>{lang.icon}</span>
+                            <span>{lang.label}</span>
+                            <span className="text-xs text-muted-foreground">(auto)</span>
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Langues d'enseignement additionnelles */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-muted-foreground">
+                    Langues d'enseignement additionnelles <span className="text-xs">(optionnel)</span> :
+                  </Label>
+                  
+                  {form.additionalTeachingLanguages.length > 0 && (
+                    <div className="flex flex-wrap gap-2 p-2 rounded-lg bg-secondary/30 border">
+                      {form.additionalTeachingLanguages.map(langValue => {
+                        const lang = LANGUAGES.find(l => l.value === langValue);
+                        return lang ? (
+                          <Badge key={langValue} variant="outline" className="gap-2 pr-1">
+                            <span>{lang.icon}</span>
+                            <span>{lang.label}</span>
+                            <button
+                              type="button"
+                              onClick={() => setForm({
+                                ...form,
+                                additionalTeachingLanguages: form.additionalTeachingLanguages.filter(l => l !== langValue)
+                              })}
+                              className="ml-1 hover:bg-destructive/20 rounded p-0.5"
+                            >
+                              ✕
+                            </button>
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    {LANGUAGES.map((lang) => {
+                      const isSelected = form.additionalTeachingLanguages.includes(lang.value);
+                      // Ne pas afficher si c'est déjà une langue principale du système
+                      const isMainLanguage = systemTeachingLanguages.includes(lang.value);
+                      
+                      if (isMainLanguage) return null;
+                      
+                      return (
+                        <button
+                          key={lang.value}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setForm({
+                                ...form,
+                                additionalTeachingLanguages: form.additionalTeachingLanguages.filter(l => l !== lang.value)
+                              });
+                            } else {
+                              setForm({
+                                ...form,
+                                additionalTeachingLanguages: [...form.additionalTeachingLanguages, lang.value]
+                              });
+                            }
+                          }}
+                          className={cn(
+                            "px-3 py-2 rounded-lg border text-sm font-medium transition-all flex items-center gap-2",
+                            isSelected
+                              ? "bg-secondary border-secondary-foreground/20"
+                              : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50"
+                          )}
+                        >
+                          <span>{lang.icon}</span>
+                          <span>{lang.label}</span>
+                          {isSelected && <span className="text-primary">✓</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Langues enseignées comme matière */}
+              <div className="space-y-3 p-4 rounded-lg border bg-muted/20">
+                <div>
+                  <Label className="text-base font-semibold">📚 Langues enseignées comme matière</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Langues proposées en tant que cours ou options (LV1, LV2, LV3, etc.)
+                  </p>
+                </div>
                 
-                {form.additionalLanguages.length > 0 && (
-                  <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-secondary/30 border">
-                    {form.additionalLanguages.map(langValue => {
-                      const lang = TEACHING_LANGUAGES.find(l => l.value === langValue);
+                {form.taughtLanguages.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-2 rounded-lg bg-secondary/30 border">
+                    {form.taughtLanguages.map(langValue => {
+                      const lang = LANGUAGES.find(l => l.value === langValue);
                       return lang ? (
-                        <Badge key={langValue} variant="outline" className="gap-2 pr-1">
+                        <Badge key={langValue} variant="outline" className="gap-2 pr-1 bg-amber-500/10 border-amber-500/30">
                           <span>{lang.icon}</span>
                           <span>{lang.label}</span>
                           <button
                             type="button"
                             onClick={() => setForm({
                               ...form,
-                              additionalLanguages: form.additionalLanguages.filter(l => l !== langValue)
+                              taughtLanguages: form.taughtLanguages.filter(l => l !== langValue)
                             })}
                             className="ml-1 hover:bg-destructive/20 rounded p-0.5"
                           >
@@ -968,15 +1115,8 @@ export const CreateEstablishmentModal = ({
                 )}
 
                 <div className="flex flex-wrap gap-2">
-                  {TEACHING_LANGUAGES.map((lang) => {
-                    const isSelected = form.additionalLanguages.includes(lang.value);
-                    // Ne pas afficher si c'est la langue principale du système sélectionné
-                    const isMainLanguage = form.educationSystems.some(sysValue => {
-                      const system = EDUCATION_SYSTEMS.find(s => s.value === sysValue);
-                      return system?.mainLanguage === lang.value;
-                    });
-                    
-                    if (isMainLanguage) return null;
+                  {LANGUAGES.map((lang) => {
+                    const isSelected = form.taughtLanguages.includes(lang.value);
                     
                     return (
                       <button
@@ -986,32 +1126,29 @@ export const CreateEstablishmentModal = ({
                           if (isSelected) {
                             setForm({
                               ...form,
-                              additionalLanguages: form.additionalLanguages.filter(l => l !== lang.value)
+                              taughtLanguages: form.taughtLanguages.filter(l => l !== lang.value)
                             });
                           } else {
                             setForm({
                               ...form,
-                              additionalLanguages: [...form.additionalLanguages, lang.value]
+                              taughtLanguages: [...form.taughtLanguages, lang.value]
                             });
                           }
                         }}
                         className={cn(
                           "px-3 py-2 rounded-lg border text-sm font-medium transition-all flex items-center gap-2",
                           isSelected
-                            ? "bg-secondary border-secondary-foreground/20"
+                            ? "bg-amber-500/10 border-amber-500/30 text-foreground"
                             : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50"
                         )}
                       >
                         <span>{lang.icon}</span>
                         <span>{lang.label}</span>
-                        {isSelected && <span className="text-primary">✓</span>}
+                        {isSelected && <span className="text-amber-600">✓</span>}
                       </button>
                     );
                   })}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  📚 Ces langues s'ajoutent à la langue principale du système éducatif choisi
-                </p>
               </div>
 
               <div className="space-y-3">
@@ -1444,24 +1581,28 @@ export const CreateEstablishmentModal = ({
                       )}
                     </span>
                   </div>
-                  {form.additionalLanguages.length > 0 && (
+                  {form.additionalTeachingLanguages.length > 0 && (
                     <div className="col-span-2">
-                      <span className="text-muted-foreground">Langues add.:</span>{" "}
+                      <span className="text-muted-foreground">Langues d'ens. add.:</span>{" "}
                       <span className="font-medium">
-                        {form.additionalLanguages.map(langValue => {
-                          const lang = TEACHING_LANGUAGES.find(l => l.value === langValue);
+                        {form.additionalTeachingLanguages.map(langValue => {
+                          const lang = LANGUAGES.find(l => l.value === langValue);
                           return lang ? `${lang.icon} ${lang.label}` : langValue;
                         }).join(", ")}
                       </span>
                     </div>
                   )}
-                  <div>
-                    <span className="text-muted-foreground">Pays:</span>{" "}
-                    <span className="font-medium">
-                      {COUNTRIES.find(c => c.code === form.country_code)?.flag}{" "}
-                      {COUNTRIES.find(c => c.code === form.country_code)?.name}
-                    </span>
-                  </div>
+                  {form.taughtLanguages.length > 0 && (
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">Langues enseignées:</span>{" "}
+                      <span className="font-medium">
+                        {form.taughtLanguages.map(langValue => {
+                          const lang = LANGUAGES.find(l => l.value === langValue);
+                          return lang ? `${lang.icon} ${lang.label}` : langValue;
+                        }).join(", ")}
+                      </span>
+                    </div>
+                  )}
                   <div>
                     <span className="text-muted-foreground">Pays:</span>{" "}
                     <span className="font-medium">

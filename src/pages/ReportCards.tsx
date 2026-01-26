@@ -267,13 +267,7 @@ export default function ReportCards() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <PageHeader
-          title="Bulletins Scolaires"
-          subtitle="Générez et consultez les bulletins de notes"
-        />
+    <UserLayout title="Bulletins Scolaires">
 
         {/* Actions */}
         <div className="flex flex-wrap gap-4 justify-between items-center mb-6">
@@ -560,8 +554,6 @@ export default function ReportCards() {
             )}
           </DialogContent>
         </Dialog>
-      </main>
-      <Footer />
-    </div>
+    </UserLayout>
   );
 }

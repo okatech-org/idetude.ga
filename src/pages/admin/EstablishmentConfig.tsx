@@ -28,7 +28,12 @@ import {
   Briefcase,
   User,
   School,
+  Network,
+  UserPlus,
 } from "lucide-react";
+import { OrgChart } from "@/components/admin/OrgChart";
+import { AssignUserModal } from "@/components/admin/AssignUserModal";
+import { StudentEnrollmentModal } from "@/components/admin/StudentEnrollmentModal";
 
 interface Establishment {
   id: string;
@@ -102,6 +107,20 @@ interface ClassTeacher {
   };
 }
 
+interface ClassStudent {
+  id: string;
+  class_id: string;
+  student_id: string;
+  school_year: string;
+  status: string | null;
+  enrollment_date: string | null;
+  profiles?: {
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+}
+
 const typeLabels: Record<string, string> = {
   direction: "Direction",
   department: "Département",
@@ -121,16 +140,21 @@ const EstablishmentConfig = () => {
   const [userPositions, setUserPositions] = useState<UserPosition[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [classTeachers, setClassTeachers] = useState<ClassTeacher[]>([]);
+  const [classStudents, setClassStudents] = useState<ClassStudent[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal states
   const [showDepartmentModal, setShowDepartmentModal] = useState(false);
   const [showPositionModal, setShowPositionModal] = useState(false);
   const [showClassModal, setShowClassModal] = useState(false);
+  const [showAssignUserModal, setShowAssignUserModal] = useState(false);
+  const [showStudentEnrollmentModal, setShowStudentEnrollmentModal] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
   const [editingPosition, setEditingPosition] = useState<Position | null>(null);
   const [editingClass, setEditingClass] = useState<Class | null>(null);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
+  const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
+  const [selectedClassForEnrollment, setSelectedClassForEnrollment] = useState<Class | null>(null);
 
   // Form states
   const [departmentForm, setDepartmentForm] = useState({
@@ -277,6 +301,31 @@ const EstablishmentConfig = () => {
           setClassTeachers(enrichedData);
         } else {
           setClassTeachers([]);
+        }
+
+        // Fetch class students
+        const { data: csData, error: csError } = await supabase
+          .from("class_students")
+          .select("*")
+          .in("class_id", classIds);
+
+        if (csError) throw csError;
+
+        if (csData && csData.length > 0) {
+          const studentIds = [...new Set(csData.map((cs) => cs.student_id))];
+          const { data: profilesData } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name, email")
+            .in("id", studentIds);
+
+          const profilesMap = new Map(profilesData?.map((p) => [p.id, p]) || []);
+          const enrichedData = csData.map((cs) => ({
+            ...cs,
+            profiles: profilesMap.get(cs.student_id),
+          }));
+          setClassStudents(enrichedData);
+        } else {
+          setClassStudents([]);
         }
       }
     } catch (error) {
@@ -512,6 +561,17 @@ const EstablishmentConfig = () => {
   const getPositionsForDepartment = (deptId: string) => positions.filter((p) => p.department_id === deptId);
   const getUsersForPosition = (posId: string) => userPositions.filter((up) => up.position_id === posId);
   const getTeachersForClass = (classId: string) => classTeachers.filter((ct) => ct.class_id === classId);
+  const getStudentsForClass = (classId: string) => classStudents.filter((cs) => cs.class_id === classId);
+
+  const handlePositionClick = (position: Position) => {
+    setSelectedPosition(position);
+    setShowAssignUserModal(true);
+  };
+
+  const openStudentEnrollment = (cls: Class) => {
+    setSelectedClassForEnrollment(cls);
+    setShowStudentEnrollmentModal(true);
+  };
 
   if (authLoading || loading) {
     return (
@@ -587,17 +647,32 @@ const EstablishmentConfig = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="admin" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="orgchart" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="orgchart" className="flex items-center gap-2">
+              <Network className="h-4 w-4" />
+              Organigramme
+            </TabsTrigger>
             <TabsTrigger value="admin" className="flex items-center gap-2">
               <FolderTree className="h-4 w-4" />
-              Cellule Administrative
+              Administration
             </TabsTrigger>
             <TabsTrigger value="classes" className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4" />
               Classes
             </TabsTrigger>
           </TabsList>
+
+          {/* Organigramme Tab */}
+          <TabsContent value="orgchart" className="space-y-4">
+            <OrgChart
+              departments={departments}
+              positions={positions}
+              userPositions={userPositions}
+              establishmentName={establishment?.name}
+              onPositionClick={handlePositionClick}
+            />
+          </TabsContent>
 
           {/* Administrative Structure Tab */}
           <TabsContent value="admin" className="space-y-4">
@@ -799,6 +874,8 @@ const EstablishmentConfig = () => {
                   const teachers = getTeachersForClass(cls.id);
                   const mainTeacher = teachers.find((t) => t.is_main_teacher);
 
+                  const students = getStudentsForClass(cls.id);
+
                   return (
                     <GlassCard key={cls.id} className="p-4" solid>
                       <div className="flex items-start justify-between">
@@ -815,15 +892,21 @@ const EstablishmentConfig = () => {
                               <Badge variant="secondary" className="text-xs">
                                 {cls.school_year}
                               </Badge>
-                              {cls.capacity && (
-                                <Badge variant="outline" className="text-xs">
-                                  {cls.capacity} places
-                                </Badge>
-                              )}
+                              <Badge variant="outline" className="text-xs">
+                                {students.length} / {cls.capacity || "∞"} élèves
+                              </Badge>
                             </div>
                           </div>
                         </div>
                         <div className="flex gap-1">
+                          <GlassButton 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => openStudentEnrollment(cls)}
+                            title="Gérer les élèves"
+                          >
+                            <UserPlus className="h-4 w-4" />
+                          </GlassButton>
                           <GlassButton variant="ghost" size="sm" onClick={() => openEditClass(cls)}>
                             <Edit className="h-4 w-4" />
                           </GlassButton>
@@ -854,6 +937,27 @@ const EstablishmentConfig = () => {
                                 )}
                               </div>
                             ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Students preview */}
+                      {students.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border/50">
+                          <p className="text-xs text-muted-foreground mb-2">
+                            Élèves ({students.length}) :
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {students.slice(0, 5).map((s) => (
+                              <Badge key={s.id} variant="outline" className="text-xs">
+                                {s.profiles?.first_name} {s.profiles?.last_name?.charAt(0)}.
+                              </Badge>
+                            ))}
+                            {students.length > 5 && (
+                              <Badge variant="secondary" className="text-xs">
+                                +{students.length - 5}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1088,6 +1192,32 @@ const EstablishmentConfig = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Assign User Modal */}
+      <AssignUserModal
+        isOpen={showAssignUserModal}
+        onClose={() => {
+          setShowAssignUserModal(false);
+          setSelectedPosition(null);
+        }}
+        position={selectedPosition}
+        currentAssignments={selectedPosition ? getUsersForPosition(selectedPosition.id) : []}
+        onSuccess={fetchEstablishmentData}
+      />
+
+      {/* Student Enrollment Modal */}
+      <StudentEnrollmentModal
+        isOpen={showStudentEnrollmentModal}
+        onClose={() => {
+          setShowStudentEnrollmentModal(false);
+          setSelectedClassForEnrollment(null);
+        }}
+        classes={classes}
+        selectedClass={selectedClassForEnrollment}
+        currentStudents={selectedClassForEnrollment ? getStudentsForClass(selectedClassForEnrollment.id) : []}
+        onSuccess={fetchEstablishmentData}
+        establishmentId={establishmentId || ""}
+      />
     </UserLayout>
   );
 };

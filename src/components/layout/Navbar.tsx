@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, X, GraduationCap, User, LogOut, Mail, BookOpen, UserX, Calendar, BarChart3, FileText } from "lucide-react";
+import { Menu, X, GraduationCap, User, LogOut, Mail, BookOpen, UserX, Calendar, BarChart3, FileText, ClipboardList } from "lucide-react";
 import { GlassButton } from "@/components/ui/glass-button";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ const navLinks = [
 const userLinks = [
   { name: "Messages", path: "/messages", icon: Mail },
   { name: "Notes", path: "/notes", icon: BookOpen },
+  { name: "Devoirs", path: "/devoirs", icon: ClipboardList },
   { name: "Absences", path: "/absences", icon: UserX },
   { name: "Emploi du temps", path: "/emploi-du-temps", icon: Calendar },
   { name: "Analytique", path: "/analytics", icon: BarChart3 },
@@ -106,6 +108,7 @@ export const Navbar = () => {
                     </Link>
                   );
                 })}
+                <NotificationBell />
                 <div className="w-px h-6 bg-border/50 mx-1" />
                 <Link
                   to="/dashboard"

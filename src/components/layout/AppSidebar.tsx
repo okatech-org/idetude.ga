@@ -40,8 +40,40 @@ import {
   BookMarked,
   Award,
   Download,
+  Globe,
+  MapPin,
+  Layers,
+  Settings,
+  Activity,
 } from "lucide-react";
 
+// ============= SUPER ADMIN MENU =============
+// Menu principal pour le super administrateur (vision globale de l'écosystème)
+const superAdminMainMenuItems = [
+  { title: "Tableau de bord", url: "/dashboard", icon: LayoutDashboard },
+];
+
+const superAdminEcosystemMenuItems = [
+  { title: "Pays", url: "/admin/countries", icon: Globe },
+  { title: "Régions", url: "/admin/regions", icon: MapPin },
+  { title: "Groupes Scolaires", url: "/admin/groups", icon: Layers },
+];
+
+const superAdminManagementMenuItems = [
+  { title: "Établissements", url: "/admin/establishments", icon: Building2 },
+  { title: "Utilisateurs", url: "/admin/users", icon: Users },
+  { title: "Modération", url: "/admin/moderation", icon: Shield },
+];
+
+const superAdminToolsMenuItems = [
+  { title: "Analytique Globale", url: "/admin/analytics", icon: BarChart3 },
+  { title: "Activité", url: "/admin/activity", icon: Activity },
+  { title: "Export Données", url: "/admin/export", icon: Download },
+  { title: "Configuration", url: "/admin/settings", icon: Settings },
+];
+
+// ============= REGULAR USER MENU =============
+// Menu pour les utilisateurs standards (enseignants, élèves, parents, etc.)
 const mainMenuItems = [
   { title: "Tableau de bord", url: "/dashboard", icon: LayoutDashboard },
   { title: "Messages", url: "/messages", icon: Mail },
@@ -71,7 +103,8 @@ const managementMenuItems = [
   { title: "Export", url: "/export", icon: Download },
 ];
 
-const adminMenuItems = [
+// Menu admin pour les directeurs d'établissement et admins scolaires (pas super_admin)
+const schoolAdminMenuItems = [
   { title: "Utilisateurs", url: "/admin/users", icon: Users },
   { title: "Établissements", url: "/admin/establishments", icon: Building2 },
   { title: "Modération", url: "/admin/moderation", icon: Shield },
@@ -86,7 +119,8 @@ export function AppSidebar() {
 
   const isSuperAdmin = roles.includes("super_admin");
   const isSchoolAdmin = roles.includes("school_admin");
-  const isAdmin = isSuperAdmin || isSchoolAdmin;
+  const isSchoolDirector = roles.includes("school_director");
+  const isEstablishmentAdmin = isSchoolAdmin || isSchoolDirector;
 
   const handleSignOut = async () => {
     await signOut();
@@ -115,6 +149,98 @@ export function AppSidebar() {
     </SidebarMenu>
   );
 
+  // ============= SUPER ADMIN SIDEBAR =============
+  if (isSuperAdmin) {
+    return (
+      <Sidebar collapsible="icon" className="border-r border-border/50">
+        <SidebarHeader className="border-b border-border/50 p-4">
+          <Link to="/dashboard" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <GraduationCap className="h-6 w-6 text-primary-foreground" />
+            </div>
+            {!collapsed && (
+              <span className="text-xl font-bold text-foreground">iDETUDE</span>
+            )}
+          </Link>
+        </SidebarHeader>
+
+        <SidebarContent className="py-2">
+          {/* Principal */}
+          <SidebarGroup>
+            <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
+              Principal
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              {renderMenuItems(superAdminMainMenuItems)}
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          {/* Écosystème */}
+          <SidebarGroup>
+            <SidebarGroupLabel className={cn(collapsed ? "sr-only" : "", "text-blue-600 dark:text-blue-400")}>
+              Écosystème
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              {renderMenuItems(superAdminEcosystemMenuItems)}
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          {/* Administration */}
+          <SidebarGroup>
+            <SidebarGroupLabel className={cn(collapsed ? "sr-only" : "", "text-amber-600 dark:text-amber-400")}>
+              Administration
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              {renderMenuItems(superAdminManagementMenuItems)}
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          {/* Outils */}
+          <SidebarGroup>
+            <SidebarGroupLabel className={cn(collapsed ? "sr-only" : "", "text-purple-600 dark:text-purple-400")}>
+              Outils
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              {renderMenuItems(superAdminToolsMenuItems)}
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+
+        <SidebarFooter className="border-t border-border/50 p-3 space-y-2">
+          <ThemeToggle collapsed={collapsed} />
+          <div className={cn("flex items-center gap-3", collapsed ? "justify-center" : "")}>
+            <Avatar className="h-9 w-9 shrink-0">
+              <AvatarFallback className="bg-destructive/10 text-destructive font-medium">
+                {profile?.first_name?.[0]}{profile?.last_name?.[0]}
+              </AvatarFallback>
+            </Avatar>
+            {!collapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {profile?.first_name} {profile?.last_name}
+                </p>
+                <p className="text-xs text-destructive truncate font-medium">
+                  Super Administrateur
+                </p>
+              </div>
+            )}
+            {!collapsed && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleSignOut}
+                className="shrink-0 text-muted-foreground hover:text-destructive"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </SidebarFooter>
+      </Sidebar>
+    );
+  }
+
+  // ============= REGULAR USER SIDEBAR =============
   return (
     <Sidebar collapsible="icon" className="border-r border-border/50">
       <SidebarHeader className="border-b border-border/50 p-4">
@@ -169,28 +295,22 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Admin */}
-        {isAdmin && (
+        {/* Admin (for school directors/admins only) */}
+        {isEstablishmentAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel className={cn(collapsed ? "sr-only" : "", "text-destructive")}>
               Administration
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              {renderMenuItems(adminMenuItems)}
+              {renderMenuItems(schoolAdminMenuItems)}
             </SidebarGroupContent>
           </SidebarGroup>
         )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border/50 p-3 space-y-2">
-        {/* Theme Toggle */}
         <ThemeToggle collapsed={collapsed} />
-        
-        {/* User Profile */}
-        <div className={cn(
-          "flex items-center gap-3",
-          collapsed ? "justify-center" : ""
-        )}>
+        <div className={cn("flex items-center gap-3", collapsed ? "justify-center" : "")}>
           <Avatar className="h-9 w-9 shrink-0">
             <AvatarFallback className="bg-primary/10 text-primary font-medium">
               {profile?.first_name?.[0]}{profile?.last_name?.[0]}

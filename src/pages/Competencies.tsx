@@ -29,14 +29,27 @@ import { Label } from "@/components/ui/label";
 import {
   Target,
   Plus,
-  TrendingUp,
   Award,
   Search,
   Filter,
   Star,
-  ChevronUp,
-  ChevronDown,
+  Users,
+  Edit,
+  History,
+  TrendingUp,
 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 interface Competency {
   id: string;
@@ -56,6 +69,22 @@ interface StudentCompetency {
   evaluated_at: string;
   notes: string | null;
   competency?: Competency;
+}
+
+interface CompetencyHistoryItem {
+  id: string;
+  student_competency_id: string;
+  previous_level: number;
+  new_level: number;
+  notes: string | null;
+  created_at: string;
+}
+
+interface StudentProfile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
 }
 
 const subjects = [
@@ -91,10 +120,20 @@ const Competencies = () => {
   const { user, roles } = useAuth();
   const [competencies, setCompetencies] = useState<Competency[]>([]);
   const [studentCompetencies, setStudentCompetencies] = useState<StudentCompetency[]>([]);
+  const [competencyHistory, setCompetencyHistory] = useState<CompetencyHistoryItem[]>([]);
+  const [students, setStudents] = useState<StudentProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEvaluateOpen, setIsEvaluateOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
+  const [selectedStudent, setSelectedStudent] = useState<string>("");
+  const [selectedCompetency, setSelectedCompetency] = useState<Competency | null>(null);
+  const [evaluationData, setEvaluationData] = useState({
+    level: 0,
+    notes: "",
+  });
   const [newCompetency, setNewCompetency] = useState({
     name: "",
     description: "",
@@ -103,7 +142,7 @@ const Competencies = () => {
     max_level: 4,
   });
 
-  const isTeacher = roles.includes("teacher") || roles.includes("super_admin");
+  const isTeacher = roles.includes("teacher") || roles.includes("super_admin") || roles.includes("main_teacher");
 
   useEffect(() => {
     if (user) {
@@ -126,8 +165,21 @@ const Competencies = () => {
       if (compError) throw compError;
       setCompetencies(compData || []);
 
-      // Fetch student competencies if user is a student
-      if (!isTeacher) {
+      if (isTeacher) {
+        // Fetch students for teachers
+        const { data: studentsData } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, email")
+          .order("last_name", { ascending: true });
+        setStudents(studentsData || []);
+
+        // Fetch all student competencies for teacher view
+        const { data: allStudentComps } = await supabase
+          .from("student_competencies")
+          .select("*");
+        setStudentCompetencies(allStudentComps || []);
+      } else {
+        // Fetch student's own competencies
         const { data: studentData, error: studentError } = await supabase
           .from("student_competencies")
           .select("*, competency:competencies(*)")
@@ -135,6 +187,17 @@ const Competencies = () => {
 
         if (studentError) throw studentError;
         setStudentCompetencies(studentData || []);
+
+        // Fetch history for student view
+        if (studentData && studentData.length > 0) {
+          const scIds = studentData.map((sc) => sc.id);
+          const { data: historyData } = await supabase
+            .from("competency_history")
+            .select("*")
+            .in("student_competency_id", scIds)
+            .order("created_at", { ascending: true });
+          setCompetencyHistory(historyData || []);
+        }
       }
     } catch (error) {
       console.error("Error fetching competencies:", error);
@@ -178,6 +241,81 @@ const Competencies = () => {
     }
   };
 
+  const handleEvaluate = async () => {
+    if (!user || !selectedStudent || !selectedCompetency) {
+      toast.error("Veuillez sélectionner un élève et une compétence");
+      return;
+    }
+
+    try {
+      // Check if evaluation exists
+      const { data: existing } = await supabase
+        .from("student_competencies")
+        .select("*")
+        .eq("student_id", selectedStudent)
+        .eq("competency_id", selectedCompetency.id)
+        .maybeSingle();
+
+      if (existing) {
+        // Update existing and add to history
+        await supabase.from("competency_history").insert({
+          student_competency_id: existing.id,
+          previous_level: existing.current_level,
+          new_level: evaluationData.level,
+          notes: evaluationData.notes || null,
+          evaluated_by: user.id,
+        });
+
+        await supabase
+          .from("student_competencies")
+          .update({
+            current_level: evaluationData.level,
+            notes: evaluationData.notes || null,
+            evaluated_at: new Date().toISOString(),
+          })
+          .eq("id", existing.id);
+      } else {
+        // Create new evaluation
+        const { data: newEval } = await supabase
+          .from("student_competencies")
+          .insert({
+            student_id: selectedStudent,
+            competency_id: selectedCompetency.id,
+            current_level: evaluationData.level,
+            notes: evaluationData.notes || null,
+            evaluated_by: user.id,
+          })
+          .select()
+          .single();
+
+        if (newEval) {
+          await supabase.from("competency_history").insert({
+            student_competency_id: newEval.id,
+            previous_level: 0,
+            new_level: evaluationData.level,
+            notes: evaluationData.notes || null,
+            evaluated_by: user.id,
+          });
+        }
+      }
+
+      toast.success("Évaluation enregistrée");
+      setIsEvaluateOpen(false);
+      setEvaluationData({ level: 0, notes: "" });
+      setSelectedStudent("");
+      setSelectedCompetency(null);
+      fetchData();
+    } catch (error) {
+      console.error("Error evaluating:", error);
+      toast.error("Erreur lors de l'évaluation");
+    }
+  };
+
+  const openEvaluationDialog = (comp: Competency) => {
+    setSelectedCompetency(comp);
+    setIsEvaluateOpen(true);
+  };
+
   const getStudentLevel = (competencyId: string) => {
     const sc = studentCompetencies.find((s) => s.competency_id === competencyId);
     return sc?.current_level || 0;
@@ -189,7 +327,6 @@ const Competencies = () => {
       c.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Group competencies by subject
   const groupedCompetencies = filteredCompetencies.reduce((acc, comp) => {
     if (!acc[comp.subject]) {
       acc[comp.subject] = [];
@@ -198,7 +335,6 @@ const Competencies = () => {
     return acc;
   }, {} as Record<string, Competency[]>);
 
-  // Calculate overall progress for student
   const overallProgress =
     studentCompetencies.length > 0
       ? Math.round(
@@ -207,6 +343,46 @@ const Competencies = () => {
             100
         )
       : 0;
+
+  // Prepare chart data for student
+  const getProgressChartData = () => {
+    const byMonth: Record<string, { month: string; level: number; count: number }> = {};
+    
+    competencyHistory.forEach((h) => {
+      const monthKey = format(new Date(h.created_at), "MMM yyyy", { locale: fr });
+      if (!byMonth[monthKey]) {
+        byMonth[monthKey] = { month: monthKey, level: 0, count: 0 };
+      }
+      byMonth[monthKey].level += h.new_level;
+      byMonth[monthKey].count += 1;
+    });
+
+    return Object.values(byMonth).map((m) => ({
+      month: m.month,
+      niveau: Math.round((m.level / m.count) * 25), // Convert to percentage
+    }));
+  };
+
+  // Get subject progress for radar-like display
+  const getSubjectProgress = () => {
+    const subjectStats: Record<string, { total: number; sum: number }> = {};
+    
+    studentCompetencies.forEach((sc) => {
+      const comp = sc.competency || competencies.find((c) => c.id === sc.competency_id);
+      if (comp) {
+        if (!subjectStats[comp.subject]) {
+          subjectStats[comp.subject] = { total: 0, sum: 0 };
+        }
+        subjectStats[comp.subject].total += 4;
+        subjectStats[comp.subject].sum += sc.current_level;
+      }
+    });
+
+    return Object.entries(subjectStats).map(([subject, stats]) => ({
+      subject,
+      progress: Math.round((stats.sum / stats.total) * 100),
+    }));
+  };
 
   if (!user) {
     return (
@@ -237,127 +413,288 @@ const Competencies = () => {
             </p>
           </div>
 
-          {isTeacher && (
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-              <DialogTrigger asChild>
-                <GlassButton>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nouvelle compétence
-                </GlassButton>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Créer une compétence</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label>Nom de la compétence *</Label>
-                    <GlassInput
-                      value={newCompetency.name}
-                      onChange={(e) =>
-                        setNewCompetency((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      placeholder="Ex: Résoudre une équation du 2nd degré"
-                      className="mt-1"
-                    />
-                  </div>
+          <div className="flex gap-2">
+            {isTeacher && (
+              <>
+                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                  <DialogTrigger asChild>
+                    <GlassButton>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Nouvelle compétence
+                    </GlassButton>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Créer une compétence</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Nom de la compétence *</Label>
+                        <GlassInput
+                          value={newCompetency.name}
+                          onChange={(e) =>
+                            setNewCompetency((prev) => ({
+                              ...prev,
+                              name: e.target.value,
+                            }))
+                          }
+                          placeholder="Ex: Résoudre une équation du 2nd degré"
+                          className="mt-1"
+                        />
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>Matière *</Label>
-                      <Select
-                        value={newCompetency.subject}
-                        onValueChange={(value) =>
-                          setNewCompetency((prev) => ({ ...prev, subject: value }))
-                        }
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Sélectionner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {subjects.map((subject) => (
-                            <SelectItem key={subject} value={subject}>
-                              {subject}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Matière *</Label>
+                          <Select
+                            value={newCompetency.subject}
+                            onValueChange={(value) =>
+                              setNewCompetency((prev) => ({ ...prev, subject: value }))
+                            }
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder="Sélectionner" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {subjects.map((subject) => (
+                                <SelectItem key={subject} value={subject}>
+                                  {subject}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <Label>Niveau *</Label>
+                          <Select
+                            value={newCompetency.class_level}
+                            onValueChange={(value) =>
+                              setNewCompetency((prev) => ({
+                                ...prev,
+                                class_level: value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder="Sélectionner" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {classLevels.map((level) => (
+                                <SelectItem key={level} value={level}>
+                                  {level}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label>Description</Label>
+                        <Textarea
+                          value={newCompetency.description}
+                          onChange={(e) =>
+                            setNewCompetency((prev) => ({
+                              ...prev,
+                              description: e.target.value,
+                            }))
+                          }
+                          placeholder="Description de la compétence"
+                          className="mt-1"
+                        />
+                      </div>
+
+                      <GlassButton onClick={handleCreateCompetency} className="w-full">
+                        Créer la compétence
+                      </GlassButton>
                     </div>
+                  </DialogContent>
+                </Dialog>
+              </>
+            )}
 
-                    <div>
-                      <Label>Niveau *</Label>
-                      <Select
-                        value={newCompetency.class_level}
-                        onValueChange={(value) =>
-                          setNewCompetency((prev) => ({
-                            ...prev,
-                            class_level: value,
-                          }))
-                        }
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue placeholder="Sélectionner" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {classLevels.map((level) => (
-                            <SelectItem key={level} value={level}>
-                              {level}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+            {!isTeacher && competencyHistory.length > 0 && (
+              <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline">
+                    <History className="h-4 w-4 mr-2" />
+                    Historique
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Historique de progression</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    {competencyHistory.slice(-10).reverse().map((h) => (
+                      <div key={h.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <Badge className={levelColors[h.previous_level]}>
+                              {levelLabels[h.previous_level]}
+                            </Badge>
+                            <span>→</span>
+                            <Badge className={levelColors[h.new_level]}>
+                              {levelLabels[h.new_level]}
+                            </Badge>
+                          </div>
+                          {h.notes && (
+                            <p className="text-sm text-muted-foreground mt-1">{h.notes}</p>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(h.created_at), "dd MMM yyyy", { locale: fr })}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-
-                  <div>
-                    <Label>Description</Label>
-                    <Textarea
-                      value={newCompetency.description}
-                      onChange={(e) =>
-                        setNewCompetency((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
-                      }
-                      placeholder="Description de la compétence"
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <GlassButton onClick={handleCreateCompetency} className="w-full">
-                    Créer la compétence
-                  </GlassButton>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
         </div>
 
-        {/* Student Progress Overview */}
-        {!isTeacher && studentCompetencies.length > 0 && (
-          <GlassCard className="p-6 mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-primary/10">
-                  <Award className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold">Progression globale</h2>
+        {/* Evaluate Dialog for Teachers */}
+        <Dialog open={isEvaluateOpen} onOpenChange={setIsEvaluateOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Évaluer une compétence</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {selectedCompetency && (
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <p className="font-medium">{selectedCompetency.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {studentCompetencies.length} compétences évaluées
+                    {selectedCompetency.subject} - {selectedCompetency.class_level}
                   </p>
                 </div>
+              )}
+
+              <div>
+                <Label>Élève *</Label>
+                <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Sélectionner un élève" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {students.map((student) => (
+                      <SelectItem key={student.id} value={student.id}>
+                        {student.first_name} {student.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-primary">{overallProgress}%</div>
-                <p className="text-sm text-muted-foreground">de maîtrise</p>
+
+              <div>
+                <Label>Niveau d'acquisition *</Label>
+                <div className="grid grid-cols-5 gap-2 mt-2">
+                  {levelLabels.map((label, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setEvaluationData((prev) => ({ ...prev, level: index }))}
+                      className={`p-2 rounded-lg text-xs text-center transition-all ${
+                        evaluationData.level === index
+                          ? `${levelColors[index]} text-white`
+                          : "bg-muted hover:bg-muted/80"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              <div>
+                <Label>Commentaire</Label>
+                <Textarea
+                  value={evaluationData.notes}
+                  onChange={(e) =>
+                    setEvaluationData((prev) => ({ ...prev, notes: e.target.value }))
+                  }
+                  placeholder="Observations sur l'acquisition..."
+                  className="mt-1"
+                />
+              </div>
+
+              <GlassButton onClick={handleEvaluate} className="w-full">
+                Enregistrer l'évaluation
+              </GlassButton>
             </div>
-            <Progress value={overallProgress} className="h-3" />
-          </GlassCard>
+          </DialogContent>
+        </Dialog>
+
+        {/* Student Progress Overview with Charts */}
+        {!isTeacher && studentCompetencies.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <GlassCard className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-lg bg-primary/10">
+                    <Award className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold">Progression globale</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {studentCompetencies.length} compétences évaluées
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-primary">{overallProgress}%</div>
+                  <p className="text-sm text-muted-foreground">de maîtrise</p>
+                </div>
+              </div>
+              <Progress value={overallProgress} className="h-3 mb-4" />
+              
+              {/* Subject breakdown */}
+              <div className="space-y-3 mt-4">
+                {getSubjectProgress().map(({ subject, progress }) => (
+                  <div key={subject}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span>{subject}</span>
+                      <span className="font-medium">{progress}%</span>
+                    </div>
+                    <Progress value={progress} className="h-2" />
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            {/* Progress Chart */}
+            {getProgressChartData().length > 1 && (
+              <GlassCard className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-3 rounded-lg bg-primary/10">
+                    <TrendingUp className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold">Évolution temporelle</h2>
+                    <p className="text-sm text-muted-foreground">Progression mensuelle</p>
+                  </div>
+                </div>
+                <div className="h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={getProgressChartData()}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="month" className="text-xs" />
+                      <YAxis domain={[0, 100]} className="text-xs" />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="niveau"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2}
+                        dot={{ fill: "hsl(var(--primary))" }}
+                        name="Niveau moyen (%)"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </GlassCard>
+            )}
+          </div>
         )}
 
         {/* Filters */}
@@ -462,22 +799,14 @@ const Competencies = () => {
                           </div>
 
                           {isTeacher && (
-                            <div className="flex items-center gap-2">
-                              <div className="flex flex-col items-center gap-1">
-                                {Array.from({ length: comp.max_level + 1 }).map(
-                                  (_, i) => (
-                                    <Star
-                                      key={i}
-                                      className={`h-4 w-4 ${
-                                        i <= comp.max_level
-                                          ? "text-primary fill-primary"
-                                          : "text-muted"
-                                      }`}
-                                    />
-                                  )
-                                )}
-                              </div>
-                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openEvaluationDialog(comp)}
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Évaluer
+                            </Button>
                           )}
                         </div>
                       </GlassCard>

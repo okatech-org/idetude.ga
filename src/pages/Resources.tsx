@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BookOpen,
   Upload,
@@ -38,6 +39,10 @@ import {
   Image,
   ExternalLink,
   Eye,
+  Heart,
+  Star,
+  Sparkles,
+  TrendingUp,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -56,6 +61,11 @@ interface PedagogicalResource {
   uploaded_by: string;
   downloads_count: number;
   created_at: string;
+}
+
+interface Favorite {
+  id: string;
+  resource_id: string;
 }
 
 const resourceTypes = {
@@ -93,11 +103,13 @@ const classLevels = [
 const Resources = () => {
   const { user } = useAuth();
   const [resources, setResources] = useState<PedagogicalResource[]>([]);
+  const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState("all");
   const [uploadData, setUploadData] = useState({
     title: "",
     description: "",
@@ -114,6 +126,7 @@ const Resources = () => {
   useEffect(() => {
     if (user) {
       fetchResources();
+      fetchFavorites();
     }
   }, [user, subjectFilter, levelFilter]);
 
@@ -141,6 +154,55 @@ const Resources = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const fetchFavorites = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from("resource_favorites")
+        .select("id, resource_id")
+        .eq("user_id", user.id);
+
+      if (error) throw error;
+      setFavorites(data || []);
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+    }
+  };
+
+  const toggleFavorite = async (resourceId: string) => {
+    if (!user) return;
+
+    const existingFav = favorites.find((f) => f.resource_id === resourceId);
+
+    try {
+      if (existingFav) {
+        await supabase
+          .from("resource_favorites")
+          .delete()
+          .eq("id", existingFav.id);
+        setFavorites(favorites.filter((f) => f.id !== existingFav.id));
+        toast.success("Retiré des favoris");
+      } else {
+        const { data, error } = await supabase
+          .from("resource_favorites")
+          .insert({ user_id: user.id, resource_id: resourceId })
+          .select()
+          .single();
+
+        if (error) throw error;
+        setFavorites([...favorites, data]);
+        toast.success("Ajouté aux favoris");
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      toast.error("Erreur lors de la mise à jour des favoris");
+    }
+  };
+
+  const isFavorite = (resourceId: string) => {
+    return favorites.some((f) => f.resource_id === resourceId);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -272,7 +334,7 @@ const Resources = () => {
 
     if (resource.file_url) {
       window.open(resource.file_url, "_blank");
-      
+
       await supabase
         .from("pedagogical_resources")
         .update({ downloads_count: resource.downloads_count + 1 })
@@ -280,12 +342,50 @@ const Resources = () => {
     }
   };
 
+  // Filter resources
   const filteredResources = resources.filter(
     (r) =>
       r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.tags?.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  // Get favorites only
+  const favoriteResources = filteredResources.filter((r) => isFavorite(r.id));
+
+  // Get recommendations (most downloaded + similar subjects)
+  const getRecommendations = () => {
+    const userFavSubjects = new Set(
+      favoriteResources.map((r) => r.subject)
+    );
+
+    return filteredResources
+      .filter((r) => !isFavorite(r.id) && r.uploaded_by !== user?.id)
+      .sort((a, b) => {
+        const aScore =
+          (userFavSubjects.has(a.subject) ? 10 : 0) + a.downloads_count;
+        const bScore =
+          (userFavSubjects.has(b.subject) ? 10 : 0) + b.downloads_count;
+        return bScore - aScore;
+      })
+      .slice(0, 6);
+  };
+
+  // Get trending (most downloads recently)
+  const getTrending = () => {
+    return [...filteredResources]
+      .sort((a, b) => b.downloads_count - a.downloads_count)
+      .slice(0, 6);
+  };
+
+  const displayResources =
+    activeTab === "favorites"
+      ? favoriteResources
+      : activeTab === "recommendations"
+      ? getRecommendations()
+      : activeTab === "trending"
+      ? getTrending()
+      : filteredResources;
 
   if (!user) {
     return (
@@ -300,6 +400,104 @@ const Resources = () => {
       </div>
     );
   }
+
+  const ResourceCard = ({ resource }: { resource: PedagogicalResource }) => {
+    const TypeIcon =
+      resourceTypes[resource.resource_type as keyof typeof resourceTypes]?.icon ||
+      FileText;
+    const isFav = isFavorite(resource.id);
+
+    return (
+      <GlassCard className="p-4">
+        <div className="flex items-start gap-3">
+          <div className="p-3 rounded-lg bg-primary/10">
+            <TypeIcon className="h-6 w-6 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between">
+              <h3 className="font-medium truncate">{resource.title}</h3>
+              <button
+                onClick={() => toggleFavorite(resource.id)}
+                className="ml-2 flex-shrink-0"
+              >
+                <Heart
+                  className={`h-5 w-5 transition-colors ${
+                    isFav
+                      ? "fill-red-500 text-red-500"
+                      : "text-muted-foreground hover:text-red-500"
+                  }`}
+                />
+              </button>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="secondary" className="text-xs">
+                {resource.subject}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {resource.class_level}
+              </Badge>
+            </div>
+            {resource.description && (
+              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                {resource.description}
+              </p>
+            )}
+            {resource.tags && resource.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {resource.tags.slice(0, 3).map((tag) => (
+                  <Badge key={tag} variant="outline" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+              <Eye className="h-3 w-3" />
+              <span>{resource.downloads_count} vues</span>
+              <span>•</span>
+              <span>
+                {formatDistanceToNow(new Date(resource.created_at), {
+                  addSuffix: true,
+                  locale: fr,
+                })}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleDownload(resource)}
+            className="flex-1"
+          >
+            {resource.external_url ? (
+              <>
+                <ExternalLink className="h-4 w-4 mr-1" />
+                Ouvrir
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-1" />
+                Télécharger
+              </>
+            )}
+          </Button>
+          {resource.uploaded_by === user.id && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDelete(resource)}
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </GlassCard>
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -499,6 +697,28 @@ const Resources = () => {
           </Dialog>
         </div>
 
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <TabsList>
+            <TabsTrigger value="all" className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4" />
+              Toutes
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="flex items-center gap-2">
+              <Heart className="h-4 w-4" />
+              Favoris ({favorites.length})
+            </TabsTrigger>
+            <TabsTrigger value="recommendations" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              Recommandées
+            </TabsTrigger>
+            <TabsTrigger value="trending" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Populaires
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">
@@ -544,99 +764,31 @@ const Resources = () => {
         {/* Resources Grid */}
         {isLoading ? (
           <div className="text-center py-12">Chargement...</div>
-        ) : filteredResources.length === 0 ? (
+        ) : displayResources.length === 0 ? (
           <GlassCard className="p-12 text-center">
             <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-lg font-medium">Aucune ressource trouvée</p>
+            <p className="text-lg font-medium">
+              {activeTab === "favorites"
+                ? "Aucun favori"
+                : activeTab === "recommendations"
+                ? "Pas de recommandations disponibles"
+                : "Aucune ressource trouvée"}
+            </p>
             <p className="text-muted-foreground mt-1">
-              {searchQuery
+              {activeTab === "favorites"
+                ? "Ajoutez des ressources à vos favoris en cliquant sur le cœur"
+                : activeTab === "recommendations"
+                ? "Ajoutez des favoris pour obtenir des recommandations personnalisées"
+                : searchQuery
                 ? "Essayez avec d'autres termes de recherche"
                 : "Ajoutez votre première ressource pédagogique"}
             </p>
           </GlassCard>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredResources.map((resource) => {
-              const TypeIcon =
-                resourceTypes[resource.resource_type as keyof typeof resourceTypes]
-                  ?.icon || FileText;
-              return (
-                <GlassCard key={resource.id} className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-3 rounded-lg bg-primary/10">
-                      <TypeIcon className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium truncate">{resource.title}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="secondary" className="text-xs">
-                          {resource.subject}
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          {resource.class_level}
-                        </Badge>
-                      </div>
-                      {resource.description && (
-                        <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                          {resource.description}
-                        </p>
-                      )}
-                      {resource.tags && resource.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {resource.tags.slice(0, 3).map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                        <Eye className="h-3 w-3" />
-                        <span>{resource.downloads_count} vues</span>
-                        <span>•</span>
-                        <span>
-                          {formatDistanceToNow(new Date(resource.created_at), {
-                            addSuffix: true,
-                            locale: fr,
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDownload(resource)}
-                      className="flex-1"
-                    >
-                      {resource.external_url ? (
-                        <>
-                          <ExternalLink className="h-4 w-4 mr-1" />
-                          Ouvrir
-                        </>
-                      ) : (
-                        <>
-                          <Download className="h-4 w-4 mr-1" />
-                          Télécharger
-                        </>
-                      )}
-                    </Button>
-                    {resource.uploaded_by === user.id && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(resource)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </GlassCard>
-              );
-            })}
+            {displayResources.map((resource) => (
+              <ResourceCard key={resource.id} resource={resource} />
+            ))}
           </div>
         )}
       </main>

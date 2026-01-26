@@ -204,7 +204,7 @@ export const CreateEstablishmentModal = ({
   
   const [form, setForm] = useState({
     name: "",
-    typesWithQualification: [{ type: "college", qualification: "" }] as TypeWithQualification[],
+    typesWithQualification: [] as TypeWithQualification[],
     address: "",
     phone: "",
     email: "",
@@ -287,7 +287,7 @@ export const CreateEstablishmentModal = ({
       setGeoAddress(null);
       setForm({
         name: "",
-        typesWithQualification: [{ type: "college", qualification: "" }],
+        typesWithQualification: [],
         address: "",
         phone: "",
         email: "",

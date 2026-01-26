@@ -138,11 +138,19 @@ const Dashboard = () => {
                 Vous avez accès à toutes les fonctionnalités d'administration de la plateforme.
               </p>
               <div className="grid sm:grid-cols-2 gap-3">
-                <GlassButton variant="outline" className="justify-start">
+                <GlassButton 
+                  variant="outline" 
+                  className="justify-start"
+                  onClick={() => navigate("/admin/users")}
+                >
                   <Users className="h-4 w-4" />
                   Gérer les utilisateurs
                 </GlassButton>
-                <GlassButton variant="outline" className="justify-start">
+                <GlassButton 
+                  variant="outline" 
+                  className="justify-start"
+                  onClick={() => navigate("/admin/establishments")}
+                >
                   <Building2 className="h-4 w-4" />
                   Gérer les établissements
                 </GlassButton>

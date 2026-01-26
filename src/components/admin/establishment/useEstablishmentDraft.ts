@@ -112,6 +112,7 @@ export const useEstablishmentDraft = (options: UseDraftOptions = {}) => {
       email: data.email || "",
       country_code: data.country_code || "GA",
       selectedLevels: data.selectedLevels || [],
+      classesConfig: data.classesConfig || [],
       group_id: data.group_id || null,
       options: data.options || [],
       latitude: data.latitude || null,

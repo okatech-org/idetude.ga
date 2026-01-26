@@ -33,6 +33,8 @@ import {
 import { useEstablishmentDraft } from "./useEstablishmentDraft";
 import { StaffManagementTab } from "./StaffManagementTab";
 import { DraftsList } from "./DraftsList";
+import { ClassConfigTab } from "./ClassConfigTab";
+import { LevelClassesConfig as LevelClassesConfigType } from "./classConfigTypes";
 
 interface CreateEstablishmentModalEnhancedProps {
   open: boolean;
@@ -821,80 +823,18 @@ export const CreateEstablishmentModalEnhanced = ({
               </div>
             </TabsContent>
 
-            {/* Tab: Niveaux */}
+            {/* Tab: Niveaux et Classes */}
             <TabsContent value="niveaux" className="space-y-4 mt-0">
-              <div className="p-3 rounded-lg bg-muted/50 border mb-4">
-                <p className="text-sm text-muted-foreground">
-                  Sélectionnez les niveaux enseignés. Cliquez sur un cycle pour tout sélectionner/désélectionner.
-                </p>
-              </div>
-
-              {Object.entries(EDUCATION_CYCLES).map(([cycleKey, cycle]) => {
-                const cycleLevelIds = cycle.levels.map(l => l.id);
-                const selectedCount = cycleLevelIds.filter(id => formData.selectedLevels.includes(id)).length;
-                const allSelected = selectedCount === cycleLevelIds.length;
-
-                return (
-                  <div key={cycleKey} className="border rounded-lg overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => toggleCycle(cycleKey)}
-                      className={`w-full p-3 flex items-center justify-between ${cycle.color} hover:opacity-90 transition-opacity`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Checkbox checked={allSelected} className="pointer-events-none" />
-                        <span className="font-semibold">{cycle.label}</span>
-                      </div>
-                      <Badge variant="secondary" className="bg-white/50">
-                        {selectedCount}/{cycleLevelIds.length}
-                      </Badge>
-                    </button>
-                    <div className="p-3 grid grid-cols-2 md:grid-cols-3 gap-2 bg-background">
-                      {cycle.levels.map((level) => (
-                        <label
-                          key={level.id}
-                          className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-muted transition-colors ${
-                            formData.selectedLevels.includes(level.id) ? "bg-muted" : ""
-                          }`}
-                        >
-                          <Checkbox
-                            checked={formData.selectedLevels.includes(level.id)}
-                            onCheckedChange={() => toggleLevel(level.id)}
-                          />
-                          <span className="text-sm">{level.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-
-              {showOptions && (
-                <div className="border rounded-lg overflow-hidden mt-4">
-                  <div className="p-3 bg-amber-100 dark:bg-amber-900/50">
-                    <span className="font-semibold text-amber-800 dark:text-amber-200 flex items-center gap-2">
-                      <School className="h-4 w-4" />
-                      Séries / Options disponibles
-                    </span>
-                  </div>
-                  <div className="p-3 grid grid-cols-2 gap-2 bg-background">
-                    {OPTIONS_LYCEE.map((option) => (
-                      <label
-                        key={option}
-                        className={`flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-muted transition-colors ${
-                          formData.options.includes(option) ? "bg-muted" : ""
-                        }`}
-                      >
-                        <Checkbox
-                          checked={formData.options.includes(option)}
-                          onCheckedChange={() => toggleOption(option)}
-                        />
-                        <span className="text-sm">{option}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <ClassConfigTab
+                selectedLevels={formData.selectedLevels}
+                onSelectedLevelsChange={(levels) => updateFormData({ selectedLevels: levels })}
+                classesConfig={formData.classesConfig}
+                onClassesConfigChange={(config) => updateFormData({ classesConfig: config })}
+                educationSystems={formData.educationSystems}
+                options={formData.options}
+                onOptionsChange={(opts) => updateFormData({ options: opts })}
+                typesWithQualification={formData.typesWithQualification}
+              />
             </TabsContent>
 
             {/* Tab: Personnel */}

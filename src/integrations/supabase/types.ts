@@ -238,6 +238,119 @@ export type Database = {
         }
         Relationships: []
       }
+      report_cards: {
+        Row: {
+          class_average: number | null
+          created_at: string
+          general_average: number | null
+          generated_at: string
+          generated_by: string | null
+          id: string
+          principal_comment: string | null
+          rank: number | null
+          school_year: string
+          student_id: string
+          teacher_comment: string | null
+          trimester: number
+          updated_at: string
+        }
+        Insert: {
+          class_average?: number | null
+          created_at?: string
+          general_average?: number | null
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          principal_comment?: string | null
+          rank?: number | null
+          school_year: string
+          student_id: string
+          teacher_comment?: string | null
+          trimester: number
+          updated_at?: string
+        }
+        Update: {
+          class_average?: number | null
+          created_at?: string
+          general_average?: number | null
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          principal_comment?: string | null
+          rank?: number | null
+          school_year?: string
+          student_id?: string
+          teacher_comment?: string | null
+          trimester?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_cards_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_cards_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedules: {
+        Row: {
+          class_name: string
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          room: string | null
+          school_year: string
+          start_time: string
+          subject: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          class_name: string
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          room?: string | null
+          school_year: string
+          start_time: string
+          subject: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          class_name?: string
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          room?: string | null
+          school_year?: string
+          start_time?: string
+          subject?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedules_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { UserLayout } from "@/components/layout/UserLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { GlassInput } from "@/components/ui/glass-input";
@@ -51,7 +49,6 @@ interface Profile {
 }
 
 const Absences = () => {
-  const navigate = useNavigate();
   const { user, roles, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
@@ -79,12 +76,6 @@ const Absences = () => {
   const isAdmin = roles.includes("super_admin") || roles.includes("school_admin") || roles.includes("school_director");
   const canManageAbsences = isTeacher || isCPE || isAdmin;
   const canJustify = isCPE || isAdmin;
-
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/auth", { replace: true });
-    }
-  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     if (user) {
@@ -281,11 +272,8 @@ const Absences = () => {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto space-y-6">
+    <UserLayout title="Suivi des Absences">
+      <div className="max-w-6xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -495,8 +483,6 @@ const Absences = () => {
             )}
           </GlassCard>
         </div>
-      </div>
-
       {/* Add Absence Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent>
@@ -646,9 +632,7 @@ const Absences = () => {
           )}
         </DialogContent>
       </Dialog>
-
-      <Footer />
-    </div>
+    </UserLayout>
   );
 };
 

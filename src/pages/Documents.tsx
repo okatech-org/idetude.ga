@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { UserLayout } from "@/components/layout/UserLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { GlassInput } from "@/components/ui/glass-input";
@@ -252,28 +251,20 @@ const Documents = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1 container mx-auto px-4 py-8">
-          <GlassCard className="p-8 text-center">
-            <p>Veuillez vous connecter pour accéder aux documents.</p>
-          </GlassCard>
-        </main>
-        <Footer />
-      </div>
+      <UserLayout title="Documents partagés">
+        <GlassCard className="p-8 text-center">
+          <p>Veuillez vous connecter pour accéder aux documents.</p>
+        </GlassCard>
+      </UserLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Documents partagés</h1>
-            <p className="text-muted-foreground mt-1">
-              Partagez et accédez aux documents de l'établissement
+    <UserLayout title="Documents partagés">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <p className="text-muted-foreground">
+            Partagez et accédez aux documents de l'établissement
             </p>
           </div>
 
@@ -491,10 +482,7 @@ const Documents = () => {
             })}
           </div>
         )}
-      </main>
-
-      <Footer />
-    </div>
+    </UserLayout>
   );
 };
 

@@ -1,6 +1,4 @@
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { UserLayout } from "@/components/layout/UserLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -148,13 +146,7 @@ export default function Analytics() {
     : 0;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <PageHeader
-          title="Tableau de bord analytique"
-          subtitle="Statistiques de progression des notes et d'assiduité"
-        />
+    <UserLayout title="Tableau de bord analytique">
 
         {/* Filter */}
         <div className="flex justify-end mb-6">
@@ -451,8 +443,6 @@ export default function Analytics() {
             </table>
           </div>
         </GlassCard>
-      </main>
-      <Footer />
-    </div>
+    </UserLayout>
   );
 }

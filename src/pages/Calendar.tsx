@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { UserLayout } from "@/components/layout/UserLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { GlassInput } from "@/components/ui/glass-input";
@@ -220,17 +219,13 @@ const SchoolCalendar = () => {
   const selectedDayEvents = getEventsForDay(selectedDate);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">Calendrier scolaire</h1>
-            <p className="text-muted-foreground mt-1">
-              Événements et échéances de l'établissement
-            </p>
-          </div>
+    <UserLayout title="Calendrier scolaire">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <p className="text-muted-foreground">
+            Événements et échéances de l'établissement
+          </p>
+        </div>
 
           {canCreateEvents && (
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -539,10 +534,7 @@ const SchoolCalendar = () => {
             </GlassCard>
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+    </UserLayout>
   );
 };
 

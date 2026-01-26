@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { UserLayout } from "@/components/layout/UserLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -242,13 +240,7 @@ export default function Assignments() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <PageHeader
-          title="Devoirs et Exercices"
-          subtitle="Gérez et soumettez vos devoirs en ligne"
-        />
+    <UserLayout title="Devoirs et Exercices">
 
         {/* Actions */}
         <div className="flex justify-end mb-6">
@@ -560,13 +552,11 @@ export default function Assignments() {
                   disabled={!submissionContent.trim() || submitMutation.isPending}
                 >
                   {submitMutation.isPending ? "Envoi..." : "Envoyer ma réponse"}
-                </Button>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      </main>
-      <Footer />
-    </div>
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </UserLayout>
   );
 }

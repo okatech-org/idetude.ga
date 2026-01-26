@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { UserLayout } from "@/components/layout/UserLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -185,19 +184,15 @@ const Payments = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      <main className="flex-1 pt-20">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <CreditCard className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Frais Scolaires</h1>
-              <p className="text-muted-foreground">Gestion des paiements et historique</p>
-            </div>
-          </div>
+    <UserLayout title="Frais Scolaires">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+          <CreditCard className="h-6 w-6 text-primary" />
+        </div>
+        <div>
+          <p className="text-muted-foreground">Gestion des paiements et historique</p>
+        </div>
+      </div>
 
           {/* Summary Cards */}
           <div className="grid md:grid-cols-3 gap-4 mb-8">
@@ -416,10 +411,7 @@ const Payments = () => {
               )}
             </TabsContent>
           </Tabs>
-        </div>
-      </main>
-      <Footer />
-    </div>
+    </UserLayout>
   );
 };
 

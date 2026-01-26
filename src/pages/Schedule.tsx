@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { UserLayout } from "@/components/layout/UserLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -146,13 +144,7 @@ export default function Schedule() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <PageHeader
-          title="Emploi du temps"
-          subtitle="Visualisez et gérez votre emploi du temps"
-        />
+    <UserLayout title="Emploi du temps">
 
         {/* Actions */}
         {isTeacher && (
@@ -422,8 +414,6 @@ export default function Schedule() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
           </div>
         )}
-      </main>
-      <Footer />
-    </div>
+    </UserLayout>
   );
 }

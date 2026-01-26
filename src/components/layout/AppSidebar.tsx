@@ -12,14 +12,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { NavLink } from "@/components/NavLink";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
-import { PushNotificationToggle } from "@/components/notifications/PushNotificationToggle";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import {
   GraduationCap,
   LayoutDashboard,
@@ -38,9 +36,7 @@ import {
   FileText,
   Shield,
   Building2,
-  Settings,
   LogOut,
-  ChevronRight,
   BookMarked,
   Award,
   Download,
@@ -186,7 +182,11 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/50 p-3">
+      <SidebarFooter className="border-t border-border/50 p-3 space-y-2">
+        {/* Theme Toggle */}
+        <ThemeToggle collapsed={collapsed} />
+        
+        {/* User Profile */}
         <div className={cn(
           "flex items-center gap-3",
           collapsed ? "justify-center" : ""

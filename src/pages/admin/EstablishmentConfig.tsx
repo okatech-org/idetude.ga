@@ -34,6 +34,7 @@ import {
 import { OrgChart } from "@/components/admin/OrgChart";
 import { AssignUserModal } from "@/components/admin/AssignUserModal";
 import { StudentEnrollmentModal } from "@/components/admin/StudentEnrollmentModal";
+import { QuickAssignDropdown } from "@/components/admin/QuickAssignDropdown";
 
 interface Establishment {
   id: string;
@@ -746,40 +747,50 @@ const EstablishmentConfig = () => {
 
                       {/* Positions in this department */}
                       {getPositionsForDepartment(dept.id).length > 0 && (
-                        <div className="mt-4 ml-6 space-y-2">
+                        <div className="mt-4 ml-6 space-y-3">
                           {getPositionsForDepartment(dept.id).map((pos) => (
                             <div
                               key={pos.id}
-                              className="p-3 rounded-lg bg-muted/30 flex items-center justify-between"
+                              className="p-3 rounded-lg bg-muted/30"
                             >
-                              <div className="flex items-center gap-3">
-                                <Briefcase className="h-4 w-4 text-muted-foreground" />
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-medium text-foreground">{pos.name}</p>
-                                    {pos.is_head && (
-                                      <Badge variant="secondary" className="text-xs">
-                                        Chef
-                                      </Badge>
-                                    )}
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-3">
+                                  <Briefcase className="h-4 w-4 text-muted-foreground" />
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-medium text-foreground">{pos.name}</p>
+                                      {pos.is_head && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          Chef
+                                        </Badge>
+                                      )}
+                                    </div>
                                   </div>
-                                  {/* Show assigned users */}
-                                  {getUsersForPosition(pos.id).map((up) => (
-                                    <p key={up.id} className="text-sm text-muted-foreground flex items-center gap-1">
-                                      <User className="h-3 w-3" />
-                                      {up.profiles?.first_name} {up.profiles?.last_name}
-                                    </p>
-                                  ))}
+                                </div>
+                                <div className="flex gap-1">
+                                  <GlassButton
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handlePositionClick(pos)}
+                                    title="Gérer les affectations"
+                                  >
+                                    <UserPlus className="h-3 w-3" />
+                                  </GlassButton>
+                                  <GlassButton variant="ghost" size="sm" onClick={() => openEditPosition(pos)}>
+                                    <Edit className="h-3 w-3" />
+                                  </GlassButton>
+                                  <GlassButton variant="ghost" size="sm" onClick={() => handleDeletePosition(pos.id)}>
+                                    <Trash2 className="h-3 w-3 text-destructive" />
+                                  </GlassButton>
                                 </div>
                               </div>
-                              <div className="flex gap-1">
-                                <GlassButton variant="ghost" size="sm" onClick={() => openEditPosition(pos)}>
-                                  <Edit className="h-3 w-3" />
-                                </GlassButton>
-                                <GlassButton variant="ghost" size="sm" onClick={() => handleDeletePosition(pos.id)}>
-                                  <Trash2 className="h-3 w-3 text-destructive" />
-                                </GlassButton>
-                              </div>
+                              {/* Quick assign dropdown */}
+                              <QuickAssignDropdown
+                                positionId={pos.id}
+                                positionName={pos.name}
+                                currentAssignments={getUsersForPosition(pos.id)}
+                                onSuccess={fetchEstablishmentData}
+                              />
                             </div>
                           ))}
                         </div>

@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { UserLayout } from "@/components/layout/UserLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { GlassInput } from "@/components/ui/glass-input";
@@ -19,7 +18,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  ArrowLeft,
   Search,
   Users,
   Shield,
@@ -157,40 +155,34 @@ const UsersManagement = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-4">
-              <GlassButton variant="ghost" onClick={() => navigate("/dashboard")}>
-                <ArrowLeft className="h-4 w-4" />
-              </GlassButton>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                  <Users className="h-6 w-6 text-primary" />
-                  Gestion des Utilisateurs
-                </h1>
-                <p className="text-muted-foreground">
-                  {users.length} utilisateur(s) enregistré(s)
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <GlassButton variant="outline" onClick={() => setShowImportModal(true)}>
-                <Upload className="h-4 w-4" />
-                Importer CSV
-              </GlassButton>
-              <GlassButton variant="primary" onClick={() => setShowCreateModal(true)}>
-                <Plus className="h-4 w-4" />
-                Nouvel utilisateur
-              </GlassButton>
+    <UserLayout title="Gestion des Utilisateurs">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                <Users className="h-6 w-6 text-primary" />
+                Gestion des Utilisateurs
+              </h1>
+              <p className="text-muted-foreground">
+                {users.length} utilisateur(s) enregistré(s)
+              </p>
             </div>
           </div>
+          <div className="flex gap-2">
+            <GlassButton variant="outline" onClick={() => setShowImportModal(true)}>
+              <Upload className="h-4 w-4" />
+              Importer CSV
+            </GlassButton>
+            <GlassButton variant="primary" onClick={() => setShowCreateModal(true)}>
+              <Plus className="h-4 w-4" />
+              Nouvel utilisateur
+            </GlassButton>
+          </div>
+        </div>
 
-          {/* Filters */}
+        {/* Filters */}
           <GlassCard className="p-4" solid>
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
@@ -339,23 +331,20 @@ const UsersManagement = () => {
               <p className="text-sm text-muted-foreground">Élèves</p>
             </GlassCard>
           </div>
-        </div>
+
+        {/* Modals */}
+        <CreateUserModal
+          open={showCreateModal}
+          onOpenChange={setShowCreateModal}
+          onSuccess={fetchUsers}
+        />
+        <ImportUsersModal
+          open={showImportModal}
+          onOpenChange={setShowImportModal}
+          onSuccess={fetchUsers}
+        />
       </div>
-
-      <Footer />
-
-      {/* Modals */}
-      <CreateUserModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
-        onSuccess={fetchUsers}
-      />
-      <ImportUsersModal
-        open={showImportModal}
-        onOpenChange={setShowImportModal}
-        onSuccess={fetchUsers}
-      />
-    </div>
+    </UserLayout>
   );
 };
 

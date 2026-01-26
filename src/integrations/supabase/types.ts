@@ -2040,6 +2040,10 @@ export type Database = {
         Returns: boolean
       }
       is_user_banned: { Args: { _user_id: string }; Returns: boolean }
+      user_belongs_to_establishment: {
+        Args: { _establishment_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:

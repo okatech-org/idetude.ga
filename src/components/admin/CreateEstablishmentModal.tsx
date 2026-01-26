@@ -108,10 +108,24 @@ const ESTABLISHMENT_TYPES = [
   { value: "primaire", label: "École Primaire", defaultCycles: ["primaire"], icon: "📚" },
   { value: "college", label: "Collège", defaultCycles: ["college"], icon: "🎓" },
   { value: "lycee", label: "Lycée", defaultCycles: ["lycee"], icon: "📖" },
-  { value: "technique", label: "Lycée Technique/Professionnel", defaultCycles: ["technique"], icon: "🔧" },
   { value: "superieur", label: "Enseignement Supérieur", defaultCycles: ["superieur"], icon: "🎓" },
   { value: "universite", label: "Université", defaultCycles: ["superieur"], icon: "🏛️" },
 ];
+
+// Qualifications suggérées pour chaque type
+const TYPE_QUALIFICATIONS: Record<string, string[]> = {
+  maternelle: ["Bilingue", "Montessori", "Catholique", "Islamique", "Internationale"],
+  primaire: ["Bilingue", "Catholique", "Islamique", "Internationale", "d'Application"],
+  college: ["Général", "Technique", "Catholique", "Islamique", "International"],
+  lycee: ["Général", "Technique", "Professionnel", "Catholique", "Islamique", "International", "Scientifique", "Littéraire"],
+  superieur: ["Technique", "Professionnel", "Commerce", "Ingénierie", "Santé"],
+  universite: ["Sciences", "Lettres", "Droit", "Médecine", "Polytechnique"],
+};
+
+interface TypeWithQualification {
+  type: string;
+  qualification: string;
+}
 
 const COUNTRIES = [
   { code: "GA", name: "Gabon", flag: "🇬🇦" },
@@ -164,7 +178,7 @@ export const CreateEstablishmentModal = ({
   
   const [form, setForm] = useState({
     name: "",
-    types: ["college"] as string[],
+    typesWithQualification: [{ type: "college", qualification: "" }] as TypeWithQualification[],
     address: "",
     phone: "",
     email: "",
@@ -178,7 +192,8 @@ export const CreateEstablishmentModal = ({
 
   // Génération automatique du code unique
   const generateUniqueCode = () => {
-    const typePrefix = form.types[0]?.substring(0, 3).toUpperCase() || "ETB";
+    const firstType = form.typesWithQualification[0]?.type || "ETB";
+    const typePrefix = firstType.substring(0, 3).toUpperCase();
     const nameWords = form.name.trim().split(/\s+/);
     const nameInitials = nameWords
       .slice(0, 3)
@@ -220,8 +235,8 @@ export const CreateEstablishmentModal = ({
   // Mettre à jour les niveaux sélectionnés quand les types changent
   useEffect(() => {
     const defaultLevels: string[] = [];
-    form.types.forEach(typeValue => {
-      const estType = ESTABLISHMENT_TYPES.find(t => t.value === typeValue);
+    form.typesWithQualification.forEach(twq => {
+      const estType = ESTABLISHMENT_TYPES.find(t => t.value === twq.type);
       if (estType) {
         estType.defaultCycles.forEach(cycle => {
           const cycleData = EDUCATION_CYCLES[cycle as keyof typeof EDUCATION_CYCLES];
@@ -236,7 +251,7 @@ export const CreateEstablishmentModal = ({
       }
     });
     setForm(prev => ({ ...prev, selectedLevels: defaultLevels }));
-  }, [form.types.join(",")]);
+  }, [JSON.stringify(form.typesWithQualification)]);
 
   const handleOpen = (isOpen: boolean) => {
     if (isOpen) {
@@ -246,7 +261,7 @@ export const CreateEstablishmentModal = ({
       setGeoAddress(null);
       setForm({
         name: "",
-        types: ["college"],
+        typesWithQualification: [{ type: "college", qualification: "" }],
         address: "",
         phone: "",
         email: "",
@@ -426,6 +441,27 @@ export const CreateEstablishmentModal = ({
       return;
     }
 
+    if (form.typesWithQualification.length === 0) {
+      toast.error("Veuillez sélectionner au moins un type d'établissement");
+      return;
+    }
+
+    // Vérifier les doublons (même type sans qualification différente)
+    const typeKeys = form.typesWithQualification.map(twq => `${twq.type}:${twq.qualification || ""}`);
+    const hasDuplicates = typeKeys.length !== new Set(typeKeys).size;
+    if (hasDuplicates) {
+      toast.error("Vous avez des types en double. Ajoutez des qualifications différentes.");
+      return;
+    }
+
+    // Vérifier qu'il n'y a pas 2 types identiques sans qualification
+    const unqualifiedTypes = form.typesWithQualification.filter(twq => !twq.qualification).map(twq => twq.type);
+    const hasUnqualifiedDuplicates = unqualifiedTypes.length !== new Set(unqualifiedTypes).size;
+    if (hasUnqualifiedDuplicates) {
+      toast.error("Vous ne pouvez pas avoir deux fois le même type sans qualification.");
+      return;
+    }
+
     if (form.selectedLevels.length === 0) {
       toast.error("Veuillez sélectionner au moins un niveau");
       return;
@@ -440,10 +476,15 @@ export const CreateEstablishmentModal = ({
     setLoading(true);
     try {
       const autoCode = generateUniqueCode();
+      // Formater les types avec qualifications pour le stockage
+      const typesForDb = form.typesWithQualification
+        .map(twq => twq.qualification ? `${twq.type}:${twq.qualification}` : twq.type)
+        .join(",");
+      
       const { error } = await supabase.from("establishments").insert({
         name: form.name,
         code: autoCode,
-        type: form.types.join(","),
+        type: typesForDb,
         address: form.address || null,
         phone: form.phone || null,
         email: form.email || null,
@@ -468,7 +509,7 @@ export const CreateEstablishmentModal = ({
     }
   };
 
-  const showOptions = form.types.some(t => ["lycee", "technique"].includes(t));
+  const showOptions = form.typesWithQualification.some(twq => ["lycee"].includes(twq.type));
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
@@ -508,41 +549,92 @@ export const CreateEstablishmentModal = ({
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label>Type(s) d'établissement * <span className="text-xs text-muted-foreground">(au moins un)</span></Label>
+                
+                {/* Types sélectionnés avec qualifications */}
+                <div className="space-y-2">
+                  {form.typesWithQualification.map((twq, index) => {
+                    const typeInfo = ESTABLISHMENT_TYPES.find(t => t.value === twq.type);
+                    const suggestions = TYPE_QUALIFICATIONS[twq.type] || [];
+                    return (
+                      <div key={index} className="flex items-center gap-2 p-3 rounded-lg border bg-primary/5 border-primary/20">
+                        <span className="text-lg">{typeInfo?.icon}</span>
+                        <span className="font-medium">{typeInfo?.label}</span>
+                        <Input
+                          value={twq.qualification}
+                          onChange={(e) => {
+                            const updated = [...form.typesWithQualification];
+                            updated[index] = { ...twq, qualification: e.target.value };
+                            setForm({ ...form, typesWithQualification: updated });
+                          }}
+                          placeholder="Qualification (ex: Technique, Bilingue...)"
+                          className="flex-1 h-8 text-sm"
+                          list={`suggestions-${index}`}
+                        />
+                        <datalist id={`suggestions-${index}`}>
+                          {suggestions.map(s => <option key={s} value={s} />)}
+                        </datalist>
+                        {form.typesWithQualification.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setForm({
+                                ...form,
+                                typesWithQualification: form.typesWithQualification.filter((_, i) => i !== index)
+                              });
+                            }}
+                            className="text-destructive hover:bg-destructive/10 p-1 rounded"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Boutons pour ajouter des types */}
                 <div className="flex flex-wrap gap-2">
                   {ESTABLISHMENT_TYPES.map((typeOption) => {
-                    const isSelected = form.types.includes(typeOption.value);
+                    // Vérifier si ce type est déjà ajouté sans qualification
+                    const hasUnqualified = form.typesWithQualification.some(
+                      twq => twq.type === typeOption.value && !twq.qualification
+                    );
                     return (
                       <button
                         key={typeOption.value}
                         type="button"
                         onClick={() => {
-                          if (isSelected) {
-                            if (form.types.length > 1) {
-                              setForm({ ...form, types: form.types.filter((t) => t !== typeOption.value) });
-                            }
-                          } else {
-                            setForm({ ...form, types: [...form.types, typeOption.value] });
+                          // Si déjà présent sans qualification, on ne peut pas ajouter
+                          if (hasUnqualified) {
+                            toast.info("Ajoutez une qualification au type existant avant d'en ajouter un autre");
+                            return;
                           }
+                          setForm({
+                            ...form,
+                            typesWithQualification: [
+                              ...form.typesWithQualification,
+                              { type: typeOption.value, qualification: "" }
+                            ]
+                          });
                         }}
                         className={cn(
-                          "px-3 py-2 rounded-lg border-2 text-sm font-medium transition-all flex items-center gap-2",
-                          isSelected
-                            ? "bg-primary/10 text-primary border-primary"
-                            : "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50"
+                          "px-3 py-2 rounded-lg border text-sm font-medium transition-all flex items-center gap-2",
+                          "bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50 hover:border-primary/30"
                         )}
                       >
                         <span>{typeOption.icon}</span>
                         <span>{typeOption.label}</span>
-                        {isSelected && <span>✓</span>}
+                        <span className="text-primary">+</span>
                       </button>
                     );
                   })}
                 </div>
-                {form.types.length === 0 && (
-                  <p className="text-sm text-destructive">Veuillez sélectionner au moins un type</p>
-                )}
+                
+                <p className="text-xs text-muted-foreground">
+                  💡 Ajoutez une qualification pour différencier les types (ex: "Lycée Technique" et "Lycée Général")
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -868,7 +960,10 @@ export const CreateEstablishmentModal = ({
                   <div>
                     <span className="text-muted-foreground">Type(s):</span>{" "}
                     <span className="font-medium">
-                      {form.types.map(t => ESTABLISHMENT_TYPES.find(et => et.value === t)?.label).filter(Boolean).join(", ")}
+                      {form.typesWithQualification.map(twq => {
+                        const typeInfo = ESTABLISHMENT_TYPES.find(t => t.value === twq.type);
+                        return twq.qualification ? `${typeInfo?.label} ${twq.qualification}` : typeInfo?.label;
+                      }).filter(Boolean).join(", ")}
                     </span>
                   </div>
                   <div>

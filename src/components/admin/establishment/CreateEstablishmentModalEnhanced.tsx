@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Building2, MapPin, Users, GraduationCap, School, Navigation, 
   Loader2, MapPinned, AlertCircle, Map, Search, ChevronDown, 
-  ChevronRight, Save, Clock, FolderOpen
+  ChevronRight, Save, Clock, FolderOpen, CheckCircle2, Eye
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LocationPickerMap } from "../LocationPickerMap";
@@ -35,6 +35,8 @@ import { StaffManagementTab } from "./StaffManagementTab";
 import { DraftsList } from "./DraftsList";
 import { ClassConfigTab } from "./ClassConfigTab";
 import { LevelClassesConfig as LevelClassesConfigType } from "./classConfigTypes";
+import { ValidatedInputWrapper } from "./FieldValidation";
+import { ConfirmationStep } from "./ConfirmationStep";
 
 interface CreateEstablishmentModalEnhancedProps {
   open: boolean;
@@ -62,6 +64,7 @@ export const CreateEstablishmentModalEnhanced = ({
   const [systemSearchTerm, setSystemSearchTerm] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<string[]>(["francophone", "anglophone", "international"]);
   const [showDrafts, setShowDrafts] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const {
     draftId,
@@ -90,6 +93,23 @@ export const CreateEstablishmentModalEnhanced = ({
   // Computed values
   const systemTeachingLanguages = getTeachingLanguagesFromSystems(formData.educationSystems);
   const languageDesignation = getLanguageDesignation(formData.educationSystems, formData.additionalTeachingLanguages);
+
+  // Validation helpers
+  const validation = {
+    name: formData.name.trim().length >= 2,
+    educationSystems: formData.educationSystems.length > 0,
+    types: formData.typesWithQualification.length > 0,
+    levels: formData.selectedLevels.length > 0,
+    location: formData.latitude !== null && formData.longitude !== null,
+    email: !formData.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email),
+    phone: !formData.phone || formData.phone.length >= 8,
+  };
+
+  const isFormValid = validation.name && validation.educationSystems && 
+    validation.types && validation.levels && validation.location;
+
+  // Get group name for display
+  const selectedGroupName = groups.find(g => g.id === formData.group_id)?.name;
 
   // Filter categories based on search
   const filteredCategories = EDUCATION_SYSTEM_CATEGORIES.map(category => ({
@@ -535,15 +555,27 @@ export const CreateEstablishmentModalEnhanced = ({
                 );
               })()}
 
-              <div className="space-y-2">
-                <Label>Nom de l'établissement *</Label>
+              <ValidatedInputWrapper
+                label="Nom de l'établissement"
+                required
+                isValid={validation.name}
+                isTouched={formData.name.length > 0}
+                validMessage="Nom valide"
+                invalidMessage="Le nom doit contenir au moins 2 caractères"
+                helpText="Entrez le nom propre de l'établissement (ex: Saint-Michel, La Réussite)"
+              >
                 <Input
                   value={formData.name}
                   onChange={(e) => updateFormData({ name: e.target.value })}
                   placeholder="Ex: Saint-Michel"
-                  className="text-base"
+                  className={cn(
+                    "text-base",
+                    formData.name.length > 0 && (validation.name 
+                      ? "border-green-500 focus-visible:ring-green-500/20" 
+                      : "border-destructive focus-visible:ring-destructive/20")
+                  )}
                 />
-              </div>
+              </ValidatedInputWrapper>
 
               {/* Name preview */}
               {(formData.name || formData.typesWithQualification.length > 0 || languageDesignation) && (
@@ -1035,13 +1067,69 @@ export const CreateEstablishmentModalEnhanced = ({
           </ScrollArea>
         </Tabs>
 
-        <DialogFooter className="p-6 pt-0">
-          <GlassButton variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            Annuler
-          </GlassButton>
-          <GlassButton variant="primary" onClick={handleSubmit} disabled={loading}>
-            {loading ? "Création..." : "Créer l'établissement"}
-          </GlassButton>
+        {/* Confirmation View */}
+        {showConfirmation && (
+          <div className="px-6">
+            <ScrollArea className="h-[55vh]">
+              <ConfirmationStep
+                formData={formData}
+                staff={staff}
+                languageDesignation={languageDesignation}
+                groupName={selectedGroupName}
+              />
+            </ScrollArea>
+          </div>
+        )}
+
+        <DialogFooter className="p-6 pt-4 border-t">
+          {showConfirmation ? (
+            <>
+              <GlassButton 
+                variant="outline" 
+                onClick={() => setShowConfirmation(false)} 
+                disabled={loading}
+              >
+                ← Retour
+              </GlassButton>
+              <GlassButton 
+                variant="primary" 
+                onClick={handleSubmit} 
+                disabled={loading || !isFormValid}
+                className="gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Création...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4" />
+                    Confirmer la création
+                  </>
+                )}
+              </GlassButton>
+            </>
+          ) : (
+            <>
+              <GlassButton 
+                variant="outline" 
+                onClick={() => onOpenChange(false)} 
+                disabled={loading}
+              >
+                Annuler
+              </GlassButton>
+              <GlassButton 
+                variant="primary" 
+                onClick={() => setShowConfirmation(true)}
+                disabled={!isFormValid}
+                className="gap-2"
+              >
+                <Eye className="h-4 w-4" />
+                Vérifier et créer
+              </GlassButton>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

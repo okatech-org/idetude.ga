@@ -398,7 +398,11 @@ export const CreateEstablishmentModalEnhanced = ({
           is_active: s.is_active,
           is_class_principal: s.is_class_principal || false,
           linked_student_id: s.linked_student_id || null,
-          metadata: JSON.parse(JSON.stringify(s.metadata || {})),
+          metadata: JSON.parse(JSON.stringify({
+            ...s.metadata,
+            assigned_class_ids: s.assigned_class_ids || [],
+            added_by_user_type: s.added_by_user_type || null,
+          })),
         }));
 
         const { error: staffError } = await supabase
@@ -1113,6 +1117,8 @@ export const CreateEstablishmentModalEnhanced = ({
               <StaffManagementTab
                 staff={staff}
                 onChange={updateStaff}
+                classesConfig={formData.classesConfig.flatMap(lc => lc.classes)}
+                selectedLevels={formData.selectedLevels}
               />
             </TabsContent>
           </ScrollArea>

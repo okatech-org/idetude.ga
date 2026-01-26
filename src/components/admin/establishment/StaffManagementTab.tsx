@@ -6,10 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { GlassButton } from "@/components/ui/glass-button";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Users, Trash2, Edit2, Upload, UserPlus, Building2, GraduationCap, Link } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  Plus, Users, Trash2, Edit2, Upload, UserPlus, Building2, GraduationCap, 
+  Link, BookOpen, AlertTriangle, Check
+} from "lucide-react";
 import { 
   StaffMember, 
   StaffCategory,
@@ -19,19 +24,30 @@ import {
   POSITIONS_BY_TYPE, 
   CONTRACT_TYPES,
   TUTOR_RELATIONS,
+  PRIVATE_TEACHER_ADDED_BY,
   requiresStudentLink,
+  canBeAssignedToClasses,
   hasContract,
   getCategoryForType,
+  getTutorCountForStudent,
 } from "./staffTypes";
+import { ClassConfig } from "./classConfigTypes";
 import { MultiFileImport, AnalysisResult } from "../MultiFileImport";
 import { toast } from "sonner";
 
 interface StaffManagementTabProps {
   staff: StaffMember[];
   onChange: (staff: StaffMember[]) => void;
+  classesConfig?: ClassConfig[];
+  selectedLevels?: string[];
 }
 
-export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps) => {
+export const StaffManagementTab = ({ 
+  staff, 
+  onChange, 
+  classesConfig = [],
+  selectedLevels = [],
+}: StaffManagementTabProps) => {
   const [activeCategory, setActiveCategory] = useState<StaffCategory>('administrative');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -42,10 +58,14 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
     category: 'administrative',
     is_active: true,
     is_class_principal: false,
+    assigned_class_ids: [],
   });
 
   // Récupérer les élèves pour le lien tuteur/prof particulier
   const students = staff.filter(s => s.staff_type === 'student');
+
+  // Récupérer toutes les classes disponibles
+  const allClasses = classesConfig;
 
   const handleAddStaff = () => {
     if (!staffForm.first_name || !staffForm.last_name) {
@@ -59,9 +79,17 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
       return;
     }
 
+    // Vérifier l'assignation aux classes pour les enseignants éducatifs
+    if (canBeAssignedToClasses(staffForm.staff_type as StaffType, activeCategory)) {
+      if (!staffForm.assigned_class_ids || staffForm.assigned_class_ids.length === 0) {
+        toast.error("Veuillez assigner au moins une classe à l'enseignant");
+        return;
+      }
+    }
+
     const newStaff: StaffMember = {
       staff_type: staffForm.staff_type as StaffType,
-      category: getCategoryForType(staffForm.staff_type as StaffType),
+      category: activeCategory, // Utiliser la catégorie active, pas celle calculée
       position: staffForm.position,
       department: staffForm.department,
       contract_type: staffForm.contract_type as StaffMember['contract_type'],
@@ -69,6 +97,8 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
       is_active: staffForm.is_active ?? true,
       is_class_principal: staffForm.is_class_principal ?? false,
       linked_student_id: staffForm.linked_student_id,
+      assigned_class_ids: staffForm.assigned_class_ids,
+      added_by_user_type: staffForm.added_by_user_type,
       first_name: staffForm.first_name,
       last_name: staffForm.last_name,
       email: staffForm.email,
@@ -100,6 +130,7 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
       category: activeCategory,
       is_active: true,
       is_class_principal: false,
+      assigned_class_ids: [],
     });
     setShowAddModal(false);
     setEditingIndex(null);
@@ -113,13 +144,14 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
       last_name: member.last_name || (member.metadata as Record<string, unknown>)?.last_name as string,
       email: member.email || (member.metadata as Record<string, unknown>)?.email as string,
       phone: member.phone || (member.metadata as Record<string, unknown>)?.phone as string,
+      assigned_class_ids: member.assigned_class_ids || [],
     });
+    setActiveCategory(member.category);
     setEditingIndex(index);
     setShowAddModal(true);
   };
 
   const handleDelete = (index: number) => {
-    // Vérifier si c'est un élève avec des dépendants
     const member = staff[index];
     if (member.staff_type === 'student') {
       const linkedMembers = staff.filter(s => s.linked_student_id === member.id);
@@ -144,6 +176,7 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
           contract_type: item.contract_type as StaffMember['contract_type'],
           is_active: true,
           is_class_principal: false,
+          assigned_class_ids: [],
           first_name: (item.first_name || item.firstName) as string,
           last_name: (item.last_name || item.lastName) as string,
           email: item.email as string,
@@ -172,19 +205,27 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
       category,
       is_active: true,
       is_class_principal: false,
+      assigned_class_ids: [],
     });
     setShowAddModal(true);
   };
 
-  // Filtrer le personnel par catégorie
-  const administrativeStaff = staff.filter(s => getCategoryForType(s.staff_type) === 'administrative');
-  const educationalStaff = staff.filter(s => getCategoryForType(s.staff_type) === 'educational');
+  const toggleClassAssignment = (classId: string) => {
+    const current = staffForm.assigned_class_ids || [];
+    if (current.includes(classId)) {
+      setStaffForm({ ...staffForm, assigned_class_ids: current.filter(id => id !== classId) });
+    } else {
+      setStaffForm({ ...staffForm, assigned_class_ids: [...current, classId] });
+    }
+  };
 
-  // Stats par type pour la catégorie active
+  // Filtrer le personnel par catégorie
+  const administrativeStaff = staff.filter(s => s.category === 'administrative');
+  const educationalStaff = staff.filter(s => s.category === 'educational');
+
   const currentStaff = activeCategory === 'administrative' ? administrativeStaff : educationalStaff;
   const staffTypes = STAFF_TYPES_BY_CATEGORY[activeCategory];
 
-  // Récupérer le nom d'un élève par son ID temporaire (index)
   const getStudentName = (studentId: string | undefined) => {
     if (!studentId) return null;
     const student = staff.find(s => s.staff_type === 'student' && 
@@ -194,6 +235,16 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
     }
     return null;
   };
+
+  const getClassName = (classId: string) => {
+    const cls = allClasses.find(c => c.id === classId);
+    return cls ? cls.name : classId;
+  };
+
+  // Vérifier les élèves sans tuteur
+  const studentsWithoutTutor = students.filter(s => 
+    getTutorCountForStudent(s.id || `temp-${staff.indexOf(s)}`, staff) === 0
+  );
 
   return (
     <div className="space-y-4">
@@ -213,6 +264,23 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
         </GlassButton>
       </div>
 
+      {/* Alerte pour les élèves sans tuteur */}
+      {studentsWithoutTutor.length > 0 && (
+        <div className="p-3 rounded-lg border border-orange-300 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                {studentsWithoutTutor.length} élève(s) sans tuteur
+              </p>
+              <p className="text-xs text-orange-600 dark:text-orange-300">
+                Les élèves mineurs doivent avoir au moins un tuteur rattaché.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Onglets Administratif / Éducatif */}
       <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as StaffCategory)} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
@@ -229,6 +297,12 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
         </TabsList>
 
         <TabsContent value="administrative" className="space-y-4 mt-4">
+          <div className="p-3 rounded-lg bg-muted/30 border">
+            <p className="text-sm text-muted-foreground">
+              <Building2 className="h-4 w-4 inline mr-1" />
+              <strong>Structure de l'entreprise :</strong> Direction, services administratifs, corps enseignant (contrats), personnel technique.
+            </p>
+          </div>
           <StaffCategoryContent
             category="administrative"
             staffTypes={staffTypes}
@@ -240,10 +314,18 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
             onEdit={handleEdit}
             onDelete={handleDelete}
             getStudentName={getStudentName}
+            getClassName={getClassName}
+            allClasses={allClasses}
           />
         </TabsContent>
 
         <TabsContent value="educational" className="space-y-4 mt-4">
+          <div className="p-3 rounded-lg bg-muted/30 border">
+            <p className="text-sm text-muted-foreground">
+              <GraduationCap className="h-4 w-4 inline mr-1" />
+              <strong>Classes et acteurs :</strong> Enseignants assignés aux classes, élèves, tuteurs (rattachés aux élèves), professeurs particuliers.
+            </p>
+          </div>
           <StaffCategoryContent
             category="educational"
             staffTypes={staffTypes}
@@ -255,6 +337,8 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
             onEdit={handleEdit}
             onDelete={handleDelete}
             getStudentName={getStudentName}
+            getClassName={getClassName}
+            allClasses={allClasses}
           />
         </TabsContent>
       </Tabs>
@@ -266,6 +350,12 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
             <DialogTitle>
               {editingIndex !== null ? "Modifier" : "Ajouter"} - {activeCategory === 'administrative' ? 'Personnel administratif' : 'Acteur éducatif'}
             </DialogTitle>
+            <DialogDescription>
+              {activeCategory === 'administrative' 
+                ? "Ajoutez un membre du personnel de la structure (direction, administration, enseignant contractuel, technique)"
+                : "Ajoutez un acteur éducatif (enseignant de classe, élève, tuteur, professeur particulier)"
+              }
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
@@ -282,6 +372,8 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
                       staff_type: type.value, 
                       position: "",
                       linked_student_id: undefined,
+                      assigned_class_ids: [],
+                      is_class_principal: false,
                     })}
                     className={cn(
                       "p-3 rounded-lg border text-left transition-all",
@@ -343,6 +435,63 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
               </div>
             </div>
 
+            {/* Assignation aux classes (pour enseignants éducatifs) */}
+            {canBeAssignedToClasses(staffForm.staff_type as StaffType, activeCategory) && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  Classes assignées *
+                </Label>
+                {allClasses.length === 0 ? (
+                  <div className="p-3 rounded-lg border border-dashed bg-muted/30 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Aucune classe configurée. Configurez d'abord les classes dans l'onglet "Niveaux & Classes".
+                    </p>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-[150px] border rounded-lg p-2">
+                    <div className="space-y-2">
+                      {allClasses.map((cls) => (
+                        <div 
+                          key={cls.id}
+                          className={cn(
+                            "flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors",
+                            (staffForm.assigned_class_ids || []).includes(cls.id)
+                              ? "bg-primary/10 border border-primary"
+                              : "hover:bg-muted/50"
+                          )}
+                          onClick={() => toggleClassAssignment(cls.id)}
+                        >
+                          <Checkbox 
+                            checked={(staffForm.assigned_class_ids || []).includes(cls.id)}
+                            className="pointer-events-none"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{cls.name}</p>
+                            {cls.room && (
+                              <p className="text-xs text-muted-foreground">Salle {cls.room}</p>
+                            )}
+                          </div>
+                          {cls.capacity && (
+                            <Badge variant="outline" className="text-xs">{cls.capacity} places</Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                )}
+                {(staffForm.assigned_class_ids || []).length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {(staffForm.assigned_class_ids || []).map(id => (
+                      <Badge key={id} variant="default" className="text-xs">
+                        {getClassName(id)}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Lien avec élève (pour tuteur et prof particulier) */}
             {requiresStudentLink(staffForm.staff_type as StaffType) && (
               <div className="space-y-2">
@@ -353,7 +502,7 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
                 {students.length === 0 ? (
                   <div className="p-3 rounded-lg border border-dashed bg-muted/30 text-center">
                     <p className="text-sm text-muted-foreground">
-                      Aucun élève disponible. Ajoutez d'abord des élèves dans l'onglet Éducatif.
+                      Aucun élève disponible. Ajoutez d'abord des élèves.
                     </p>
                   </div>
                 ) : (
@@ -369,17 +518,57 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Sélectionner...</SelectItem>
-                      {students.map((student, idx) => (
-                        <SelectItem 
-                          key={student.id || `temp-${staff.indexOf(student)}`} 
-                          value={student.id || `temp-${staff.indexOf(student)}`}
-                        >
-                          {student.first_name} {student.last_name}
-                        </SelectItem>
-                      ))}
+                      {students.map((student) => {
+                        const studentId = student.id || `temp-${staff.indexOf(student)}`;
+                        const tutorCount = getTutorCountForStudent(studentId, staff);
+                        return (
+                          <SelectItem 
+                            key={studentId} 
+                            value={studentId}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span>{student.first_name} {student.last_name}</span>
+                              {staffForm.staff_type === 'tutor' && tutorCount === 0 && (
+                                <Badge variant="destructive" className="text-xs">Sans tuteur</Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 )}
+              </div>
+            )}
+
+            {/* Qui a ajouté le prof particulier */}
+            {staffForm.staff_type === 'private_teacher' && (
+              <div className="space-y-2">
+                <Label>Ajouté par</Label>
+                <Select
+                  value={staffForm.added_by_user_type || "parent"}
+                  onValueChange={(v) => setStaffForm({ 
+                    ...staffForm, 
+                    added_by_user_type: v as 'parent' | 'student' | 'admin'
+                  })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRIVATE_TEACHER_ADDED_BY.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        <div>
+                          <span>{option.label}</span>
+                          <span className="text-xs text-muted-foreground ml-2">- {option.description}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Un professeur particulier est ajouté par le parent (si l'élève est mineur) ou par l'élève lui-même.
+                </p>
               </div>
             )}
 
@@ -412,7 +601,7 @@ export const StaffManagementTab = ({ staff, onChange }: StaffManagementTabProps)
               <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                 <div>
                   <Label>Professeur Principal</Label>
-                  <p className="text-xs text-muted-foreground">Responsable de la classe</p>
+                  <p className="text-xs text-muted-foreground">Responsable d'une classe (1 par classe)</p>
                 </div>
                 <Switch
                   checked={staffForm.is_class_principal ?? false}
@@ -513,6 +702,8 @@ interface StaffCategoryContentProps {
   onEdit: (index: number) => void;
   onDelete: (index: number) => void;
   getStudentName: (id: string | undefined) => string | null;
+  getClassName: (classId: string) => string;
+  allClasses: ClassConfig[];
 }
 
 const StaffCategoryContent = ({
@@ -526,6 +717,8 @@ const StaffCategoryContent = ({
   onEdit,
   onDelete,
   getStudentName,
+  getClassName,
+  allClasses,
 }: StaffCategoryContentProps) => {
   const filteredStaff = selectedType 
     ? staff.filter(s => s.staff_type === selectedType)
@@ -590,24 +783,30 @@ const StaffCategoryContent = ({
             const typeInfo = staffTypes.find(t => t.value === member.staff_type);
             const realIndex = allStaff.indexOf(member);
             const studentName = getStudentName(member.linked_student_id);
+            const assignedClasses = member.assigned_class_ids || [];
             
             return (
               <div
                 key={realIndex}
                 className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{typeInfo?.icon}</span>
-                  <div>
-                    <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <span className="text-xl flex-shrink-0">{typeInfo?.icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium">
                         {member.first_name} {member.last_name}
                       </p>
                       {member.is_class_principal && (
                         <Badge variant="default" className="text-xs">Principal</Badge>
                       )}
+                      {member.added_by_user_type && member.staff_type === 'private_teacher' && (
+                        <Badge variant="outline" className="text-xs">
+                          via {member.added_by_user_type === 'parent' ? 'Parent' : member.added_by_user_type === 'student' ? 'Élève' : 'Admin'}
+                        </Badge>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
                       {member.position && <span>{member.position}</span>}
                       {studentName && (
                         <>
@@ -618,16 +817,25 @@ const StaffCategoryContent = ({
                           </span>
                         </>
                       )}
+                      {assignedClasses.length > 0 && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <BookOpen className="h-3 w-3" />
+                            {assignedClasses.map(id => getClassName(id)).join(", ")}
+                          </span>
+                        </>
+                      )}
                       {member.email && (
                         <>
                           <span>•</span>
-                          <span>{member.email}</span>
+                          <span className="truncate max-w-[150px]">{member.email}</span>
                         </>
                       )}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <Badge variant="outline">{typeInfo?.label}</Badge>
                   {member.contract_type && (
                     <Badge variant="secondary">

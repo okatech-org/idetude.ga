@@ -37,6 +37,10 @@ import CommentModeration from "./pages/admin/CommentModeration";
 import CountriesManagement from "./pages/admin/CountriesManagement";
 import RegionsManagement from "./pages/admin/RegionsManagement";
 import SchoolGroupsManagement from "./pages/admin/SchoolGroupsManagement";
+import GlobalAnalytics from "./pages/admin/GlobalAnalytics";
+import ActivityLog from "./pages/admin/ActivityLog";
+import GlobalExport from "./pages/admin/GlobalExport";
+import AdminSettings from "./pages/admin/AdminSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -83,6 +87,10 @@ const App = () => (
               <Route path="/admin/countries" element={<CountriesManagement />} />
               <Route path="/admin/regions" element={<RegionsManagement />} />
               <Route path="/admin/groups" element={<SchoolGroupsManagement />} />
+              <Route path="/admin/analytics" element={<GlobalAnalytics />} />
+              <Route path="/admin/activity" element={<ActivityLog />} />
+              <Route path="/admin/export" element={<GlobalExport />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

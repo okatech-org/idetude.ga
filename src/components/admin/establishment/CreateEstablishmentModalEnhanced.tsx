@@ -476,6 +476,65 @@ export const CreateEstablishmentModalEnhanced = ({
           <ScrollArea className="h-[55vh] px-6 mt-4">
             {/* Tab: Informations */}
             <TabsContent value="informations" className="space-y-4 mt-0">
+              {/* Progress Indicator */}
+              {(() => {
+                const steps = [
+                  { label: "Nom", complete: formData.name.trim().length > 0, icon: "✏️" },
+                  { label: "Système éducatif", complete: formData.educationSystems.length > 0, icon: "📚" },
+                  { label: "Type", complete: formData.typesWithQualification.length > 0, icon: "🏫" },
+                  { label: "Niveaux", complete: formData.selectedLevels.length > 0, icon: "🎓" },
+                  { label: "Localisation GPS", complete: formData.latitude !== null && formData.longitude !== null, icon: "📍" },
+                ];
+                const completedCount = steps.filter(s => s.complete).length;
+                const progressPercent = Math.round((completedCount / steps.length) * 100);
+
+                return (
+                  <div className="p-4 rounded-lg border bg-gradient-to-r from-primary/5 via-background to-secondary/5">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium">Progression</span>
+                      <span className={cn(
+                        "text-sm font-semibold px-2 py-0.5 rounded-full",
+                        progressPercent === 100 
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+                          : "bg-muted text-muted-foreground"
+                      )}>
+                        {completedCount}/{steps.length} champs requis
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden mb-3">
+                      <div 
+                        className={cn(
+                          "h-full transition-all duration-500 rounded-full",
+                          progressPercent === 100 
+                            ? "bg-green-500" 
+                            : progressPercent >= 60 
+                              ? "bg-primary" 
+                              : "bg-amber-500"
+                        )}
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {steps.map((step, idx) => (
+                        <div 
+                          key={idx}
+                          className={cn(
+                            "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                            step.complete 
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+                              : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          <span>{step.icon}</span>
+                          <span>{step.label}</span>
+                          {step.complete && <span className="text-green-600 dark:text-green-400">✓</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="space-y-2">
                 <Label>Nom de l'établissement *</Label>
                 <Input

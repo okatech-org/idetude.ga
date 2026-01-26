@@ -236,10 +236,42 @@ export const CreateEstablishmentModal = ({
         { headers: { 'Accept-Language': 'fr' } }
       );
       const data = await response.json();
-      if (data.display_name) {
-        setGeoAddress(data.display_name);
+      if (data.address) {
+        // Formater l'adresse au format standard français
+        const addr = data.address;
+        const parts: string[] = [];
+        
+        // Numéro + Rue
+        const streetNumber = addr.house_number || '';
+        const street = addr.road || addr.street || addr.pedestrian || '';
+        if (streetNumber && street) {
+          parts.push(`${streetNumber} ${street}`);
+        } else if (street) {
+          parts.push(street);
+        }
+        
+        // Ville (prendre la première disponible)
+        const city = addr.city || addr.town || addr.village || addr.municipality || addr.suburb || '';
+        if (city) {
+          parts.push(city);
+        }
+        
+        // Code postal
+        const postcode = addr.postcode || '';
+        if (postcode) {
+          parts.push(postcode);
+        }
+        
+        // Pays
+        const country = addr.country || '';
+        if (country) {
+          parts.push(country);
+        }
+        
+        const formattedAddress = parts.join(', ');
+        setGeoAddress(formattedAddress);
         // Pré-remplir automatiquement l'adresse complète
-        setForm(prev => ({ ...prev, address: data.display_name }));
+        setForm(prev => ({ ...prev, address: formattedAddress }));
       }
     } catch (error) {
       console.error("Erreur de géocodage inverse:", error);

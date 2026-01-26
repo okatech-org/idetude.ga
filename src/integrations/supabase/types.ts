@@ -329,6 +329,132 @@ export type Database = {
           },
         ]
       }
+      class_students: {
+        Row: {
+          class_id: string
+          created_at: string
+          enrollment_date: string | null
+          id: string
+          school_year: string
+          status: string | null
+          student_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          enrollment_date?: string | null
+          id?: string
+          school_year: string
+          status?: string | null
+          student_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          enrollment_date?: string | null
+          id?: string
+          school_year?: string
+          status?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_students_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      class_teachers: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          is_main_teacher: boolean | null
+          school_year: string
+          subject: string | null
+          teacher_id: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          is_main_teacher?: boolean | null
+          school_year: string
+          subject?: string | null
+          teacher_id: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          is_main_teacher?: boolean | null
+          school_year?: string
+          subject?: string | null
+          teacher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_teachers_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classes: {
+        Row: {
+          capacity: number | null
+          code: string | null
+          created_at: string
+          establishment_id: string
+          id: string
+          level: string
+          name: string
+          room: string | null
+          school_year: string
+          section: string | null
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number | null
+          code?: string | null
+          created_at?: string
+          establishment_id: string
+          id?: string
+          level: string
+          name: string
+          room?: string | null
+          school_year: string
+          section?: string | null
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number | null
+          code?: string | null
+          created_at?: string
+          establishment_id?: string
+          id?: string
+          level?: string
+          name?: string
+          room?: string | null
+          school_year?: string
+          section?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classes_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competencies: {
         Row: {
           class_level: string
@@ -414,6 +540,155 @@ export type Database = {
             columns: ["student_competency_id"]
             isOneToOne: false
             referencedRelation: "student_competencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      departments: {
+        Row: {
+          code: string | null
+          created_at: string
+          description: string | null
+          establishment_id: string
+          id: string
+          name: string
+          order_index: number | null
+          parent_id: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          establishment_id: string
+          id?: string
+          name: string
+          order_index?: number | null
+          parent_id?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          establishment_id?: string
+          id?: string
+          name?: string
+          order_index?: number | null
+          parent_id?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      establishment_groups: {
+        Row: {
+          code: string | null
+          country_code: string
+          created_at: string
+          description: string | null
+          id: string
+          location: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          country_code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          country_code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      establishments: {
+        Row: {
+          address: string | null
+          code: string | null
+          country_code: string
+          created_at: string
+          email: string | null
+          group_id: string | null
+          id: string
+          levels: string | null
+          logo_url: string | null
+          name: string
+          options: string[] | null
+          phone: string | null
+          student_capacity: number | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          code?: string | null
+          country_code?: string
+          created_at?: string
+          email?: string | null
+          group_id?: string | null
+          id?: string
+          levels?: string | null
+          logo_url?: string | null
+          name: string
+          options?: string[] | null
+          phone?: string | null
+          student_capacity?: number | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          code?: string | null
+          country_code?: string
+          created_at?: string
+          email?: string | null
+          group_id?: string | null
+          id?: string
+          levels?: string | null
+          logo_url?: string | null
+          name?: string
+          options?: string[] | null
+          phone?: string | null
+          student_capacity?: number | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "establishments_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "establishment_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -825,6 +1100,50 @@ export type Database = {
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      positions: {
+        Row: {
+          code: string | null
+          created_at: string
+          department_id: string
+          description: string | null
+          id: string
+          is_head: boolean | null
+          name: string
+          order_index: number | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          department_id: string
+          description?: string | null
+          id?: string
+          is_head?: boolean | null
+          name: string
+          order_index?: number | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          department_id?: string
+          description?: string | null
+          id?: string
+          is_head?: boolean | null
+          name?: string
+          order_index?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "positions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
         ]
@@ -1597,6 +1916,82 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_establishments: {
+        Row: {
+          created_at: string
+          establishment_id: string
+          id: string
+          is_primary: boolean | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          establishment_id: string
+          id?: string
+          is_primary?: boolean | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          establishment_id?: string
+          id?: string
+          is_primary?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_establishments_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_positions: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          position_id: string
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          position_id: string
+          start_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          position_id?: string
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_positions_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "positions"
             referencedColumns: ["id"]
           },
         ]

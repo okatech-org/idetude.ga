@@ -23,6 +23,8 @@ import Chat from "./pages/Chat";
 import Payments from "./pages/Payments";
 import Appointments from "./pages/Appointments";
 import Documents from "./pages/Documents";
+import ClassGroups from "./pages/ClassGroups";
+import SchoolCalendar from "./pages/Calendar";
 import UsersManagement from "./pages/admin/UsersManagement";
 import EstablishmentsManagement from "./pages/admin/EstablishmentsManagement";
 import NotFound from "./pages/NotFound";
@@ -57,6 +59,8 @@ const App = () => (
               <Route path="/paiements" element={<Payments />} />
               <Route path="/rendez-vous" element={<Appointments />} />
               <Route path="/documents" element={<Documents />} />
+              <Route path="/groupes" element={<ClassGroups />} />
+              <Route path="/calendrier" element={<SchoolCalendar />} />
               <Route path="/admin/users" element={<UsersManagement />} />
               <Route path="/admin/establishments" element={<EstablishmentsManagement />} />
               <Route path="*" element={<NotFound />} />

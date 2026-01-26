@@ -56,11 +56,13 @@ const superAdminMainMenuItems = [
 const superAdminEcosystemMenuItems = [
   { title: "Pays", url: "/admin/countries", icon: Globe },
   { title: "Régions", url: "/admin/regions", icon: MapPin },
-  { title: "Groupes Scolaires", url: "/admin/groups", icon: Layers },
+  { title: "Liste Groupes", url: "/admin/groups", icon: Layers },
+  { title: "Config Groupes", url: "/admin/groups/config", icon: Settings },
+  { title: "Liste Établissements", url: "/admin/establishments", icon: Building2 },
+  { title: "Config Établissements", url: "/admin/establishments/config", icon: Settings },
 ];
 
 const superAdminManagementMenuItems = [
-  { title: "Établissements", url: "/admin/establishments", icon: Building2 },
   { title: "Utilisateurs", url: "/admin/users", icon: Users },
   { title: "Modération", url: "/admin/moderation", icon: Shield },
 ];

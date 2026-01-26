@@ -11,7 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, MapPin, Users, GraduationCap, School } from "lucide-react";
+import { Building2, MapPin, Users, GraduationCap, School, Navigation, Loader2, MapPinned, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface CreateEstablishmentModalProps {
   open: boolean;
@@ -159,6 +160,8 @@ export const CreateEstablishmentModal = ({
   const [loading, setLoading] = useState(false);
   const [groups, setGroups] = useState<EstablishmentGroup[]>([]);
   const [activeTab, setActiveTab] = useState("info");
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
   
   const [form, setForm] = useState({
     name: "",
@@ -172,6 +175,8 @@ export const CreateEstablishmentModal = ({
     student_capacity: 500,
     group_id: groupId || null as string | null,
     options: [] as string[],
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
 
   const fetchGroups = async () => {
@@ -201,6 +206,7 @@ export const CreateEstablishmentModal = ({
     if (isOpen) {
       fetchGroups();
       setActiveTab("info");
+      setGeoError(null);
       setForm({
         name: "",
         code: "",
@@ -213,9 +219,59 @@ export const CreateEstablishmentModal = ({
         student_capacity: 500,
         group_id: groupId || null,
         options: [],
+        latitude: null,
+        longitude: null,
       });
     }
     onOpenChange(isOpen);
+  };
+
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoError("La géolocalisation n'est pas supportée par votre navigateur");
+      return;
+    }
+
+    setGeoLoading(true);
+    setGeoError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setForm(prev => ({
+          ...prev,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        }));
+        setGeoLoading(false);
+        toast.success("Position GPS capturée avec succès");
+      },
+      (error) => {
+        setGeoLoading(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setGeoError("Vous avez refusé l'accès à votre position. Veuillez autoriser la géolocalisation.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setGeoError("Les informations de localisation ne sont pas disponibles.");
+            break;
+          case error.TIMEOUT:
+            setGeoError("La demande de localisation a expiré. Réessayez.");
+            break;
+          default:
+            setGeoError("Une erreur inconnue s'est produite.");
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+
+  const clearLocation = () => {
+    setForm(prev => ({ ...prev, latitude: null, longitude: null }));
+    setGeoError(null);
   };
 
   const toggleLevel = (levelId: string) => {
@@ -279,6 +335,12 @@ export const CreateEstablishmentModal = ({
       return;
     }
 
+    if (form.latitude === null || form.longitude === null) {
+      toast.error("La localisation GPS est obligatoire. Veuillez capturer la position de l'établissement.");
+      setActiveTab("contact");
+      return;
+    }
+
     setLoading(true);
     try {
       const { error } = await supabase.from("establishments").insert({
@@ -293,6 +355,8 @@ export const CreateEstablishmentModal = ({
         student_capacity: form.student_capacity,
         group_id: form.group_id,
         options: form.options.length > 0 ? form.options : null,
+        latitude: form.latitude,
+        longitude: form.longitude,
       });
 
       if (error) throw error;
@@ -528,6 +592,132 @@ export const CreateEstablishmentModal = ({
             </TabsContent>
 
             <TabsContent value="contact" className="space-y-4 mt-0">
+              {/* Section GPS obligatoire */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <MapPinned className="h-4 w-4 text-primary" />
+                  <Label className="text-base font-semibold">Localisation GPS *</Label>
+                </div>
+                
+                <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/30">
+                  <Navigation className="h-4 w-4 text-amber-600" />
+                  <AlertDescription className="text-amber-800 dark:text-amber-200">
+                    <strong>Important :</strong> Placez-vous à l'entrée principale de l'établissement (portail ou porte du bâtiment) avant de capturer la position GPS. Cette localisation servira de point de référence pour les visiteurs.
+                  </AlertDescription>
+                </Alert>
+
+                {geoError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{geoError}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="flex flex-col gap-3">
+                  {form.latitude !== null && form.longitude !== null ? (
+                    <div className="p-4 rounded-lg border-2 border-green-500/50 bg-green-50 dark:bg-green-950/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center">
+                            <MapPin className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-green-800 dark:text-green-200">Position capturée ✓</p>
+                            <p className="text-sm text-green-600 dark:text-green-400">
+                              Lat: {form.latitude.toFixed(6)} | Long: {form.longitude.toFixed(6)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <GlassButton
+                            variant="outline"
+                            size="sm"
+                            onClick={getCurrentLocation}
+                            disabled={geoLoading}
+                          >
+                            {geoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Recapturer"}
+                          </GlassButton>
+                          <GlassButton
+                            variant="outline"
+                            size="sm"
+                            onClick={clearLocation}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            Effacer
+                          </GlassButton>
+                        </div>
+                      </div>
+                      {/* Mini map preview */}
+                      <div className="mt-3 rounded-lg overflow-hidden border">
+                        <iframe
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${form.longitude - 0.002},${form.latitude - 0.002},${form.longitude + 0.002},${form.latitude + 0.002}&layer=mapnik&marker=${form.latitude},${form.longitude}`}
+                          className="w-full h-32"
+                          style={{ border: 0 }}
+                          title="Aperçu de la position"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-6 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 flex flex-col items-center gap-4">
+                      <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                        <Navigation className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-medium">Aucune position GPS définie</p>
+                        <p className="text-sm text-muted-foreground">
+                          Cliquez sur le bouton ci-dessous pour capturer votre position actuelle
+                        </p>
+                      </div>
+                      <GlassButton
+                        variant="primary"
+                        onClick={getCurrentLocation}
+                        disabled={geoLoading}
+                        className="gap-2"
+                      >
+                        {geoLoading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Recherche de la position...
+                          </>
+                        ) : (
+                          <>
+                            <Navigation className="h-4 w-4" />
+                            Capturer ma position GPS
+                          </>
+                        )}
+                      </GlassButton>
+                    </div>
+                  )}
+                </div>
+
+                {/* Saisie manuelle des coordonnées */}
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">Ou saisir manuellement les coordonnées :</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Latitude</Label>
+                      <Input
+                        type="number"
+                        step="0.000001"
+                        value={form.latitude ?? ""}
+                        onChange={(e) => setForm({ ...form, latitude: e.target.value ? parseFloat(e.target.value) : null })}
+                        placeholder="Ex: 0.416198"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Longitude</Label>
+                      <Input
+                        type="number"
+                        step="0.000001"
+                        value={form.longitude ?? ""}
+                        onChange={(e) => setForm({ ...form, longitude: e.target.value ? parseFloat(e.target.value) : null })}
+                        placeholder="Ex: 9.467268"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label>Adresse complète</Label>
                 <Textarea
@@ -577,6 +767,14 @@ export const CreateEstablishmentModal = ({
                   <div className="col-span-2">
                     <span className="text-muted-foreground">Niveaux:</span>{" "}
                     <span className="font-medium">{getSelectedLevelsDisplay()}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">GPS:</span>{" "}
+                    <span className={`font-medium ${form.latitude && form.longitude ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
+                      {form.latitude && form.longitude 
+                        ? `${form.latitude.toFixed(6)}, ${form.longitude.toFixed(6)}` 
+                        : "Non défini (obligatoire)"}
+                    </span>
                   </div>
                   {form.options.length > 0 && (
                     <div className="col-span-2">

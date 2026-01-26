@@ -640,8 +640,10 @@ export type Database = {
           email: string | null
           group_id: string | null
           id: string
+          latitude: number | null
           levels: string | null
           logo_url: string | null
+          longitude: number | null
           name: string
           options: string[] | null
           phone: string | null
@@ -657,8 +659,10 @@ export type Database = {
           email?: string | null
           group_id?: string | null
           id?: string
+          latitude?: number | null
           levels?: string | null
           logo_url?: string | null
+          longitude?: number | null
           name: string
           options?: string[] | null
           phone?: string | null
@@ -674,8 +678,10 @@ export type Database = {
           email?: string | null
           group_id?: string | null
           id?: string
+          latitude?: number | null
           levels?: string | null
           logo_url?: string | null
+          longitude?: number | null
           name?: string
           options?: string[] | null
           phone?: string | null

@@ -763,6 +763,7 @@ export type Database = {
           country_code: string
           created_at: string
           email: string | null
+          enabled_modules: string[] | null
           group_id: string | null
           id: string
           latitude: number | null
@@ -782,6 +783,7 @@ export type Database = {
           country_code?: string
           created_at?: string
           email?: string | null
+          enabled_modules?: string[] | null
           group_id?: string | null
           id?: string
           latitude?: number | null
@@ -801,6 +803,7 @@ export type Database = {
           country_code?: string
           created_at?: string
           email?: string | null
+          enabled_modules?: string[] | null
           group_id?: string | null
           id?: string
           latitude?: number | null

@@ -52,6 +52,15 @@ export interface Country {
   independentSchools: School[];
 }
 
+// Super Admin Demo Account (global)
+export const superAdminAccount: DemoAccount = {
+  id: "global-super-admin",
+  role: "Super Administrateur",
+  name: "Super Admin",
+  email: "superadmin@demo.idetude.app",
+  password: "Demo2025!",
+};
+
 // Gabon Demo Data
 const gabonMinistry: Ministry = {
   name: "Ministère de l'Éducation Nationale",

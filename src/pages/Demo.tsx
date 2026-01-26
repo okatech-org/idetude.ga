@@ -8,7 +8,7 @@ import { DemoAccountCard } from "@/components/demo/DemoAccountCard";
 import { DemoAccordion } from "@/components/demo/DemoAccordion";
 import { SchoolCard } from "@/components/demo/SchoolCard";
 import { SchoolDetailHeader } from "@/components/demo/SchoolDetailHeader";
-import { countries, type Country, type School } from "@/data/demo-accounts";
+import { countries, superAdminAccount, type Country, type School } from "@/data/demo-accounts";
 import {
   ArrowLeft,
   Building2,
@@ -18,6 +18,7 @@ import {
   GraduationCap,
   BookOpen,
   Briefcase,
+  Shield,
 } from "lucide-react";
 
 const Demo = () => {
@@ -73,10 +74,38 @@ const Demo = () => {
 
           {/* Country Selection */}
           {!selectedCountry && (
-            <CountrySelector
-              countries={countries}
-              onSelect={setSelectedCountry}
-            />
+            <div className="space-y-8">
+              {/* Super Admin Card */}
+              <div className="max-w-2xl mx-auto">
+                <GlassCard className="p-6 border-2 border-red-500/20" solid>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500/20 to-red-500/5 flex items-center justify-center">
+                      <Shield className="h-6 w-6 text-red-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">
+                        Compte Super Administrateur
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Accès complet à toutes les fonctionnalités
+                      </p>
+                    </div>
+                  </div>
+                  <DemoAccountCard account={superAdminAccount} />
+                </GlassCard>
+              </div>
+
+              {/* Country Selector */}
+              <div>
+                <h3 className="text-center text-lg font-semibold text-muted-foreground mb-6">
+                  Ou explorez par pays
+                </h3>
+                <CountrySelector
+                  countries={countries}
+                  onSelect={setSelectedCountry}
+                />
+              </div>
+            </div>
           )}
 
           {/* Country Detail */}

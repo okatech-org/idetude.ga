@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
 import { InputHTMLAttributes, forwardRef, useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, LucideIcon } from "lucide-react";
 
 interface GlassInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
-  icon?: React.ReactNode;
+  icon?: LucideIcon;
 }
 
 export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(
@@ -23,7 +23,7 @@ export const GlassInput = forwardRef<HTMLInputElement, GlassInputProps>(
         <div className="relative">
           {icon && (
             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
-              {icon}
+              {(() => { const Icon = icon; return <Icon className="h-5 w-5" />; })()}
             </div>
           )}
           <input

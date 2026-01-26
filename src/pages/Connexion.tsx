@@ -64,7 +64,7 @@ const Connexion = () => {
                 placeholder="votre@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                icon={<Mail className="h-5 w-5" />}
+                icon={Mail}
               />
 
               <GlassInput
@@ -73,7 +73,7 @@ const Connexion = () => {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                icon={<Lock className="h-5 w-5" />}
+                icon={Lock}
               />
 
               <div className="flex items-center justify-between">

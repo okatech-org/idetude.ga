@@ -11,9 +11,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, MapPin, Users, GraduationCap, School, Navigation, Loader2, MapPinned, AlertCircle } from "lucide-react";
+import { Building2, MapPin, Users, GraduationCap, School, Navigation, Loader2, MapPinned, AlertCircle, Map } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
+import { LocationPickerMap } from "./LocationPickerMap";
 interface CreateEstablishmentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -328,6 +328,13 @@ export const CreateEstablishmentModal = ({
     setForm(prev => ({ ...prev, latitude: null, longitude: null }));
     setGeoAddress(null);
     setGeoError(null);
+  };
+
+  // Handler pour la sélection sur la carte
+  const handleMapLocationChange = async (lat: number, lng: number) => {
+    setForm(prev => ({ ...prev, latitude: lat, longitude: lng }));
+    toast.success("Position sélectionnée sur la carte");
+    await reverseGeocode(lat, lng);
   };
 
   const toggleLevel = (levelId: string) => {
@@ -703,45 +710,60 @@ export const CreateEstablishmentModal = ({
                           </GlassButton>
                         </div>
                       </div>
-                      {/* Mini map preview */}
-                      <div className="mt-3 rounded-lg overflow-hidden border">
-                        <iframe
-                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${form.longitude - 0.002},${form.latitude - 0.002},${form.longitude + 0.002},${form.latitude + 0.002}&layer=mapnik&marker=${form.latitude},${form.longitude}`}
-                          className="w-full h-32"
-                          style={{ border: 0 }}
-                          title="Aperçu de la position"
+                      {/* Carte interactive */}
+                      <div className="mt-3">
+                        <LocationPickerMap
+                          latitude={form.latitude}
+                          longitude={form.longitude}
+                          onLocationChange={handleMapLocationChange}
+                          className="[&_>_div:last-child]:h-[200px]"
                         />
                       </div>
                     </div>
                   ) : (
-                    <div className="p-6 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 flex flex-col items-center gap-4">
-                      <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                        <Navigation className="h-8 w-8 text-muted-foreground" />
+                    <div className="space-y-4">
+                      <div className="p-6 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 flex flex-col items-center gap-4">
+                        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                          <Navigation className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <div className="text-center">
+                          <p className="font-medium">Aucune position GPS définie</p>
+                          <p className="text-sm text-muted-foreground">
+                            Capturez votre position actuelle ou sélectionnez sur la carte
+                          </p>
+                        </div>
+                        <GlassButton
+                          variant="primary"
+                          onClick={getCurrentLocation}
+                          disabled={geoLoading}
+                          className="gap-2"
+                        >
+                          {geoLoading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Recherche de la position...
+                            </>
+                          ) : (
+                            <>
+                              <Navigation className="h-4 w-4" />
+                              Capturer ma position GPS
+                            </>
+                          )}
+                        </GlassButton>
                       </div>
-                      <div className="text-center">
-                        <p className="font-medium">Aucune position GPS définie</p>
-                        <p className="text-sm text-muted-foreground">
-                          Cliquez sur le bouton ci-dessous pour capturer votre position actuelle
-                        </p>
+
+                      {/* Carte interactive pour sélection manuelle */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Map className="h-4 w-4 text-muted-foreground" />
+                          <Label className="text-sm font-medium">Ou sélectionner sur la carte</Label>
+                        </div>
+                        <LocationPickerMap
+                          latitude={form.latitude}
+                          longitude={form.longitude}
+                          onLocationChange={handleMapLocationChange}
+                        />
                       </div>
-                      <GlassButton
-                        variant="primary"
-                        onClick={getCurrentLocation}
-                        disabled={geoLoading}
-                        className="gap-2"
-                      >
-                        {geoLoading ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Recherche de la position...
-                          </>
-                        ) : (
-                          <>
-                            <Navigation className="h-4 w-4" />
-                            Capturer ma position GPS
-                          </>
-                        )}
-                      </GlassButton>
                     </div>
                   )}
                 </div>

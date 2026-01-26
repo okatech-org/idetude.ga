@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -23,10 +23,17 @@ import {
   Trash2,
   GraduationCap,
   Edit,
-  Upload
+  Upload,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertCircle,
+  Download,
+  X
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { MultiFileImport, AnalysisResult } from "./MultiFileImport";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 
 interface SubjectConfigModalProps {
   open: boolean;
@@ -50,6 +57,17 @@ interface Subject {
   icon: string | null;
   description: string | null;
   order_index: number;
+}
+
+interface CSVSubject {
+  name: string;
+  code: string;
+  category: string;
+  coefficient: number;
+  hours_per_week: number;
+  is_mandatory: boolean;
+  isValid: boolean;
+  error?: string;
 }
 
 const CATEGORIES = [
@@ -108,6 +126,12 @@ export const SubjectConfigModal = ({
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [activeTab, setActiveTab] = useState("list");
   const [editingSubject, setEditingSubject] = useState<Partial<Subject> | null>(null);
+  
+  // CSV Import state
+  const [csvSubjects, setCsvSubjects] = useState<CSVSubject[]>([]);
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvProgress, setCsvProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [form, setForm] = useState({
     name: "",
@@ -272,6 +296,167 @@ export const SubjectConfigModal = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  // === CSV Import Functions ===
+  const parseCSV = (text: string): CSVSubject[] => {
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+
+    const headerLine = lines[0].toLowerCase();
+    const headers = headerLine.split(/[,;]/).map(h => h.trim().replace(/"/g, ''));
+    
+    // Flexible column detection
+    const findColumnIndex = (possibleNames: string[]): number => {
+      return headers.findIndex(h => 
+        possibleNames.some(name => h.includes(name))
+      );
+    };
+
+    const nameIdx = findColumnIndex(['nom', 'name', 'matière', 'matiere', 'subject']);
+    const codeIdx = findColumnIndex(['code', 'abbreviation', 'abbr', 'sigle']);
+    const categoryIdx = findColumnIndex(['catégorie', 'categorie', 'category', 'type']);
+    const coefficientIdx = findColumnIndex(['coefficient', 'coef', 'coeff']);
+    const hoursIdx = findColumnIndex(['heures', 'hours', 'volume', 'horaire']);
+    const mandatoryIdx = findColumnIndex(['obligatoire', 'mandatory', 'required']);
+
+    if (nameIdx === -1) {
+      toast.error("Colonne 'Nom' non trouvée dans le CSV");
+      return [];
+    }
+
+    const existingNames = new Set(subjects.map(s => s.name.toLowerCase()));
+    
+    return lines.slice(1).map((line, idx) => {
+      const values = line.split(/[,;]/).map(v => v.trim().replace(/"/g, ''));
+      const name = values[nameIdx] || '';
+      const code = codeIdx >= 0 ? values[codeIdx] : '';
+      const categoryRaw = categoryIdx >= 0 ? values[categoryIdx]?.toLowerCase() : 'general';
+      const coeffRaw = coefficientIdx >= 0 ? parseFloat(values[coefficientIdx]) : 1;
+      const hoursRaw = hoursIdx >= 0 ? parseFloat(values[hoursIdx]) : 2;
+      const mandatoryRaw = mandatoryIdx >= 0 ? 
+        ['oui', 'yes', 'true', '1', 'o', 'y'].includes(values[mandatoryIdx]?.toLowerCase()) : true;
+      
+      // Map category
+      const categoryMap: Record<string, string> = {
+        'général': 'general', 'general': 'general', 'enseignement général': 'general',
+        'langue': 'language', 'langues': 'language', 'language': 'language',
+        'technique': 'technical', 'technical': 'technical', 'enseignement technique': 'technical',
+        'art': 'artistic', 'arts': 'artistic', 'artistic': 'artistic', 'artistique': 'artistic',
+        'sport': 'sport', 'eps': 'sport', 'éducation physique': 'sport',
+        'musique': 'music', 'music': 'music',
+      };
+      const category = categoryMap[categoryRaw] || 'general';
+
+      // Validation
+      const isValid = name.length >= 2;
+      const isDuplicate = existingNames.has(name.toLowerCase());
+      
+      return {
+        name,
+        code: code.toUpperCase(),
+        category,
+        coefficient: isNaN(coeffRaw) ? 1 : Math.max(0.5, Math.min(10, coeffRaw)),
+        hours_per_week: isNaN(hoursRaw) ? 2 : Math.max(0.5, Math.min(20, hoursRaw)),
+        is_mandatory: mandatoryRaw,
+        isValid: isValid && !isDuplicate,
+        error: !isValid ? 'Nom trop court' : isDuplicate ? 'Existe déjà' : undefined,
+      };
+    }).filter(s => s.name.length > 0);
+  };
+
+  const handleCSVFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const parsed = parseCSV(text);
+      setCsvSubjects(parsed);
+      
+      if (parsed.length > 0) {
+        const validCount = parsed.filter(s => s.isValid).length;
+        toast.success(`${parsed.length} matières détectées (${validCount} valides)`);
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCSVBulkImport = async () => {
+    const validSubjects = csvSubjects.filter(s => s.isValid);
+    if (validSubjects.length === 0) {
+      toast.error("Aucune matière valide à importer");
+      return;
+    }
+
+    setCsvImporting(true);
+    setCsvProgress(0);
+
+    try {
+      const subjectsToInsert = validSubjects.map((s, index) => ({
+        establishment_id: establishmentId,
+        name: s.name,
+        code: s.code || null,
+        category: s.category,
+        coefficient: s.coefficient,
+        hours_per_week: s.hours_per_week,
+        is_mandatory: s.is_mandatory,
+        is_language: false,
+        order_index: subjects.length + index,
+      }));
+
+      // Insert in batches
+      const batchSize = 10;
+      let inserted = 0;
+      
+      for (let i = 0; i < subjectsToInsert.length; i += batchSize) {
+        const batch = subjectsToInsert.slice(i, i + batchSize);
+        const { error } = await supabase.from("subjects").insert(batch);
+        if (error) throw error;
+        
+        inserted += batch.length;
+        setCsvProgress((inserted / subjectsToInsert.length) * 100);
+      }
+
+      toast.success(`${inserted} matières importées avec succès`);
+      setCsvSubjects([]);
+      fetchSubjects();
+      setActiveTab("list");
+    } catch (error) {
+      console.error("Error importing subjects:", error);
+      toast.error("Erreur lors de l'importation");
+    } finally {
+      setCsvImporting(false);
+      setCsvProgress(0);
+    }
+  };
+
+  const removeCSVSubject = (index: number) => {
+    setCsvSubjects(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const downloadCSVTemplate = () => {
+    const template = `Nom,Code,Catégorie,Coefficient,Heures,Obligatoire
+Mathématiques,MATH,Général,4,4,Oui
+Français,FR,Général,4,5,Oui
+Anglais,ENG,Langues,3,3,Oui
+Histoire-Géographie,HG,Général,3,3,Oui
+Physique-Chimie,PC,Général,3,3,Oui
+SVT,SVT,Général,2,2,Oui
+EPS,EPS,Sport,2,2,Oui
+Arts Plastiques,ARTS,Arts,1,1,Non`;
+    
+    const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'modele_matieres.csv';
+    link.click();
   };
 
   const groupedSubjects = subjects.reduce((acc, subject) => {
@@ -610,58 +795,178 @@ export const SubjectConfigModal = ({
               </div>
             </TabsContent>
 
-            {/* Import IA */}
+            {/* Import CSV */}
             <TabsContent value="import" className="space-y-4 mt-0">
               <div className="space-y-4">
-                <div>
-                  <h4 className="font-semibold">Import intelligent de matières</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Importez un fichier CSV, une image d'emploi du temps ou un document PDF. 
-                    L'IA analysera le contenu et pré-remplira les matières.
-                  </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold">Import CSV en masse</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Importez un fichier CSV pour créer plusieurs matières à la fois
+                    </p>
+                  </div>
+                  <GlassButton variant="outline" size="sm" onClick={downloadCSVTemplate}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Modèle CSV
+                  </GlassButton>
                 </div>
                 
-                <MultiFileImport
-                  context="subjects"
-                  establishmentId={establishmentId}
-                  onAnalysisComplete={(result: AnalysisResult) => {
-                    if (result.success && Array.isArray(result.data)) {
-                      // Pre-fill subjects from AI analysis
-                      result.data.forEach((item: any) => {
-                        if (item.name) {
-                          setForm({
-                            name: item.name || "",
-                            code: item.code || "",
-                            category: item.category || "general",
-                            is_language: item.is_language || false,
-                            language_code: item.language_code || "",
-                            language_level: item.language_level || "",
-                            coefficient: item.coefficient || 1,
-                            hours_per_week: item.hours_per_week || 2,
-                            is_mandatory: item.is_mandatory !== false,
-                            color: "",
-                            description: item.description || "",
-                          });
-                        }
-                      });
-                      
-                      if (result.data.length > 0) {
-                        toast.success(`${result.data.length} matière(s) détectée(s). Vérifiez et ajoutez-les.`);
-                        setActiveTab("add");
-                      }
-                    }
-                  }}
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleCSVFileSelect}
                 />
                 
-                {/* Suggestions */}
-                <GlassCard className="p-4" solid>
-                  <h5 className="font-medium text-sm mb-2">Formats recommandés :</h5>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• CSV avec colonnes : nom, code, catégorie, coefficient</li>
-                    <li>• Image d'un emploi du temps ou liste de matières</li>
-                    <li>• PDF de programme scolaire</li>
-                  </ul>
-                </GlassCard>
+                {/* Drop zone */}
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className={cn(
+                    "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors",
+                    "hover:border-primary hover:bg-primary/5",
+                    csvSubjects.length > 0 ? "border-green-500/50 bg-green-500/5" : "border-muted-foreground/30"
+                  )}
+                >
+                  <FileSpreadsheet className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                  <p className="font-medium">Cliquez pour sélectionner un fichier CSV</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    ou glissez-déposez votre fichier ici
+                  </p>
+                </div>
+
+                {/* CSV Preview */}
+                {csvSubjects.length > 0 && (
+                  <GlassCard className="p-4" solid>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        <span className="font-medium">
+                          {csvSubjects.length} matières détectées
+                        </span>
+                        <Badge variant="secondary">
+                          {csvSubjects.filter(s => s.isValid).length} valides
+                        </Badge>
+                        {csvSubjects.some(s => !s.isValid) && (
+                          <Badge variant="destructive">
+                            {csvSubjects.filter(s => !s.isValid).length} erreurs
+                          </Badge>
+                        )}
+                      </div>
+                      <GlassButton
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCsvSubjects([])}
+                      >
+                        <X className="h-4 w-4" />
+                      </GlassButton>
+                    </div>
+
+                    <div className="max-h-[250px] overflow-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[200px]">Nom</TableHead>
+                            <TableHead>Code</TableHead>
+                            <TableHead>Catégorie</TableHead>
+                            <TableHead>Coef.</TableHead>
+                            <TableHead>Heures</TableHead>
+                            <TableHead>Statut</TableHead>
+                            <TableHead></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {csvSubjects.map((subject, idx) => {
+                            const categoryInfo = CATEGORIES.find(c => c.value === subject.category);
+                            return (
+                              <TableRow key={idx} className={!subject.isValid ? "bg-destructive/10" : ""}>
+                                <TableCell className="font-medium">{subject.name}</TableCell>
+                                <TableCell>{subject.code || "-"}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className={cn("text-xs", categoryInfo?.color)}>
+                                    {categoryInfo?.label || subject.category}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>{subject.coefficient}</TableCell>
+                                <TableCell>{subject.hours_per_week}h</TableCell>
+                                <TableCell>
+                                  {subject.isValid ? (
+                                    <Badge variant="secondary" className="text-xs">
+                                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                                      Valide
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="destructive" className="text-xs">
+                                      <AlertCircle className="h-3 w-3 mr-1" />
+                                      {subject.error}
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <button
+                                    onClick={() => removeCSVSubject(idx)}
+                                    className="text-muted-foreground hover:text-destructive"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+
+                    {csvImporting && (
+                      <div className="mt-4">
+                        <Progress value={csvProgress} className="h-2" />
+                        <p className="text-xs text-muted-foreground mt-1 text-center">
+                          Import en cours... {Math.round(csvProgress)}%
+                        </p>
+                      </div>
+                    )}
+                  </GlassCard>
+                )}
+
+                {/* Import avec IA */}
+                <div className="border-t pt-4 mt-4">
+                  <h5 className="font-medium text-sm mb-3 flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    Ou utilisez l'import IA pour d'autres formats
+                  </h5>
+                  <MultiFileImport
+                    context="subjects"
+                    establishmentId={establishmentId}
+                    onAnalysisComplete={(result: AnalysisResult) => {
+                      if (result.success && Array.isArray(result.data)) {
+                        // Pre-fill subjects from AI analysis
+                        result.data.forEach((item: any) => {
+                          if (item.name) {
+                            setForm({
+                              name: item.name || "",
+                              code: item.code || "",
+                              category: item.category || "general",
+                              is_language: item.is_language || false,
+                              language_code: item.language_code || "",
+                              language_level: item.language_level || "",
+                              coefficient: item.coefficient || 1,
+                              hours_per_week: item.hours_per_week || 2,
+                              is_mandatory: item.is_mandatory !== false,
+                              color: "",
+                              description: item.description || "",
+                            });
+                          }
+                        });
+                        
+                        if (result.data.length > 0) {
+                          toast.success(`${result.data.length} matière(s) détectée(s). Vérifiez et ajoutez-les.`);
+                          setActiveTab("add");
+                        }
+                      }
+                    }}
+                  />
+                </div>
               </div>
             </TabsContent>
           </ScrollArea>
@@ -671,6 +976,14 @@ export const SubjectConfigModal = ({
           <GlassButton variant="outline" onClick={() => onOpenChange(false)}>
             Fermer
           </GlassButton>
+          {activeTab === "import" && csvSubjects.length > 0 && (
+            <GlassButton 
+              onClick={handleCSVBulkImport} 
+              disabled={csvImporting || csvSubjects.filter(s => s.isValid).length === 0}
+            >
+              {csvImporting ? "Import en cours..." : `Importer ${csvSubjects.filter(s => s.isValid).length} matières`}
+            </GlassButton>
+          )}
           {activeTab === "add" && (
             <GlassButton onClick={handleAddSubject} disabled={loading}>
               {loading ? "Enregistrement..." : editingSubject ? "Modifier" : "Ajouter"}

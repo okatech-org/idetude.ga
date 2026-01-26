@@ -48,7 +48,7 @@ export const STAFF_CATEGORIES = [
     value: 'educational' as StaffCategory, 
     label: 'Éducatif', 
     icon: '📚', 
-    description: 'Acteurs des classes (Enseignants assignés, Élèves, Tuteurs)' 
+    description: 'Acteurs des classes (Élèves, Tuteurs)' 
   },
 ] as const;
 
@@ -64,11 +64,10 @@ export const STAFF_TYPES_BY_CATEGORY: Record<StaffCategory, {
   administrative: [
     { value: 'direction', label: 'Direction', icon: '👔', description: 'Directeur, Proviseur, Principal' },
     { value: 'admin', label: 'Administration', icon: '📋', description: 'Secrétaire, Comptable, RH' },
-    { value: 'teacher', label: 'Enseignant', icon: '👨‍🏫', description: 'Corps enseignant (contrat avec l\'établissement)' },
+    { value: 'teacher', label: 'Enseignant', icon: '👨‍🏫', description: 'Corps enseignant (contrat avec l\'établissement, assigné aux classes)' },
     { value: 'technical', label: 'Technique', icon: '🔧', description: 'Maintenance, sécurité, cantine' },
   ],
   educational: [
-    { value: 'teacher', label: 'Enseignant', icon: '👨‍🏫', description: 'Professeur assigné à une ou plusieurs classes' },
     { value: 'student', label: 'Élève', icon: '🎓', description: 'Étudiants inscrits dans une classe' },
     { value: 'tutor', label: 'Tuteur', icon: '👨‍👩‍👧', description: 'Parent ou tuteur légal (min. 1, max. 2 par élève mineur)' },
   ],
@@ -194,9 +193,9 @@ export const requiresStudentLink = (staffType: StaffType): boolean => {
   return staffType === 'tutor' || staffType === 'private_teacher';
 };
 
-// Helper: Déterminer si un type peut être assigné à des classes
-export const canBeAssignedToClasses = (staffType: StaffType, category: StaffCategory): boolean => {
-  return staffType === 'teacher' && category === 'educational';
+// Helper: Déterminer si un type peut être assigné à des classes (enseignants administratifs uniquement)
+export const canBeAssignedToClasses = (staffType: StaffType): boolean => {
+  return staffType === 'teacher';
 };
 
 // Helper: Déterminer si un type a un contrat

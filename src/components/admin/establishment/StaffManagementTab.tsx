@@ -90,8 +90,8 @@ export const StaffManagementTab = ({
       }
     }
 
-    // Vérifier l'assignation aux classes pour les enseignants éducatifs
-    if (canBeAssignedToClasses(staffForm.staff_type as StaffType, activeCategory)) {
+    // Vérifier l'assignation aux classes pour les enseignants
+    if (canBeAssignedToClasses(staffForm.staff_type as StaffType)) {
       if (!staffForm.assigned_class_ids || staffForm.assigned_class_ids.length === 0) {
         toast.error("Veuillez assigner au moins une classe à l'enseignant");
         return;
@@ -334,7 +334,7 @@ export const StaffManagementTab = ({
           <div className="p-3 rounded-lg bg-muted/30 border">
             <p className="text-sm text-muted-foreground">
               <GraduationCap className="h-4 w-4 inline mr-1" />
-              <strong>Classes et acteurs :</strong> Enseignants assignés aux classes, élèves, tuteurs (min. 1, max. 2 par élève mineur).
+              <strong>Classes et acteurs :</strong> Élèves inscrits dans les classes, tuteurs rattachés aux élèves (min. 1, max. 2 par élève mineur).
             </p>
           </div>
           <StaffCategoryContent
@@ -446,8 +446,8 @@ export const StaffManagementTab = ({
               </div>
             </div>
 
-            {/* Assignation aux classes (pour enseignants éducatifs) */}
-            {canBeAssignedToClasses(staffForm.staff_type as StaffType, activeCategory) && (
+            {/* Assignation aux classes (pour enseignants) */}
+            {canBeAssignedToClasses(staffForm.staff_type as StaffType) && (
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <BookOpen className="h-4 w-4" />

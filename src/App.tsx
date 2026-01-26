@@ -31,6 +31,7 @@ import Competencies from "./pages/Competencies";
 import DataExport from "./pages/DataExport";
 import UsersManagement from "./pages/admin/UsersManagement";
 import EstablishmentsManagement from "./pages/admin/EstablishmentsManagement";
+import CommentModeration from "./pages/admin/CommentModeration";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -71,6 +72,7 @@ const App = () => (
               <Route path="/export" element={<DataExport />} />
               <Route path="/admin/users" element={<UsersManagement />} />
               <Route path="/admin/establishments" element={<EstablishmentsManagement />} />
+              <Route path="/admin/moderation" element={<CommentModeration />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

@@ -120,7 +120,7 @@ const Dashboard = () => {
               <p className="text-muted-foreground mb-4">
                 Vous avez accès à toutes les fonctionnalités d'administration de la plateforme.
               </p>
-              <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid sm:grid-cols-2 md:grid-cols-5 gap-3">
                 <GlassButton 
                   variant="outline" 
                   className="justify-start"
@@ -136,6 +136,14 @@ const Dashboard = () => {
                 >
                   <Building2 className="h-4 w-4" />
                   Gérer les établissements
+                </GlassButton>
+                <GlassButton 
+                  variant="outline" 
+                  className="justify-start"
+                  onClick={() => navigate("/admin/moderation")}
+                >
+                  <Shield className="h-4 w-4" />
+                  Modération
                 </GlassButton>
                 <GlassButton variant="outline" className="justify-start">
                   <Settings className="h-4 w-4" />

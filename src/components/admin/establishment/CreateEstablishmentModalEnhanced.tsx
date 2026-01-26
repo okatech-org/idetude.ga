@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Building2, MapPin, Users, GraduationCap, School, Navigation, 
   Loader2, MapPinned, AlertCircle, Map, Search, ChevronDown, 
-  ChevronRight, Save, Clock, FolderOpen, CheckCircle2, Eye
+  ChevronRight, Save, Clock, FolderOpen, CheckCircle2, Eye, Settings
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LocationPickerMap } from "../LocationPickerMap";
@@ -38,6 +38,7 @@ import { LevelClassesConfig as LevelClassesConfigType } from "./classConfigTypes
 import { ValidatedInputWrapper } from "./FieldValidation";
 import { ConfirmationStep } from "./ConfirmationStep";
 import { SuccessAnimation } from "./SuccessAnimation";
+import { ModulesConfigTab } from "./ModulesConfigTab";
 
 interface CreateEstablishmentModalEnhancedProps {
   open: boolean;
@@ -377,6 +378,7 @@ export const CreateEstablishmentModalEnhanced = ({
           options: allOptions.length > 0 ? allOptions : null,
           latitude: formData.latitude,
           longitude: formData.longitude,
+          enabled_modules: formData.enabledModules,
         })
         .select()
         .single();
@@ -511,7 +513,7 @@ export const CreateEstablishmentModalEnhanced = ({
 
         <Tabs value={currentStep} onValueChange={updateStep} className="w-full">
           <div className="px-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="informations" className="flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Informations</span>
@@ -519,6 +521,10 @@ export const CreateEstablishmentModalEnhanced = ({
               <TabsTrigger value="niveaux" className="flex items-center gap-2">
                 <GraduationCap className="h-4 w-4" />
                 <span className="hidden sm:inline">Niveaux</span>
+              </TabsTrigger>
+              <TabsTrigger value="modules" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Modules</span>
               </TabsTrigger>
               <TabsTrigger value="administration" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
@@ -1088,6 +1094,14 @@ export const CreateEstablishmentModalEnhanced = ({
                 options={formData.options}
                 onOptionsChange={(opts) => updateFormData({ options: opts })}
                 typesWithQualification={formData.typesWithQualification}
+              />
+            </TabsContent>
+
+            {/* Tab: Modules */}
+            <TabsContent value="modules" className="space-y-4 mt-0">
+              <ModulesConfigTab
+                enabledModules={formData.enabledModules}
+                onModulesChange={(modules) => updateFormData({ enabledModules: modules })}
               />
             </TabsContent>
 

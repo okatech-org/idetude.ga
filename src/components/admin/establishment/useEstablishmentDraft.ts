@@ -118,6 +118,7 @@ export const useEstablishmentDraft = (options: UseDraftOptions = {}) => {
       latitude: data.latitude || null,
       longitude: data.longitude || null,
       nameElementsOrder: data.nameElementsOrder || ['type', 'qualification', 'designation', 'name'],
+      enabledModules: data.enabledModules || ['messages', 'grades', 'assignments', 'absences', 'schedule', 'calendar'],
     });
     setStaff(data.staff || []);
     setCurrentStep(draft.last_step || "informations");

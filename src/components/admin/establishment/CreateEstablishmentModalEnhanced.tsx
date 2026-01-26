@@ -457,7 +457,7 @@ export const CreateEstablishmentModalEnhanced = ({
 
         <Tabs value={currentStep} onValueChange={updateStep} className="w-full">
           <div className="px-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="informations" className="flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
                 <span className="hidden sm:inline">Informations</span>
@@ -469,10 +469,6 @@ export const CreateEstablishmentModalEnhanced = ({
               <TabsTrigger value="administration" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">Personnel</span>
-              </TabsTrigger>
-              <TabsTrigger value="contact" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                <span className="hidden sm:inline">Contact</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -821,38 +817,14 @@ export const CreateEstablishmentModalEnhanced = ({
                   </Select>
                 </div>
               </div>
-            </TabsContent>
 
-            {/* Tab: Niveaux et Classes */}
-            <TabsContent value="niveaux" className="space-y-4 mt-0">
-              <ClassConfigTab
-                selectedLevels={formData.selectedLevels}
-                onSelectedLevelsChange={(levels) => updateFormData({ selectedLevels: levels })}
-                classesConfig={formData.classesConfig}
-                onClassesConfigChange={(config) => updateFormData({ classesConfig: config })}
-                educationSystems={formData.educationSystems}
-                options={formData.options}
-                onOptionsChange={(opts) => updateFormData({ options: opts })}
-                typesWithQualification={formData.typesWithQualification}
-              />
-            </TabsContent>
-
-            {/* Tab: Personnel */}
-            <TabsContent value="administration" className="space-y-4 mt-0">
-              <StaffManagementTab
-                staff={staff}
-                onChange={updateStaff}
-              />
-            </TabsContent>
-
-            {/* Tab: Contact */}
-            <TabsContent value="contact" className="space-y-4 mt-0">
-              <div className="space-y-3">
+              {/* Section Contact & Localisation */}
+              <div className="pt-6 border-t space-y-4">
                 <div className="flex items-center gap-2">
-                  <MapPinned className="h-4 w-4 text-primary" />
-                  <Label className="text-base font-semibold">Localisation GPS *</Label>
+                  <MapPinned className="h-5 w-5 text-primary" />
+                  <h3 className="text-base font-semibold">Localisation & Contact</h3>
                 </div>
-                
+
                 <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/30">
                   <Navigation className="h-4 w-4 text-amber-600" />
                   <AlertDescription className="text-amber-800 dark:text-amber-200">
@@ -947,80 +919,59 @@ export const CreateEstablishmentModalEnhanced = ({
                     </div>
                   </div>
                 )}
-              </div>
 
-              <div className="space-y-2">
-                <Label>Adresse complète</Label>
-                <Textarea
-                  value={formData.address}
-                  onChange={(e) => updateFormData({ address: e.target.value })}
-                  placeholder="Rue, quartier, ville..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Téléphone</Label>
-                  <Input
-                    value={formData.phone}
-                    onChange={(e) => updateFormData({ phone: e.target.value })}
-                    placeholder="+241 01 XX XX XX"
+                  <Label>Adresse complète</Label>
+                  <Textarea
+                    value={formData.address}
+                    onChange={(e) => updateFormData({ address: e.target.value })}
+                    placeholder="Rue, quartier, ville..."
+                    rows={3}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => updateFormData({ email: e.target.value })}
-                    placeholder="contact@etablissement.com"
-                  />
-                </div>
-              </div>
 
-              {/* Summary */}
-              <div className="p-4 rounded-lg border bg-muted/30">
-                <h4 className="font-medium mb-2">Récapitulatif</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">Système(s):</span>{" "}
-                    <span className="font-medium">
-                      {formData.educationSystems.length > 0
-                        ? formData.educationSystems.map(sysValue => {
-                            const sys = EDUCATION_SYSTEMS.find(s => s.value === sysValue);
-                            return sys ? `${sys.icon} ${sys.label}` : sysValue;
-                          }).join(", ")
-                        : "Non défini"}
-                    </span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Téléphone</Label>
+                    <Input
+                      value={formData.phone}
+                      onChange={(e) => updateFormData({ phone: e.target.value })}
+                      placeholder="+241 01 XX XX XX"
+                    />
                   </div>
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">Type(s):</span>{" "}
-                    <span className="font-medium">
-                      {formData.typesWithQualification.map(twq => {
-                        const typeInfo = ESTABLISHMENT_TYPES.find(t => t.value === twq.type);
-                        return twq.qualification ? `${typeInfo?.label} ${twq.qualification}` : typeInfo?.label;
-                      }).filter(Boolean).join(", ") || "Aucun"}
-                    </span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">Niveaux:</span>{" "}
-                    <span className="font-medium">{getSelectedLevelsDisplay(formData.selectedLevels)}</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">Personnel:</span>{" "}
-                    <span className="font-medium">{staff.length} membre(s)</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-muted-foreground">GPS:</span>{" "}
-                    <span className={`font-medium ${formData.latitude && formData.longitude ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
-                      {formData.latitude && formData.longitude 
-                        ? `${formData.latitude.toFixed(6)}, ${formData.longitude.toFixed(6)}` 
-                        : "Non défini (obligatoire)"}
-                    </span>
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => updateFormData({ email: e.target.value })}
+                      placeholder="contact@etablissement.com"
+                    />
                   </div>
                 </div>
               </div>
+            </TabsContent>
+
+            {/* Tab: Niveaux et Classes */}
+            <TabsContent value="niveaux" className="space-y-4 mt-0">
+              <ClassConfigTab
+                selectedLevels={formData.selectedLevels}
+                onSelectedLevelsChange={(levels) => updateFormData({ selectedLevels: levels })}
+                classesConfig={formData.classesConfig}
+                onClassesConfigChange={(config) => updateFormData({ classesConfig: config })}
+                educationSystems={formData.educationSystems}
+                options={formData.options}
+                onOptionsChange={(opts) => updateFormData({ options: opts })}
+                typesWithQualification={formData.typesWithQualification}
+              />
+            </TabsContent>
+
+            {/* Tab: Personnel */}
+            <TabsContent value="administration" className="space-y-4 mt-0">
+              <StaffManagementTab
+                staff={staff}
+                onChange={updateStaff}
+              />
             </TabsContent>
           </ScrollArea>
         </Tabs>

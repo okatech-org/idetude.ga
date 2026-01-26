@@ -634,6 +634,39 @@ export type Database = {
           },
         ]
       }
+      establishment_drafts: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          last_step: string | null
+          name: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          last_step?: string | null
+          name?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          last_step?: string | null
+          name?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       establishment_groups: {
         Row: {
           code: string | null
@@ -666,6 +699,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      establishment_staff: {
+        Row: {
+          contract_type: string | null
+          created_at: string
+          department: string | null
+          end_date: string | null
+          establishment_id: string
+          id: string
+          is_active: boolean
+          metadata: Json | null
+          position: string | null
+          staff_type: string
+          start_date: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          contract_type?: string | null
+          created_at?: string
+          department?: string | null
+          end_date?: string | null
+          establishment_id: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          position?: string | null
+          staff_type: string
+          start_date?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          contract_type?: string | null
+          created_at?: string
+          department?: string | null
+          end_date?: string | null
+          establishment_id?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          position?: string | null
+          staff_type?: string
+          start_date?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "establishment_staff_establishment_id_fkey"
+            columns: ["establishment_id"]
+            isOneToOne: false
+            referencedRelation: "establishments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       establishments: {
         Row: {

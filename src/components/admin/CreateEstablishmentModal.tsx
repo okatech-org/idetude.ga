@@ -181,10 +181,13 @@ export const CreateEstablishmentModal = ({
   });
 
   const fetchGroups = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("establishment_groups")
-      .select("id, name")
+      .select("id,name")
       .order("name");
+    if (error) {
+      console.error("Error fetching groups:", error);
+    }
     setGroups(data || []);
   };
 
@@ -513,7 +516,7 @@ export const CreateEstablishmentModal = ({
                   <SelectTrigger>
                     <SelectValue placeholder="Aucun groupe" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" className="max-h-60 z-[9999]">
                     <SelectItem value="none">Aucun groupe (indépendant)</SelectItem>
                     {groups.map((g) => (
                       <SelectItem key={g.id} value={g.id}>

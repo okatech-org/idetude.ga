@@ -25,6 +25,9 @@ import Appointments from "./pages/Appointments";
 import Documents from "./pages/Documents";
 import ClassGroups from "./pages/ClassGroups";
 import SchoolCalendar from "./pages/Calendar";
+import Resources from "./pages/Resources";
+import Competencies from "./pages/Competencies";
+import DataExport from "./pages/DataExport";
 import UsersManagement from "./pages/admin/UsersManagement";
 import EstablishmentsManagement from "./pages/admin/EstablishmentsManagement";
 import NotFound from "./pages/NotFound";
@@ -61,6 +64,9 @@ const App = () => (
               <Route path="/documents" element={<Documents />} />
               <Route path="/groupes" element={<ClassGroups />} />
               <Route path="/calendrier" element={<SchoolCalendar />} />
+              <Route path="/ressources" element={<Resources />} />
+              <Route path="/competences" element={<Competencies />} />
+              <Route path="/export" element={<DataExport />} />
               <Route path="/admin/users" element={<UsersManagement />} />
               <Route path="/admin/establishments" element={<EstablishmentsManagement />} />
               <Route path="*" element={<NotFound />} />

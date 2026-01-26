@@ -1,0 +1,649 @@
+import { useState, useEffect } from "react";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { GlassCard } from "@/components/ui/glass-card";
+import { GlassButton } from "@/components/ui/glass-button";
+import { GlassInput } from "@/components/ui/glass-input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  BookOpen,
+  Upload,
+  Download,
+  Trash2,
+  Search,
+  Filter,
+  FileText,
+  Video,
+  Link as LinkIcon,
+  Image,
+  ExternalLink,
+  Eye,
+} from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { fr } from "date-fns/locale";
+
+interface PedagogicalResource {
+  id: string;
+  title: string;
+  description: string | null;
+  resource_type: string;
+  subject: string;
+  class_level: string;
+  file_url: string | null;
+  external_url: string | null;
+  tags: string[] | null;
+  is_public: boolean;
+  uploaded_by: string;
+  downloads_count: number;
+  created_at: string;
+}
+
+const resourceTypes = {
+  document: { label: "Document", icon: FileText },
+  video: { label: "Vidéo", icon: Video },
+  link: { label: "Lien externe", icon: LinkIcon },
+  image: { label: "Image", icon: Image },
+};
+
+const subjects = [
+  "Mathématiques",
+  "Français",
+  "Histoire-Géographie",
+  "Sciences",
+  "Anglais",
+  "Espagnol",
+  "Physique-Chimie",
+  "SVT",
+  "EPS",
+  "Arts",
+  "Musique",
+  "Philosophie",
+];
+
+const classLevels = [
+  "6ème",
+  "5ème",
+  "4ème",
+  "3ème",
+  "2nde",
+  "1ère",
+  "Terminale",
+];
+
+const Resources = () => {
+  const { user } = useAuth();
+  const [resources, setResources] = useState<PedagogicalResource[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("all");
+  const [levelFilter, setLevelFilter] = useState("all");
+  const [uploadData, setUploadData] = useState({
+    title: "",
+    description: "",
+    resource_type: "document",
+    subject: "",
+    class_level: "",
+    external_url: "",
+    tags: "",
+    isPublic: true,
+  });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchResources();
+    }
+  }, [user, subjectFilter, levelFilter]);
+
+  const fetchResources = async () => {
+    try {
+      let query = supabase
+        .from("pedagogical_resources")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (subjectFilter !== "all") {
+        query = query.eq("subject", subjectFilter);
+      }
+      if (levelFilter !== "all") {
+        query = query.eq("class_level", levelFilter);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setResources(data || []);
+    } catch (error) {
+      console.error("Error fetching resources:", error);
+      toast.error("Erreur lors du chargement des ressources");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error("Le fichier ne doit pas dépasser 50 MB");
+        return;
+      }
+      setSelectedFile(file);
+      if (!uploadData.title) {
+        setUploadData((prev) => ({
+          ...prev,
+          title: file.name.replace(/\.[^/.]+$/, ""),
+        }));
+      }
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!user || !uploadData.title || !uploadData.subject || !uploadData.class_level) {
+      toast.error("Veuillez remplir tous les champs requis");
+      return;
+    }
+
+    if (uploadData.resource_type !== "link" && !selectedFile) {
+      toast.error("Veuillez sélectionner un fichier");
+      return;
+    }
+
+    if (uploadData.resource_type === "link" && !uploadData.external_url) {
+      toast.error("Veuillez fournir une URL");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      let fileUrl = null;
+
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split(".").pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("resources")
+          .upload(fileName, selectedFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from("resources")
+          .getPublicUrl(fileName);
+
+        fileUrl = urlData.publicUrl;
+      }
+
+      const tagsArray = uploadData.tags
+        ? uploadData.tags.split(",").map((t) => t.trim()).filter(Boolean)
+        : null;
+
+      const { error: insertError } = await supabase
+        .from("pedagogical_resources")
+        .insert({
+          title: uploadData.title,
+          description: uploadData.description || null,
+          resource_type: uploadData.resource_type,
+          subject: uploadData.subject,
+          class_level: uploadData.class_level,
+          file_url: fileUrl,
+          external_url: uploadData.external_url || null,
+          tags: tagsArray,
+          is_public: uploadData.isPublic,
+          uploaded_by: user.id,
+        });
+
+      if (insertError) throw insertError;
+
+      toast.success("Ressource ajoutée avec succès");
+      setIsUploadOpen(false);
+      setSelectedFile(null);
+      setUploadData({
+        title: "",
+        description: "",
+        resource_type: "document",
+        subject: "",
+        class_level: "",
+        external_url: "",
+        tags: "",
+        isPublic: true,
+      });
+      fetchResources();
+    } catch (error) {
+      console.error("Error uploading resource:", error);
+      toast.error("Erreur lors de l'ajout de la ressource");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDelete = async (resource: PedagogicalResource) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette ressource ?")) return;
+
+    try {
+      if (resource.file_url) {
+        const filePath = resource.file_url.split("/").slice(-2).join("/");
+        await supabase.storage.from("resources").remove([filePath]);
+      }
+
+      const { error } = await supabase
+        .from("pedagogical_resources")
+        .delete()
+        .eq("id", resource.id);
+
+      if (error) throw error;
+
+      toast.success("Ressource supprimée");
+      fetchResources();
+    } catch (error) {
+      console.error("Error deleting resource:", error);
+      toast.error("Erreur lors de la suppression");
+    }
+  };
+
+  const handleDownload = async (resource: PedagogicalResource) => {
+    if (resource.external_url) {
+      window.open(resource.external_url, "_blank");
+      return;
+    }
+
+    if (resource.file_url) {
+      window.open(resource.file_url, "_blank");
+      
+      await supabase
+        .from("pedagogical_resources")
+        .update({ downloads_count: resource.downloads_count + 1 })
+        .eq("id", resource.id);
+    }
+  };
+
+  const filteredResources = resources.filter(
+    (r) =>
+      r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.tags?.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <GlassCard className="p-8 text-center">
+            <p>Veuillez vous connecter pour accéder aux ressources.</p>
+          </GlassCard>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">Bibliothèque pédagogique</h1>
+            <p className="text-muted-foreground mt-1">
+              Partagez et découvrez des ressources éducatives
+            </p>
+          </div>
+
+          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+            <DialogTrigger asChild>
+              <GlassButton>
+                <Upload className="h-4 w-4 mr-2" />
+                Ajouter une ressource
+              </GlassButton>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Ajouter une ressource</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Type de ressource</Label>
+                  <Select
+                    value={uploadData.resource_type}
+                    onValueChange={(value) =>
+                      setUploadData((prev) => ({ ...prev, resource_type: value }))
+                    }
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(resourceTypes).map(([value, { label }]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {uploadData.resource_type === "link" ? (
+                  <div>
+                    <Label>URL externe *</Label>
+                    <GlassInput
+                      value={uploadData.external_url}
+                      onChange={(e) =>
+                        setUploadData((prev) => ({
+                          ...prev,
+                          external_url: e.target.value,
+                        }))
+                      }
+                      placeholder="https://..."
+                      className="mt-1"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <Label>Fichier *</Label>
+                    <div className="mt-2 border-2 border-dashed border-border rounded-lg p-6 text-center">
+                      <input
+                        type="file"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        id="resource-upload"
+                      />
+                      <label htmlFor="resource-upload" className="cursor-pointer">
+                        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                        {selectedFile ? (
+                          <p className="text-sm font-medium">{selectedFile.name}</p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            Cliquez pour sélectionner (max 50 MB)
+                          </p>
+                        )}
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <Label>Titre *</Label>
+                  <GlassInput
+                    value={uploadData.title}
+                    onChange={(e) =>
+                      setUploadData((prev) => ({ ...prev, title: e.target.value }))
+                    }
+                    placeholder="Titre de la ressource"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Matière *</Label>
+                    <Select
+                      value={uploadData.subject}
+                      onValueChange={(value) =>
+                        setUploadData((prev) => ({ ...prev, subject: value }))
+                      }
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Sélectionner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {subjects.map((subject) => (
+                          <SelectItem key={subject} value={subject}>
+                            {subject}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Niveau *</Label>
+                    <Select
+                      value={uploadData.class_level}
+                      onValueChange={(value) =>
+                        setUploadData((prev) => ({ ...prev, class_level: value }))
+                      }
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Sélectionner" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classLevels.map((level) => (
+                          <SelectItem key={level} value={level}>
+                            {level}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Description</Label>
+                  <Textarea
+                    value={uploadData.description}
+                    onChange={(e) =>
+                      setUploadData((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    placeholder="Description de la ressource"
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label>Tags (séparés par des virgules)</Label>
+                  <GlassInput
+                    value={uploadData.tags}
+                    onChange={(e) =>
+                      setUploadData((prev) => ({ ...prev, tags: e.target.value }))
+                    }
+                    placeholder="algèbre, exercices, bac..."
+                    className="mt-1"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="is-public"
+                    checked={uploadData.isPublic}
+                    onChange={(e) =>
+                      setUploadData((prev) => ({
+                        ...prev,
+                        isPublic: e.target.checked,
+                      }))
+                    }
+                    className="rounded"
+                  />
+                  <Label htmlFor="is-public" className="text-sm">
+                    Partager avec tous les enseignants
+                  </Label>
+                </div>
+
+                <GlassButton
+                  onClick={handleUpload}
+                  disabled={isUploading}
+                  className="w-full"
+                >
+                  {isUploading ? "Ajout en cours..." : "Ajouter la ressource"}
+                </GlassButton>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <GlassInput
+              placeholder="Rechercher une ressource..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+            <SelectTrigger className="w-[180px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Matière" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les matières</SelectItem>
+              {subjects.map((subject) => (
+                <SelectItem key={subject} value={subject}>
+                  {subject}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={levelFilter} onValueChange={setLevelFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Niveau" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les niveaux</SelectItem>
+              {classLevels.map((level) => (
+                <SelectItem key={level} value={level}>
+                  {level}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Resources Grid */}
+        {isLoading ? (
+          <div className="text-center py-12">Chargement...</div>
+        ) : filteredResources.length === 0 ? (
+          <GlassCard className="p-12 text-center">
+            <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-lg font-medium">Aucune ressource trouvée</p>
+            <p className="text-muted-foreground mt-1">
+              {searchQuery
+                ? "Essayez avec d'autres termes de recherche"
+                : "Ajoutez votre première ressource pédagogique"}
+            </p>
+          </GlassCard>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredResources.map((resource) => {
+              const TypeIcon =
+                resourceTypes[resource.resource_type as keyof typeof resourceTypes]
+                  ?.icon || FileText;
+              return (
+                <GlassCard key={resource.id} className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-3 rounded-lg bg-primary/10">
+                      <TypeIcon className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium truncate">{resource.title}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="secondary" className="text-xs">
+                          {resource.subject}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          {resource.class_level}
+                        </Badge>
+                      </div>
+                      {resource.description && (
+                        <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                          {resource.description}
+                        </p>
+                      )}
+                      {resource.tags && resource.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {resource.tags.slice(0, 3).map((tag) => (
+                            <Badge key={tag} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                        <Eye className="h-3 w-3" />
+                        <span>{resource.downloads_count} vues</span>
+                        <span>•</span>
+                        <span>
+                          {formatDistanceToNow(new Date(resource.created_at), {
+                            addSuffix: true,
+                            locale: fr,
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-4 pt-4 border-t border-border">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDownload(resource)}
+                      className="flex-1"
+                    >
+                      {resource.external_url ? (
+                        <>
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Ouvrir
+                        </>
+                      ) : (
+                        <>
+                          <Download className="h-4 w-4 mr-1" />
+                          Télécharger
+                        </>
+                      )}
+                    </Button>
+                    {resource.uploaded_by === user.id && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(resource)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </GlassCard>
+              );
+            })}
+          </div>
+        )}
+      </main>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default Resources;

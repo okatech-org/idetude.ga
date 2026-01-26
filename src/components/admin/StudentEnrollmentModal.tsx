@@ -19,8 +19,10 @@ import {
   AlertCircle,
   ArrowRight,
   FileSpreadsheet,
-  Download
+  Download,
+  Sparkles
 } from "lucide-react";
+import { MultiFileImport, AnalysisResult } from "./MultiFileImport";
 
 interface Class {
   id: string;
@@ -352,10 +354,14 @@ export const StudentEnrollmentModal = ({
         </DialogHeader>
 
         <Tabs defaultValue="students" className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="students">Élèves inscrits</TabsTrigger>
             <TabsTrigger value="enroll">Inscrire</TabsTrigger>
             <TabsTrigger value="import">Import CSV</TabsTrigger>
+            <TabsTrigger value="import-ai" className="flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              Import IA
+            </TabsTrigger>
           </TabsList>
 
           {/* Current Students */}
@@ -552,6 +558,38 @@ export const StudentEnrollmentModal = ({
                 )}
               </GlassCard>
             )}
+          </TabsContent>
+
+          {/* Import IA */}
+          <TabsContent value="import-ai" className="space-y-4">
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold">Import intelligent d'élèves</h4>
+                <p className="text-sm text-muted-foreground">
+                  Importez une liste d'élèves (CSV, image de liste, PDF) et laissez l'IA analyser et pré-remplir les données.
+                </p>
+              </div>
+              
+              <MultiFileImport
+                context="students"
+                establishmentId={establishmentId}
+                onAnalysisComplete={(result: AnalysisResult) => {
+                  if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+                    toast.success(`${result.data.length} élève(s) détecté(s). Utilisez l'onglet Import CSV avec les données extraites.`);
+                    console.log("AI Analysis Result:", result.data);
+                  }
+                }}
+              />
+              
+              <GlassCard className="p-4" solid>
+                <h5 className="font-medium text-sm mb-2">Formats acceptés :</h5>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• CSV avec colonnes : email, prénom, nom</li>
+                  <li>• Photo d'une liste d'élèves</li>
+                  <li>• PDF de listes de classe</li>
+                </ul>
+              </GlassCard>
+            </div>
           </TabsContent>
         </Tabs>
 

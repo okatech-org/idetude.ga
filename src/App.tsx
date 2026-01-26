@@ -26,6 +26,7 @@ import Documents from "./pages/Documents";
 import ClassGroups from "./pages/ClassGroups";
 import SchoolCalendar from "./pages/Calendar";
 import Resources from "./pages/Resources";
+import ResourceAnalytics from "./pages/ResourceAnalytics";
 import Competencies from "./pages/Competencies";
 import DataExport from "./pages/DataExport";
 import UsersManagement from "./pages/admin/UsersManagement";
@@ -65,6 +66,7 @@ const App = () => (
               <Route path="/groupes" element={<ClassGroups />} />
               <Route path="/calendrier" element={<SchoolCalendar />} />
               <Route path="/ressources" element={<Resources />} />
+              <Route path="/ressources/stats" element={<ResourceAnalytics />} />
               <Route path="/competences" element={<Competencies />} />
               <Route path="/export" element={<DataExport />} />
               <Route path="/admin/users" element={<UsersManagement />} />

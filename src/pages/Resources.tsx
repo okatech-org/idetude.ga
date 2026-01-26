@@ -26,6 +26,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Link } from "react-router-dom";
 import {
   BookOpen,
   Upload,
@@ -45,6 +46,7 @@ import {
   TrendingUp,
   MessageSquare,
   Settings,
+  BarChart3,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -668,7 +670,15 @@ const Resources = () => {
             </p>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            {isTeacher && (
+              <Button variant="outline" asChild>
+                <Link to="/ressources/stats">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Mes statistiques
+                </Link>
+              </Button>
+            )}
             {isTeacher && (
               <Dialog open={isSubjectsOpen} onOpenChange={setIsSubjectsOpen}>
                 <DialogTrigger asChild>

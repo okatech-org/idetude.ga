@@ -967,7 +967,15 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          flag_reason: string | null
+          flagged_at: string | null
+          flagged_by: string | null
+          hidden_at: string | null
+          hidden_by: string | null
           id: string
+          is_flagged: boolean
+          is_hidden: boolean
+          parent_id: string | null
           resource_id: string
           updated_at: string
           user_id: string
@@ -975,7 +983,15 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          flag_reason?: string | null
+          flagged_at?: string | null
+          flagged_by?: string | null
+          hidden_at?: string | null
+          hidden_by?: string | null
           id?: string
+          is_flagged?: boolean
+          is_hidden?: boolean
+          parent_id?: string | null
           resource_id: string
           updated_at?: string
           user_id: string
@@ -983,12 +999,41 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          flag_reason?: string | null
+          flagged_at?: string | null
+          flagged_by?: string | null
+          hidden_at?: string | null
+          hidden_by?: string | null
           id?: string
+          is_flagged?: boolean
+          is_hidden?: boolean
+          parent_id?: string | null
           resource_id?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "resource_comments_flagged_by_fkey"
+            columns: ["flagged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resource_comments_hidden_by_fkey"
+            columns: ["hidden_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resource_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "resource_comments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "resource_comments_resource_id_fkey"
             columns: ["resource_id"]
@@ -1073,6 +1118,42 @@ export type Database = {
           },
           {
             foreignKeyName: "resource_ratings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resource_views: {
+        Row: {
+          id: string
+          resource_id: string
+          user_id: string
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          resource_id: string
+          user_id: string
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          resource_id?: string
+          user_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resource_views_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "pedagogical_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resource_views_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { UserLayout } from "@/components/layout/UserLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -245,25 +244,21 @@ const Appointments = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      <main className="flex-1 pt-20">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <CalendarDays className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Rendez-vous</h1>
-                <p className="text-muted-foreground">
-                  {isTeacher ? "Gérez vos rendez-vous avec les parents" : "Prenez rendez-vous avec les enseignants"}
-                </p>
-              </div>
-            </div>
+    <UserLayout title="Rendez-vous">
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <CalendarDays className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <p className="text-muted-foreground">
+              {isTeacher ? "Gérez vos rendez-vous avec les parents" : "Prenez rendez-vous avec les enseignants"}
+            </p>
+          </div>
+        </div>
 
-            {isParent && (
-              <Dialog open={isNewDialogOpen} onOpenChange={setIsNewDialogOpen}>
+        {isParent && (
+          <Dialog open={isNewDialogOpen} onOpenChange={setIsNewDialogOpen}>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
@@ -550,10 +545,8 @@ const Appointments = () => {
               )}
             </div>
           </div>
-        </div>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </UserLayout>
   );
 };
 

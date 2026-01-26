@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
+import { UserLayout } from "@/components/layout/UserLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -281,70 +280,66 @@ const Chat = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      <main className="flex-1 pt-20">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <MessageSquare className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Chat</h1>
-                <p className="text-muted-foreground">Communication en temps réel</p>
-              </div>
-            </div>
-
-            <Dialog open={isNewChatOpen} onOpenChange={setIsNewChatOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nouvelle conversation
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Nouvelle conversation</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Rechercher un utilisateur..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                  <ScrollArea className="h-[300px]">
-                    <div className="space-y-2">
-                      {filteredUsers.map((u) => (
-                        <button
-                          key={u.id}
-                          onClick={() => startNewConversation(u.id)}
-                          className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
-                        >
-                          <Avatar>
-                            <AvatarFallback>
-                              {u.first_name[0]}
-                              {u.last_name[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">
-                              {u.first_name} {u.last_name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">{u.email}</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              </DialogContent>
-            </Dialog>
+    <UserLayout title="Chat">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <MessageSquare className="h-6 w-6 text-primary" />
           </div>
+          <div>
+            <p className="text-muted-foreground">Communication en temps réel</p>
+          </div>
+        </div>
+
+        <Dialog open={isNewChatOpen} onOpenChange={setIsNewChatOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle conversation
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nouvelle conversation</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Rechercher un utilisateur..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <ScrollArea className="h-[300px]">
+                <div className="space-y-2">
+                  {filteredUsers.map((u) => (
+                    <button
+                      key={u.id}
+                      onClick={() => startNewConversation(u.id)}
+                      className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors text-left"
+                    >
+                      <Avatar>
+                        <AvatarFallback>
+                          {u.first_name[0]}
+                          {u.last_name[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">
+                          {u.first_name} {u.last_name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{u.email}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
 
           <div className="grid lg:grid-cols-3 gap-6 h-[calc(100vh-250px)]">
             {/* Conversations list */}
@@ -488,12 +483,9 @@ const Chat = () => {
                   </div>
                 </div>
               )}
-            </Card>
-          </div>
+          </Card>
         </div>
-      </main>
-      <Footer />
-    </div>
+    </UserLayout>
   );
 };
 

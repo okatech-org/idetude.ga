@@ -7,6 +7,9 @@ export interface TypeWithQualification {
 
 export type NameElement = 'type' | 'qualification' | 'designation' | 'name';
 
+// Import types from classConfigTypes
+import { LevelClassesConfig as LevelClassesConfigType } from "./classConfigTypes";
+
 export interface EstablishmentFormData {
   name: string;
   educationSystems: string[];
@@ -17,6 +20,7 @@ export interface EstablishmentFormData {
   email: string;
   country_code: string;
   selectedLevels: string[];
+  classesConfig: LevelClassesConfigType[]; // Configuration des classes par niveau
   group_id: string | null;
   options: string[];
   latitude: number | null;
@@ -141,6 +145,7 @@ export const DEFAULT_FORM_DATA: EstablishmentFormData = {
   email: "",
   country_code: "GA",
   selectedLevels: [],
+  classesConfig: [],
   group_id: null,
   options: [],
   latitude: null,

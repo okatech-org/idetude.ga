@@ -1543,6 +1543,64 @@ export type Database = {
           },
         ]
       }
+      user_bans: {
+        Row: {
+          ban_reason: string
+          banned_at: string
+          banned_by: string
+          banned_until: string
+          created_at: string
+          id: string
+          lifted_at: string | null
+          lifted_by: string | null
+          user_id: string
+        }
+        Insert: {
+          ban_reason: string
+          banned_at?: string
+          banned_by: string
+          banned_until: string
+          created_at?: string
+          id?: string
+          lifted_at?: string | null
+          lifted_by?: string | null
+          user_id: string
+        }
+        Update: {
+          ban_reason?: string
+          banned_at?: string
+          banned_by?: string
+          banned_until?: string
+          created_at?: string
+          id?: string
+          lifted_at?: string | null
+          lifted_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_bans_banned_by_fkey"
+            columns: ["banned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bans_lifted_by_fkey"
+            columns: ["lifted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_bans_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1580,6 +1638,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_user_banned: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role:

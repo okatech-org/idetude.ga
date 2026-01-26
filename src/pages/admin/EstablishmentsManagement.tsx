@@ -8,7 +8,7 @@ import { GlassInput } from "@/components/ui/glass-input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ViewEstablishmentModal } from "@/components/admin/ViewEstablishmentModal";
-import { CreateEstablishmentModal } from "@/components/admin/CreateEstablishmentModal";
+import { CreateEstablishmentModalEnhanced } from "@/components/admin/establishment";
 import { CreateGroupModal } from "@/components/admin/CreateGroupModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -511,7 +511,7 @@ const EstablishmentsManagement = () => {
       />
 
       {/* Create Establishment Modal */}
-      <CreateEstablishmentModal
+      <CreateEstablishmentModalEnhanced
         open={showCreateEstablishmentModal}
         onOpenChange={setShowCreateEstablishmentModal}
         onSuccess={fetchDbData}

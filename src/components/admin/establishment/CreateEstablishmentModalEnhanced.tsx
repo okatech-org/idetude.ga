@@ -37,6 +37,7 @@ import { ClassConfigTab } from "./ClassConfigTab";
 import { LevelClassesConfig as LevelClassesConfigType } from "./classConfigTypes";
 import { ValidatedInputWrapper } from "./FieldValidation";
 import { ConfirmationStep } from "./ConfirmationStep";
+import { SuccessAnimation } from "./SuccessAnimation";
 
 interface CreateEstablishmentModalEnhancedProps {
   open: boolean;
@@ -65,6 +66,9 @@ export const CreateEstablishmentModalEnhanced = ({
   const [expandedCategories, setExpandedCategories] = useState<string[]>(["francophone", "anglophone", "international"]);
   const [showDrafts, setShowDrafts] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [createdEstablishmentId, setCreatedEstablishmentId] = useState<string | null>(null);
+  const [createdEstablishmentName, setCreatedEstablishmentName] = useState("");
 
   const {
     draftId,
@@ -405,14 +409,28 @@ export const CreateEstablishmentModalEnhanced = ({
       // Delete draft if exists
       await deleteDraft();
 
-      toast.success("Établissement créé avec succès");
-      onSuccess();
-      resetDraft();
-      onOpenChange(false);
+      // Compute full name for success animation
+      const elements: Record<string, string> = {
+        type: formData.typesWithQualification[0]
+          ? ESTABLISHMENT_TYPES.find(t => t.value === formData.typesWithQualification[0].type)?.label || ""
+          : "",
+        qualification: formData.typesWithQualification[0]?.qualification || "",
+        designation: languageDesignation?.label || "",
+        name: formData.name || "",
+      };
+      const fullName = formData.nameElementsOrder
+        .map(key => elements[key])
+        .filter(Boolean)
+        .join(" ");
+
+      setCreatedEstablishmentId(establishment.id);
+      setCreatedEstablishmentName(fullName);
+      setShowConfirmation(false);
+      setShowSuccess(true);
+      setLoading(false);
     } catch (error) {
       console.error("Error creating establishment:", error);
       toast.error("Erreur lors de la création");
-    } finally {
       setLoading(false);
     }
   };
@@ -421,6 +439,22 @@ export const CreateEstablishmentModalEnhanced = ({
     loadDraft(draft);
     setShowDrafts(false);
     toast.success("Brouillon chargé");
+  };
+
+  const handleSuccessContinue = () => {
+    setShowSuccess(false);
+    onSuccess();
+    resetDraft();
+    onOpenChange(false);
+    // Navigate to establishment config page
+    if (createdEstablishmentId) {
+      window.location.href = `/admin/establishments?config=${createdEstablishmentId}`;
+    }
+  };
+
+  const handleNavigateFromConfirmation = (tab: string) => {
+    setShowConfirmation(false);
+    updateStep(tab);
   };
 
   const showOptions = formData.typesWithQualification.some(twq => ["lycee"].includes(twq.type));
@@ -1068,7 +1102,7 @@ export const CreateEstablishmentModalEnhanced = ({
         </Tabs>
 
         {/* Confirmation View */}
-        {showConfirmation && (
+        {showConfirmation && !showSuccess && (
           <div className="px-6">
             <ScrollArea className="h-[55vh]">
               <ConfirmationStep
@@ -1076,9 +1110,19 @@ export const CreateEstablishmentModalEnhanced = ({
                 staff={staff}
                 languageDesignation={languageDesignation}
                 groupName={selectedGroupName}
+                onNavigateToTab={handleNavigateFromConfirmation}
               />
             </ScrollArea>
           </div>
+        )}
+
+        {/* Success Animation */}
+        {showSuccess && (
+          <SuccessAnimation
+            establishmentName={createdEstablishmentName}
+            onContinue={handleSuccessContinue}
+            autoRedirectDelay={4000}
+          />
         )}
 
         <DialogFooter className="p-6 pt-4 border-t">

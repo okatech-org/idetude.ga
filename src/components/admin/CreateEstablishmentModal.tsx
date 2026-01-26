@@ -162,6 +162,7 @@ export const CreateEstablishmentModal = ({
   const [activeTab, setActiveTab] = useState("info");
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [geoAddress, setGeoAddress] = useState<string | null>(null);
   
   const [form, setForm] = useState({
     name: "",
@@ -207,6 +208,7 @@ export const CreateEstablishmentModal = ({
       fetchGroups();
       setActiveTab("info");
       setGeoError(null);
+      setGeoAddress(null);
       setForm({
         name: "",
         code: "",
@@ -226,6 +228,24 @@ export const CreateEstablishmentModal = ({
     onOpenChange(isOpen);
   };
 
+  // Reverse geocoding pour obtenir l'adresse à partir des coordonnées
+  const reverseGeocode = async (lat: number, lon: number) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`,
+        { headers: { 'Accept-Language': 'fr' } }
+      );
+      const data = await response.json();
+      if (data.display_name) {
+        setGeoAddress(data.display_name);
+        // Pré-remplir automatiquement l'adresse complète
+        setForm(prev => ({ ...prev, address: data.display_name }));
+      }
+    } catch (error) {
+      console.error("Erreur de géocodage inverse:", error);
+    }
+  };
+
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       setGeoError("La géolocalisation n'est pas supportée par votre navigateur");
@@ -236,14 +256,17 @@ export const CreateEstablishmentModal = ({
     setGeoError(null);
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
+        const { latitude, longitude } = position.coords;
         setForm(prev => ({
           ...prev,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
+          latitude,
+          longitude,
         }));
         setGeoLoading(false);
         toast.success("Position GPS capturée avec succès");
+        // Récupérer l'adresse correspondante
+        await reverseGeocode(latitude, longitude);
       },
       (error) => {
         setGeoLoading(false);
@@ -271,6 +294,7 @@ export const CreateEstablishmentModal = ({
 
   const clearLocation = () => {
     setForm(prev => ({ ...prev, latitude: null, longitude: null }));
+    setGeoAddress(null);
     setGeoError(null);
   };
 
@@ -690,42 +714,55 @@ export const CreateEstablishmentModal = ({
                   )}
                 </div>
 
-                {/* Saisie manuelle des coordonnées */}
-                <div className="pt-2 border-t">
-                  <p className="text-xs text-muted-foreground mb-2">Ou saisir manuellement les coordonnées :</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Latitude</Label>
-                      <Input
-                        type="number"
-                        step="0.000001"
-                        value={form.latitude ?? ""}
-                        onChange={(e) => setForm({ ...form, latitude: e.target.value ? parseFloat(e.target.value) : null })}
-                        placeholder="Ex: 0.416198"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Longitude</Label>
-                      <Input
-                        type="number"
-                        step="0.000001"
-                        value={form.longitude ?? ""}
-                        onChange={(e) => setForm({ ...form, longitude: e.target.value ? parseFloat(e.target.value) : null })}
-                        placeholder="Ex: 9.467268"
-                      />
+                {/* Affichage des coordonnées (non modifiables) */}
+                {form.latitude !== null && form.longitude !== null && (
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-muted-foreground mb-2">Coordonnées GPS (non modifiables) :</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Latitude</Label>
+                        <Input
+                          type="text"
+                          value={form.latitude.toFixed(6)}
+                          disabled
+                          className="bg-muted cursor-not-allowed"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Longitude</Label>
+                        <Input
+                          type="text"
+                          value={form.longitude.toFixed(6)}
+                          disabled
+                          className="bg-muted cursor-not-allowed"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
+
+                {/* Adresse détectée (non modifiable) */}
+                {geoAddress && (
+                  <div className="pt-2 border-t">
+                    <Label className="text-xs text-muted-foreground">Adresse détectée (non modifiable) :</Label>
+                    <div className="mt-1 p-3 rounded-lg bg-muted/50 border">
+                      <p className="text-sm text-foreground">{geoAddress}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label>Adresse complète</Label>
+                <Label>Adresse complète <span className="text-xs text-muted-foreground">(modifiable)</span></Label>
                 <Textarea
                   value={form.address}
                   onChange={(e) => setForm({ ...form, address: e.target.value })}
                   placeholder="Rue, quartier, ville, boîte postale..."
                   rows={3}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Vous pouvez modifier ou compléter l'adresse pré-remplie ci-dessus.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

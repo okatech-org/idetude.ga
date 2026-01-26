@@ -517,15 +517,11 @@ const Resources = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1 container mx-auto px-4 py-8">
-          <GlassCard className="p-8 text-center">
-            <p>Veuillez vous connecter pour accéder aux ressources.</p>
-          </GlassCard>
-        </main>
-        <Footer />
-      </div>
+      <UserLayout title="Ressources pédagogiques">
+        <GlassCard className="p-8 text-center">
+          <p>Veuillez vous connecter pour accéder aux ressources.</p>
+        </GlassCard>
+      </UserLayout>
     );
   }
 
@@ -657,10 +653,7 @@ const Resources = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-
-      <main className="flex-1 container mx-auto px-4 py-8">
+    <UserLayout title="Ressources pédagogiques">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold">Bibliothèque pédagogique</h1>
@@ -993,10 +986,6 @@ const Resources = () => {
             ))}
           </div>
         )}
-      </main>
-
-      <Footer />
-
       {/* Resource Detail Modal */}
       <ResourceDetailModal
         resource={selectedResource}
@@ -1004,7 +993,7 @@ const Resources = () => {
         onClose={() => setSelectedResource(null)}
         onDownload={handleDownload}
       />
-    </div>
+    </UserLayout>
   );
 };
 

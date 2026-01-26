@@ -287,23 +287,16 @@ const DataExport = () => {
 
   if (!user || !isAdmin) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1 container mx-auto px-4 py-8">
-          <GlassCard className="p-8 text-center">
-            <p>Accès réservé aux administrateurs.</p>
-          </GlassCard>
-        </main>
-        <Footer />
-      </div>
+      <UserLayout title="Export des données">
+        <GlassCard className="p-8 text-center">
+          <p>Accès réservé aux administrateurs.</p>
+        </GlassCard>
+      </UserLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-
-      <main className="flex-1 container mx-auto px-4 py-8">
+    <UserLayout title="Export des données">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold">Export des données</h1>
@@ -432,10 +425,7 @@ const DataExport = () => {
             </div>
           </div>
         </GlassCard>
-      </main>
-
-      <Footer />
-    </div>
+    </UserLayout>
   );
 };
 

@@ -385,23 +385,16 @@ const Competencies = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1 container mx-auto px-4 py-8">
-          <GlassCard className="p-8 text-center">
-            <p>Veuillez vous connecter pour accéder au suivi des compétences.</p>
-          </GlassCard>
-        </main>
-        <Footer />
-      </div>
+      <UserLayout title="Compétences">
+        <GlassCard className="p-8 text-center">
+          <p>Veuillez vous connecter pour accéder au suivi des compétences.</p>
+        </GlassCard>
+      </UserLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-
-      <main className="flex-1 container mx-auto px-4 py-8">
+    <UserLayout title="Compétences">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold">Suivi des compétences</h1>
@@ -816,10 +809,7 @@ const Competencies = () => {
             ))}
           </div>
         )}
-      </main>
-
-      <Footer />
-    </div>
+    </UserLayout>
   );
 };
 

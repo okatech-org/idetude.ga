@@ -242,23 +242,16 @@ const ClassGroups = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-1 container mx-auto px-4 py-8">
-          <GlassCard className="p-8 text-center">
-            <p>Veuillez vous connecter pour accéder aux groupes de discussion.</p>
-          </GlassCard>
-        </main>
-        <Footer />
-      </div>
+      <UserLayout title="Groupes de discussion">
+        <GlassCard className="p-8 text-center">
+          <p>Veuillez vous connecter pour accéder aux groupes de discussion.</p>
+        </GlassCard>
+      </UserLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-
-      <main className="flex-1 container mx-auto px-4 py-8">
+    <UserLayout title="Groupes de discussion">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold">Groupes de discussion</h1>
@@ -471,10 +464,7 @@ const ClassGroups = () => {
             )}
           </div>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+    </UserLayout>
   );
 };
 

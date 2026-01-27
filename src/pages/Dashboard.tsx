@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { UserLayout } from "@/components/layout/UserLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { TeacherDashboard } from "@/components/dashboard/TeacherDashboard";
@@ -13,7 +14,10 @@ import {
   BookOpen,
   Users,
   Settings,
+  AlertTriangle,
 } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 const roleLabels: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   super_admin: { label: "Super Administrateur", icon: Shield, color: "from-red-500/20 to-red-500/5" },
@@ -29,8 +33,16 @@ const roleLabels: Record<string, { label: string; icon: React.ElementType; color
   parent_secondary: { label: "Parent Secondaire", icon: Users, color: "from-rose-500/20 to-rose-500/5" },
 };
 
+// System alerts for Super Admin
+const systemAlerts = [
+  { id: '1', type: 'warning', title: '3 établissements sans directeur', link: '/admin/establishments' },
+  { id: '2', type: 'info', title: '12 utilisateurs en attente de validation', link: '/admin/users' },
+  { id: '3', type: 'warning', title: '5 commentaires signalés à modérer', link: '/admin/moderation' },
+];
+
 const Dashboard = () => {
   const { user, profile, roles } = useAuth();
+  const navigate = useNavigate();
 
   // Determine which role-specific dashboard to show
   const isTeacher = roles.includes("teacher") || roles.includes("main_teacher");
@@ -43,7 +55,8 @@ const Dashboard = () => {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Welcome Card */}
         <GlassCard className="p-6 md:p-8" solid>
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+            {/* Left - User info */}
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-2 ring-primary/10">
                 <User className="h-7 w-7 text-primary" />
@@ -70,6 +83,40 @@ const Dashboard = () => {
                 )}
               </div>
             </div>
+
+            {/* Right - Super Admin info */}
+            {isSuperAdmin && (
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <h2 className="text-lg font-bold text-foreground">Panneau Super Administrateur</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Vue d'ensemble de l'écosystème • {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })}
+                    </p>
+                  </div>
+                  <div className="p-2 rounded-xl bg-red-500/10">
+                    <Shield className="h-6 w-6 text-red-500" />
+                  </div>
+                </div>
+                {/* System Alerts */}
+                <div className="flex flex-wrap justify-end gap-2">
+                  {systemAlerts.map((alert) => (
+                    <button
+                      key={alert.id}
+                      onClick={() => navigate(alert.link)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                        alert.type === 'warning' 
+                          ? 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20' 
+                          : 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20'
+                      }`}
+                    >
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      {alert.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </GlassCard>
 

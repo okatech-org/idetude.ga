@@ -345,40 +345,6 @@ export const SuperAdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with alerts */}
-      <div className="flex flex-col gap-3">
-        {/* Title Block - Top Right aligned */}
-        <div className="flex items-center justify-end gap-3">
-          <div>
-            <h2 className="text-xl font-bold text-foreground text-right">Panneau Super Administrateur</h2>
-            <p className="text-sm text-muted-foreground text-right">
-              Vue d'ensemble de l'écosystème • {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })}
-            </p>
-          </div>
-          <div className="p-2 rounded-xl bg-red-500/10">
-            <Shield className="h-6 w-6 text-red-500" />
-          </div>
-        </div>
-
-        {/* System Alerts - Bottom, same line */}
-        <div className="flex flex-wrap justify-end gap-2">
-          {systemAlerts.map((alert) => (
-            <button
-              key={alert.id}
-              onClick={() => navigate(alert.link)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                alert.type === 'warning' 
-                  ? 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20' 
-                  : 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20'
-              }`}
-            >
-              <AlertTriangle className="h-3.5 w-3.5" />
-              {alert.title}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {kpiStats.map((stat) => (

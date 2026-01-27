@@ -43,10 +43,9 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import NotFound from "./pages/NotFound";
 // Persona pages
 import Etablissements from "./pages/Etablissements";
-import ComingSoon from "./pages/ComingSoon";
-
-// Helper component for coming soon pages
-const ComingSoonPage = ({ persona }: { persona: string }) => <ComingSoon persona={persona} />;
+import Parents from "./pages/Parents";
+import Professeurs from "./pages/Professeurs";
+import Eleves from "./pages/Eleves";
 
 const queryClient = new QueryClient();
 
@@ -66,9 +65,9 @@ const App = () => (
                   <Route path="/demo" element={<Demo />} />
                   {/* Persona pages */}
                   <Route path="/etablissements" element={<Etablissements />} />
-                  <Route path="/parents" element={<ComingSoonPage persona="Parents" />} />
-                  <Route path="/professeurs" element={<ComingSoonPage persona="Professeurs" />} />
-                  <Route path="/eleves" element={<ComingSoonPage persona="Élèves" />} />
+                  <Route path="/parents" element={<Parents />} />
+                  <Route path="/professeurs" element={<Professeurs />} />
+                  <Route path="/eleves" element={<Eleves />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/connexion" element={<Auth />} />
                   <Route path="/dashboard" element={<Dashboard />} />

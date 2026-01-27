@@ -55,38 +55,39 @@ const Dashboard = () => {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Welcome Card */}
         <GlassCard className="p-6 md:p-8" solid>
-          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-            {/* Left - User info */}
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-2 ring-primary/10">
-                <User className="h-7 w-7 text-primary" />
+          <div className="flex flex-col gap-4">
+            {/* Top row - User info and Super Admin panel */}
+            <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+              {/* Left - User info */}
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-2 ring-primary/10">
+                  <User className="h-7 w-7 text-primary" />
+                </div>
+                <div>
+                  <h1 className="text-xl md:text-2xl font-bold text-foreground">
+                    Bienvenue, {profile?.first_name || "Utilisateur"} !
+                  </h1>
+                  <p className="text-sm text-muted-foreground">{user?.email}</p>
+                  {roles.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {roles.map((role) => {
+                        const config = roleLabels[role];
+                        return (
+                          <span
+                            key={role}
+                            className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium"
+                          >
+                            {config?.label || role}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl md:text-2xl font-bold text-foreground">
-                  Bienvenue, {profile?.first_name || "Utilisateur"} !
-                </h1>
-                <p className="text-sm text-muted-foreground">{user?.email}</p>
-                {roles.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {roles.map((role) => {
-                      const config = roleLabels[role];
-                      return (
-                        <span
-                          key={role}
-                          className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium"
-                        >
-                          {config?.label || role}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
 
-            {/* Right - Super Admin info */}
-            {isSuperAdmin && (
-              <div className="flex flex-col items-end gap-2">
+              {/* Right - Super Admin info */}
+              {isSuperAdmin && (
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <h2 className="text-lg font-bold text-foreground">Panneau Super Administrateur</h2>
@@ -98,23 +99,26 @@ const Dashboard = () => {
                     <Shield className="h-6 w-6 text-red-500" />
                   </div>
                 </div>
-                {/* System Alerts */}
-                <div className="flex flex-wrap justify-end gap-2">
-                  {systemAlerts.map((alert) => (
-                    <button
-                      key={alert.id}
-                      onClick={() => navigate(alert.link)}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                        alert.type === 'warning' 
-                          ? 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20' 
-                          : 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20'
-                      }`}
-                    >
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                      {alert.title}
-                    </button>
-                  ))}
-                </div>
+              )}
+            </div>
+
+            {/* Bottom row - System Alerts aligned right */}
+            {isSuperAdmin && (
+              <div className="flex flex-wrap justify-end gap-2">
+                {systemAlerts.map((alert) => (
+                  <button
+                    key={alert.id}
+                    onClick={() => navigate(alert.link)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                      alert.type === 'warning' 
+                        ? 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20' 
+                        : 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20'
+                    }`}
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    {alert.title}
+                  </button>
+                ))}
               </div>
             )}
           </div>

@@ -18,7 +18,7 @@ import {
   Building2, MapPin, Users, GraduationCap, School, Navigation, 
   Loader2, MapPinned, AlertCircle, Map, Search, ChevronDown, 
   ChevronRight, Save, Clock, FolderOpen, CheckCircle2, Eye, Settings,
-  ArrowRight, ArrowLeft
+  ArrowRight, ArrowLeft, Maximize2, Minimize2
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LocationPickerMap } from "../LocationPickerMap";
@@ -40,7 +40,9 @@ import { ValidatedInputWrapper } from "./FieldValidation";
 import { ConfirmationStep } from "./ConfirmationStep";
 import { SuccessAnimation } from "./SuccessAnimation";
 import { ModulesConfigTab } from "./ModulesConfigTab";
-import { useCreationMethodConfig, getStepsForMethod, CreationMethod, getMethodLabel, getMethodDescription } from "@/hooks/useCreationMethodConfig";
+import { useCreationMethodConfig, getStepsForMethod, CreationMethod, getMethodLabel, getMethodDescription, DisplayMode } from "@/hooks/useCreationMethodConfig";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 interface CreateEstablishmentModalEnhancedProps {
   open: boolean;
@@ -75,13 +77,19 @@ export const CreateEstablishmentModalEnhanced = ({
   const [currentWizardStep, setCurrentWizardStep] = useState(0);
   const [selectedCreationMethod, setSelectedCreationMethod] = useState<CreationMethod | null>(null);
   const [showMethodSelector, setShowMethodSelector] = useState(false);
+  const [currentDisplayMode, setCurrentDisplayMode] = useState<DisplayMode>("modal");
 
   // Get creation method configuration
-  const { enabledMethods } = useCreationMethodConfig();
+  const { enabledMethods, displayMode } = useCreationMethodConfig();
   
   // Determine the active creation method
   const creationMethod: CreationMethod = selectedCreationMethod || enabledMethods[0] || "1-step";
   const wizardSteps = getStepsForMethod(creationMethod);
+  
+  // Toggle between modal and fullpage
+  const toggleDisplayMode = () => {
+    setCurrentDisplayMode(prev => prev === "modal" ? "fullpage" : "modal");
+  };
 
   const {
     draftId,
@@ -210,6 +218,8 @@ export const CreateEstablishmentModalEnhanced = ({
       setExpandedCategories(["francophone", "anglophone", "international"]);
       setShowDrafts(false);
       setCurrentWizardStep(0);
+      // Set initial display mode from config
+      setCurrentDisplayMode(displayMode);
       // Show method selector if multiple methods are enabled
       if (enabledMethods.length > 1) {
         setShowMethodSelector(true);
@@ -491,7 +501,12 @@ export const CreateEstablishmentModalEnhanced = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogContent className="max-w-5xl max-h-[90vh] p-0">
+      <DialogContent className={cn(
+        "p-0 transition-all duration-300",
+        currentDisplayMode === "fullpage" 
+          ? "max-w-[100vw] w-[100vw] h-[100vh] max-h-[100vh] rounded-none" 
+          : "max-w-5xl max-h-[90vh]"
+      )}>
         <DialogHeader className="p-6 pb-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2 text-xl">
@@ -505,6 +520,27 @@ export const CreateEstablishmentModalEnhanced = ({
                   Sauvé {format(lastSaved, "HH:mm", { locale: fr })}
                 </span>
               )}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={toggleDisplayMode}
+                      className="h-8 w-8"
+                    >
+                      {currentDisplayMode === "fullpage" ? (
+                        <Minimize2 className="h-4 w-4" />
+                      ) : (
+                        <Maximize2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {currentDisplayMode === "fullpage" ? "Réduire en bloc flottant" : "Étendre en pleine page"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <GlassButton
                 variant="outline"
                 size="sm"
@@ -674,7 +710,10 @@ export const CreateEstablishmentModalEnhanced = ({
             </TabsList>
           </div>
 
-          <ScrollArea className="h-[55vh] px-6 mt-4">
+          <ScrollArea className={cn(
+            "px-6 mt-4",
+            currentDisplayMode === "fullpage" ? "h-[calc(100vh-280px)]" : "h-[55vh]"
+          )}>
             {/* Tab: Informations */}
             <TabsContent value="informations" className="space-y-4 mt-0">
               {/* Progress Indicator */}

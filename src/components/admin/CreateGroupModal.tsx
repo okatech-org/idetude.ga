@@ -5,8 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GlassButton } from "@/components/ui/glass-button";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { Maximize2, Minimize2 } from "lucide-react";
+import { useCreationMethodConfig, DisplayMode } from "@/hooks/useCreationMethodConfig";
 
 interface CreateGroupModalProps {
   open: boolean;
@@ -16,6 +21,8 @@ interface CreateGroupModalProps {
 
 export const CreateGroupModal = ({ open, onOpenChange, onSuccess }: CreateGroupModalProps) => {
   const [loading, setLoading] = useState(false);
+  const [currentDisplayMode, setCurrentDisplayMode] = useState<DisplayMode>("modal");
+  const { displayMode } = useCreationMethodConfig();
   const [form, setForm] = useState({
     name: "",
     code: "",
@@ -23,6 +30,10 @@ export const CreateGroupModal = ({ open, onOpenChange, onSuccess }: CreateGroupM
     country_code: "GA",
     description: "",
   });
+
+  const toggleDisplayMode = () => {
+    setCurrentDisplayMode(prev => prev === "modal" ? "fullpage" : "modal");
+  };
 
   const handleOpen = (isOpen: boolean) => {
     if (isOpen) {
@@ -33,6 +44,7 @@ export const CreateGroupModal = ({ open, onOpenChange, onSuccess }: CreateGroupM
         country_code: "GA",
         description: "",
       });
+      setCurrentDisplayMode(displayMode);
     }
     onOpenChange(isOpen);
   };
@@ -68,12 +80,43 @@ export const CreateGroupModal = ({ open, onOpenChange, onSuccess }: CreateGroupM
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
-      <DialogContent>
+      <DialogContent className={cn(
+        "transition-all duration-300",
+        currentDisplayMode === "fullpage" 
+          ? "max-w-[100vw] w-[100vw] h-[100vh] max-h-[100vh] rounded-none flex flex-col" 
+          : "max-w-lg"
+      )}>
         <DialogHeader>
-          <DialogTitle>Nouveau groupe scolaire</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>Nouveau groupe scolaire</DialogTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleDisplayMode}
+                    className="h-8 w-8"
+                  >
+                    {currentDisplayMode === "fullpage" ? (
+                      <Minimize2 className="h-4 w-4" />
+                    ) : (
+                      <Maximize2 className="h-4 w-4" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {currentDisplayMode === "fullpage" ? "Réduire en bloc flottant" : "Étendre en pleine page"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className={cn(
+          "space-y-4 py-4",
+          currentDisplayMode === "fullpage" && "flex-1 max-w-2xl mx-auto w-full"
+        )}>
           <div className="space-y-2">
             <Label>Nom du groupe *</Label>
             <Input
@@ -124,11 +167,12 @@ export const CreateGroupModal = ({ open, onOpenChange, onSuccess }: CreateGroupM
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Description du groupe scolaire..."
+              className={cn(currentDisplayMode === "fullpage" && "min-h-[150px]")}
             />
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className={cn(currentDisplayMode === "fullpage" && "max-w-2xl mx-auto w-full")}>
           <GlassButton variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Annuler
           </GlassButton>

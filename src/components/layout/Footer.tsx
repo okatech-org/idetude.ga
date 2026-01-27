@@ -6,11 +6,11 @@ const footerLinks = {
     { name: "Fonctionnalités", href: "/#fonctionnalites" },
     { name: "Tutoriels", href: "/tutoriels" },
     { name: "Démo", href: "/demo" },
-    { name: "Tarifs", href: "#" },
+    { name: "Tarifs", href: "/#pricing" },
   ],
   company: [
     { name: "À propos", href: "#" },
-    { name: "Actualités", href: "/actualites" },
+    { name: "FAQ", href: "/#faq" },
     { name: "Partenaires", href: "#" },
     { name: "Carrières", href: "#" },
   ],

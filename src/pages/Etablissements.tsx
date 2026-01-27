@@ -33,6 +33,7 @@ import {
   FileText,
   Clock,
 } from "lucide-react";
+import { PersonaPricing, ETABLISSEMENT_PLANS } from "@/components/landing/PersonaPricing";
 
 // Problems data
 const problemsEtablissements = [
@@ -706,7 +707,15 @@ const Etablissements = () => {
         </div>
       </section>
 
-      {/* SECTION 8: CTA FINAL */}
+      {/* SECTION 8: TARIFICATION */}
+      <PersonaPricing
+        title="Choisissez le plan adapté à votre établissement"
+        subtitle="Des solutions flexibles pour toutes les tailles d'établissement"
+        plans={ETABLISSEMENT_PLANS}
+        persona="etablissement"
+      />
+
+      {/* SECTION 9: CTA FINAL */}
       <section id="contact" className="py-16 md:py-24 bg-primary/5">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto">

@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { PersonaPricing, PARENT_PLANS } from "@/components/landing/PersonaPricing";
 
 const problemsParents = [
   {
@@ -520,6 +521,14 @@ const Parents = () => {
           </Accordion>
         </div>
       </section>
+
+      {/* Pricing Section */}
+      <PersonaPricing
+        title="Des options pour tous les parents"
+        subtitle="Gratuit de base, Premium pour un suivi optimal"
+        plans={PARENT_PLANS}
+        persona="parent"
+      />
 
       {/* CTA Section */}
       <section id="suggest" className="py-20 px-4 bg-primary/5">

@@ -347,21 +347,7 @@ export const SuperAdminDashboard = () => {
     <div className="space-y-6">
       {/* Header with alerts */}
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-red-500/10">
-              <Shield className="h-6 w-6 text-red-500" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-foreground">Panneau Super Administrateur</h2>
-              <p className="text-sm text-muted-foreground">
-                Vue d'ensemble de l'écosystème • {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* System Alerts */}
+        {/* System Alerts - Left */}
         <div className="flex flex-wrap gap-2">
           {systemAlerts.map((alert) => (
             <button
@@ -377,6 +363,19 @@ export const SuperAdminDashboard = () => {
               {alert.title}
             </button>
           ))}
+        </div>
+
+        {/* Title Block - Right */}
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-foreground text-right">Panneau Super Administrateur</h2>
+            <p className="text-sm text-muted-foreground text-right">
+              Vue d'ensemble de l'écosystème • {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })}
+            </p>
+          </div>
+          <div className="p-2 rounded-xl bg-red-500/10">
+            <Shield className="h-6 w-6 text-red-500" />
+          </div>
         </div>
       </div>
 

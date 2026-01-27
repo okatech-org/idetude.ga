@@ -55,7 +55,6 @@ const superAdminMainMenuItems = [
 
 const superAdminEcosystemMenuItems = [
   { title: "Pays", url: "/admin/countries", icon: Globe },
-  { title: "Régions", url: "/admin/regions", icon: MapPin },
   { title: "Groupes Scolaires", url: "/admin/groups", icon: Layers },
   { title: "Établissements", url: "/admin/establishments", icon: Building2 },
 ];

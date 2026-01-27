@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Settings, 
   Bell,
@@ -21,7 +21,7 @@ import {
   Building2,
   Layers
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { 
   CreationMethod, 
@@ -49,9 +49,6 @@ interface PlatformSettings {
   // Branding
   platformName: string;
   supportEmail: string;
-  
-  // Establishment creation
-  establishmentCreationMethod: CreationMethod;
 }
 
 const defaultSettings: PlatformSettings = {
@@ -66,25 +63,13 @@ const defaultSettings: PlatformSettings = {
   defaultLanguage: 'fr',
   platformName: 'iDETUDE',
   supportEmail: 'support@idetude.app',
-  establishmentCreationMethod: '1-step',
 };
 
 export default function AdminSettings() {
-  const { method: savedMethod, setMethod: saveMethod } = useCreationMethodConfig();
-  const [settings, setSettings] = useState<PlatformSettings>({
-    ...defaultSettings,
-    establishmentCreationMethod: savedMethod,
-  });
+  const { enabledMethods, toggleMethod, setEnabledMethods } = useCreationMethodConfig();
+  const [settings, setSettings] = useState<PlatformSettings>(defaultSettings);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-
-  // Sync creation method from localStorage
-  useEffect(() => {
-    setSettings(prev => ({
-      ...prev,
-      establishmentCreationMethod: savedMethod,
-    }));
-  }, [savedMethod]);
 
   const updateSetting = <K extends keyof PlatformSettings>(
     key: K, 
@@ -92,17 +77,15 @@ export default function AdminSettings() {
   ) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     setHasChanges(true);
-    
-    // Persist creation method immediately
-    if (key === 'establishmentCreationMethod') {
-      saveMethod(value as CreationMethod);
-    }
+  };
+
+  const handleToggleMethod = (method: CreationMethod) => {
+    toggleMethod(method);
+    setHasChanges(true);
   };
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Save creation method
-    saveMethod(settings.establishmentCreationMethod);
     // Simulate API call for other settings
     await new Promise(resolve => setTimeout(resolve, 1000));
     setIsSaving(false);
@@ -111,11 +94,8 @@ export default function AdminSettings() {
   };
 
   const handleReset = () => {
-    setSettings({
-      ...defaultSettings,
-      establishmentCreationMethod: '1-step',
-    });
-    saveMethod('1-step');
+    setSettings(defaultSettings);
+    setEnabledMethods(["1-step"]);
     setHasChanges(false);
     toast.info("Paramètres réinitialisés");
   };
@@ -365,60 +345,61 @@ export default function AdminSettings() {
                 Création d'établissements
               </CardTitle>
               <CardDescription>
-                Configurez le nombre d'étapes pour la création d'un nouvel établissement
+                Sélectionnez les méthodes de création disponibles. Si plusieurs sont activées, l'utilisateur pourra choisir.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <RadioGroup
-                value={settings.establishmentCreationMethod}
-                onValueChange={(value) => updateSetting('establishmentCreationMethod', value as CreationMethod)}
-                className="grid grid-cols-1 md:grid-cols-3 gap-4"
-              >
-                {creationMethods.map((method) => (
-                  <label
-                    key={method}
-                    htmlFor={method}
-                    className={`relative flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                      settings.establishmentCreationMethod === method
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <RadioGroupItem value={method} id={method} />
-                      <div className="flex items-center gap-2">
-                        <Layers className="h-4 w-4 text-primary" />
-                        <span className="font-medium">{getMethodLabel(method)}</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {creationMethods.map((method) => {
+                  const isEnabled = enabledMethods.includes(method);
+                  return (
+                    <label
+                      key={method}
+                      htmlFor={`method-${method}`}
+                      className={`relative flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        isEnabled
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Checkbox 
+                          id={`method-${method}`}
+                          checked={isEnabled}
+                          onCheckedChange={() => handleToggleMethod(method)}
+                        />
+                        <div className="flex items-center gap-2">
+                          <Layers className="h-4 w-4 text-primary" />
+                          <span className="font-medium">{getMethodLabel(method)}</span>
+                        </div>
                       </div>
-                    </div>
-                    <p className="mt-2 text-sm text-muted-foreground pl-7">
-                      {getMethodDescription(method)}
-                    </p>
-                    {settings.establishmentCreationMethod === method && (
-                      <Badge className="absolute top-2 right-2 text-xs">Actif</Badge>
-                    )}
-                  </label>
-                ))}
-              </RadioGroup>
+                      <p className="mt-2 text-sm text-muted-foreground pl-7">
+                        {getMethodDescription(method)}
+                      </p>
+                      {isEnabled && (
+                        <Badge className="absolute top-2 right-2 text-xs">Actif</Badge>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
 
               <div className="mt-4 p-3 rounded-lg bg-muted/50 text-sm">
-                <p className="font-medium mb-1">Détail des étapes :</p>
-                <ul className="space-y-1 text-muted-foreground">
-                  {settings.establishmentCreationMethod === '1-step' && (
-                    <li>• <strong>Étape unique</strong> : Tous les onglets (Informations, Niveaux, Modules, Personnel) sont accessibles simultanément</li>
+                <p className="font-medium mb-1">
+                  {enabledMethods.length > 1 
+                    ? `${enabledMethods.length} méthodes activées - L'utilisateur choisira au moment de la création`
+                    : "Méthode unique - Utilisée automatiquement"
+                  }
+                </p>
+                <ul className="space-y-1 text-muted-foreground mt-2">
+                  {enabledMethods.includes('1-step') && (
+                    <li>• <strong>1 étape</strong> : Tous les onglets accessibles simultanément</li>
                   )}
-                  {settings.establishmentCreationMethod === '2-step' && (
-                    <>
-                      <li>• <strong>Étape 1</strong> : Informations de base de l'établissement</li>
-                      <li>• <strong>Étape 2</strong> : Configuration des niveaux, modules et personnel</li>
-                    </>
+                  {enabledMethods.includes('2-step') && (
+                    <li>• <strong>2 étapes</strong> : Informations → Configuration complète</li>
                   )}
-                  {settings.establishmentCreationMethod === '3-step' && (
-                    <>
-                      <li>• <strong>Étape 1</strong> : Informations de base de l'établissement</li>
-                      <li>• <strong>Étape 2</strong> : Configuration des niveaux et modules</li>
-                      <li>• <strong>Étape 3</strong> : Gestion du personnel</li>
-                    </>
+                  {enabledMethods.includes('3-step') && (
+                    <li>• <strong>3 étapes</strong> : Informations → Structure → Personnel</li>
                   )}
                 </ul>
               </div>

@@ -44,7 +44,9 @@ import {
   MapPin,
   ExternalLink,
   Eye,
+  Settings,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface SchoolGroup {
   id: string;
@@ -69,6 +71,7 @@ const COUNTRIES = [
 ];
 
 const SchoolGroupsManagement = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<string>("all");
@@ -431,6 +434,15 @@ const SchoolGroupsManagement = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/admin/groups/config?id=${group.id}`)}
+                          className="gap-1"
+                        >
+                          <Settings className="h-3.5 w-3.5" />
+                          Gestion
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"

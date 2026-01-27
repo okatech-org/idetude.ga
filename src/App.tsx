@@ -8,8 +8,6 @@ import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { NotificationsProvider } from "@/hooks/useNotifications";
 import { CreationMethodProvider } from "@/hooks/useCreationMethodConfig";
 import Index from "./pages/Index";
-import Actualites from "./pages/Actualites";
-import Sensibilisation from "./pages/Sensibilisation";
 import Tutoriels from "./pages/Tutoriels";
 import Demo from "./pages/Demo";
 import Auth from "./pages/Auth";
@@ -58,8 +56,6 @@ const App = () => (
               <BrowserRouter>
                 <Routes>
                   <Route path="/" element={<Index />} />
-                  <Route path="/actualites" element={<Actualites />} />
-                  <Route path="/sensibilisation" element={<Sensibilisation />} />
                   <Route path="/tutoriels" element={<Tutoriels />} />
                   <Route path="/demo" element={<Demo />} />
                   <Route path="/auth" element={<Auth />} />

@@ -25,6 +25,7 @@ import {
   FolderOpen,
   Database,
   FileJson,
+  Cog,
 } from "lucide-react";
 import { countries, type Country, type School as SchoolType, type SchoolGroup } from "@/data/demo-accounts";
 
@@ -381,14 +382,16 @@ const EstablishmentsManagement = () => {
                               </Badge>
                             )}
                             <GlassButton
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 navigate(`/admin/establishments/config?id=${est.id}`);
                               }}
+                              className="gap-1"
                             >
-                              <Settings className="h-4 w-4" />
+                              <Cog className="h-3.5 w-3.5" />
+                              Gestion
                             </GlassButton>
                           </div>
                         </div>

@@ -959,72 +959,52 @@ export const CreateEstablishmentModalEnhanced = ({
                     />
                   </div>
 
-                  <div className="relative border rounded-lg py-2 px-8 min-h-[180px]">
-                    <Carousel
-                      opts={{
-                        align: "start",
-                        loop: true,
-                      }}
-                      className="w-full"
-                    >
-                      <CarouselContent className="-ml-2">
-                        {EDUCATION_SYSTEMS
-                          .filter(sys => sys.label.toLowerCase().includes(systemSearchTerm.toLowerCase()) || sys.description.toLowerCase().includes(systemSearchTerm.toLowerCase()))
-                          .map((system) => {
-                            const isSelected = formData.educationSystems.includes(system.value);
-                            return (
-                              <CarouselItem key={system.value} className="pl-2 basis-1/3">
-                                <div className="h-full">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      if (isSelected) {
-                                        updateFormData({
-                                          educationSystems: formData.educationSystems.filter(s => s !== system.value)
-                                        });
-                                      } else {
-                                        updateFormData({
-                                          educationSystems: [...formData.educationSystems, system.value]
-                                        });
-                                      }
-                                    }}
-                                    className={cn(
-                                      "relative w-full h-full flex flex-col items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all duration-200 group text-center min-h-[140px]",
-                                      isSelected
-                                        ? "border-primary bg-primary/5 shadow-sm"
-                                        : "border-border/50 bg-background hover:border-primary/50 hover:bg-muted/50"
-                                    )}
-                                  >
-                                    <div className={cn(
-                                      "w-10 h-10 rounded-full flex items-center justify-center text-2xl transition-transform duration-300",
-                                      isSelected ? "bg-primary/10 scale-110" : "bg-muted scale-100 group-hover:scale-110"
-                                    )}>
-                                      {system.icon}
-                                    </div>
+                  <div className="grid grid-cols-4 gap-2 max-h-[280px] overflow-y-auto p-2 border rounded-lg">
+                    {EDUCATION_SYSTEMS
+                      .filter(sys => sys.label.toLowerCase().includes(systemSearchTerm.toLowerCase()) || sys.description.toLowerCase().includes(systemSearchTerm.toLowerCase()))
+                      .map((system) => {
+                        const isSelected = formData.educationSystems.includes(system.value);
+                        return (
+                          <button
+                            key={system.value}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                updateFormData({
+                                  educationSystems: formData.educationSystems.filter(s => s !== system.value)
+                                });
+                              } else {
+                                updateFormData({
+                                  educationSystems: [...formData.educationSystems, system.value]
+                                });
+                              }
+                            }}
+                            className={cn(
+                              "relative flex flex-col items-center justify-center gap-1 p-2 rounded-lg border-2 transition-all duration-200 group text-center min-h-[80px]",
+                              isSelected
+                                ? "border-primary bg-primary/5 shadow-sm"
+                                : "border-border/50 bg-background hover:border-primary/50 hover:bg-muted/50"
+                            )}
+                          >
+                            <div className={cn(
+                              "w-8 h-8 rounded-full flex items-center justify-center text-lg transition-transform duration-300",
+                              isSelected ? "bg-primary/10 scale-110" : "bg-muted scale-100 group-hover:scale-105"
+                            )}>
+                              {system.icon}
+                            </div>
 
-                                    <div className="space-y-0.5">
-                                      <span className="font-medium text-xs line-clamp-2 leading-tight">
-                                        {system.label}
-                                      </span>
-                                      <p className="text-[9px] text-muted-foreground line-clamp-2">
-                                        {system.description}
-                                      </p>
-                                    </div>
+                            <span className="font-medium text-[10px] line-clamp-1 leading-tight">
+                              {system.label}
+                            </span>
 
-                                    {isSelected && (
-                                      <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-sm">
-                                        <CheckCircle2 className="w-3 h-3" />
-                                      </div>
-                                    )}
-                                  </button>
-                                </div>
-                              </CarouselItem>
-                            );
-                          })}
-                      </CarouselContent>
-                      <CarouselPrevious className="-left-3 h-7 w-7" />
-                      <CarouselNext className="-right-3 h-7 w-7" />
-                    </Carousel>
+                            {isSelected && (
+                              <div className="absolute top-1 right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-sm">
+                                <CheckCircle2 className="w-2.5 h-2.5" />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                   </div>
                 </div>
 

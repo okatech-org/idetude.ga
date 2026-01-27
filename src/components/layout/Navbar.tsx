@@ -10,10 +10,10 @@ const navLinks = [
 ];
 
 const solutionsLinks = [
-  { name: "Établissements", path: "/etablissements", icon: Building2, pricing: "Gratuit • 150 000 FCFA/mois • Premium" },
-  { name: "Parents", path: "/parents", icon: Users, pricing: "Gratuit • 5 000 FCFA/mois" },
-  { name: "Professeurs", path: "/professeurs", icon: BookOpen, pricing: "Gratuit • 2 500 FCFA/mois • 15 000 FCFA/mois" },
-  { name: "Élèves", path: "/eleves", icon: GradCap, pricing: "Gratuit • 2 500 FCFA/mois • 15 000 FCFA/mois" },
+  { name: "Établissements", path: "/etablissements", icon: Building2, description: "Pour les directeurs et fondateurs" },
+  { name: "Parents", path: "/parents", icon: Users, description: "Suivi de la scolarité en temps réel" },
+  { name: "Professeurs", path: "/professeurs", icon: BookOpen, description: "Outils pour l'enseignement" },
+  { name: "Élèves", path: "/eleves", icon: GradCap, description: "L'école dans ta poche" },
 ];
 
 const otherLinks = [
@@ -39,10 +39,17 @@ export const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close dropdown on route change
+  // Close dropdown when clicking outside
   useEffect(() => {
-    setIsSolutionsOpen(false);
-  }, [location.pathname]);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (solutionsRef.current && !solutionsRef.current.contains(event.target as Node)) {
+        setIsSolutionsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location]);
@@ -86,14 +93,10 @@ export const Navbar = () => {
               </Link>
             ))}
 
-            {/* Solutions Dropdown - Always visible on hover */}
-            <div 
-              ref={solutionsRef} 
-              className="relative group"
-              onMouseEnter={() => setIsSolutionsOpen(true)}
-              onMouseLeave={() => setIsSolutionsOpen(false)}
-            >
+            {/* Solutions Dropdown */}
+            <div ref={solutionsRef} className="relative">
               <button
+                onClick={() => setIsSolutionsOpen(!isSolutionsOpen)}
                 className={cn(
                   "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1",
                   solutionsLinks.some(l => location.pathname === l.path)
@@ -108,17 +111,15 @@ export const Navbar = () => {
                 )} />
               </button>
 
-              {/* Dropdown Menu - Non-retractable on hover */}
-              <div className={cn(
-                "absolute top-full left-0 pt-2 w-80 z-50 transition-all duration-200",
-                isSolutionsOpen ? "opacity-100 visible translate-y-0" : "opacity-0 invisible -translate-y-2"
-              )}>
-                <div className="glass-card-solid rounded-xl border border-border/30 shadow-lg overflow-hidden">
+              {/* Dropdown Menu */}
+              {isSolutionsOpen && (
+                <div className="absolute top-full left-0 mt-2 w-72 glass-card-solid rounded-xl border border-border/30 shadow-lg overflow-hidden z-50">
                   <div className="p-2">
                     {solutionsLinks.map((link) => (
                       <Link
                         key={link.path}
                         to={link.path}
+                        onClick={() => setIsSolutionsOpen(false)}
                         className={cn(
                           "flex items-start gap-3 p-3 rounded-lg transition-all duration-200",
                           location.pathname === link.path
@@ -129,15 +130,15 @@ export const Navbar = () => {
                         <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
                           <link.icon className="h-4 w-4" />
                         </div>
-                        <div className="flex-1 min-w-0">
+                        <div>
                           <p className="text-sm font-medium text-foreground">{link.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{link.pricing}</p>
+                          <p className="text-xs text-muted-foreground">{link.description}</p>
                         </div>
                       </Link>
                     ))}
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {otherLinks.map((link) => (
@@ -233,17 +234,14 @@ export const Navbar = () => {
                 key={link.path}
                 to={link.path}
                 className={cn(
-                  "flex items-start gap-3 px-4 py-3 rounded-lg transition-all duration-200",
+                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
                   location.pathname === link.path
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-primary/5"
                 )}
               >
-                <link.icon className="h-4 w-4 mt-0.5 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{link.name}</p>
-                  <p className="text-xs text-muted-foreground">{link.pricing}</p>
-                </div>
+                <link.icon className="h-4 w-4" />
+                {link.name}
               </Link>
             ))}
           </div>

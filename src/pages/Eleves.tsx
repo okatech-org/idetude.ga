@@ -24,6 +24,7 @@ import {
   Trophy,
   Sparkles,
 } from "lucide-react";
+import { PersonaPricing, ELEVE_PLANS } from "@/components/landing/PersonaPricing";
 
 const beneficesEleves = [
   {
@@ -396,6 +397,14 @@ const Eleves = () => {
           </div>
         </div>
       </section>
+
+      {/* Pricing Section */}
+      <PersonaPricing
+        title="Des options pour tous les élèves 🎓"
+        subtitle="Gratuit pour l'essentiel, des bonus pour aller plus loin"
+        plans={ELEVE_PLANS}
+        persona="eleve"
+      />
 
       {/* CTA Section */}
       <section id="suggest-student" className="py-20 px-4 bg-gradient-to-br from-primary/10 via-purple-500/5 to-pink-500/10">

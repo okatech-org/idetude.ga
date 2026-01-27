@@ -30,6 +30,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { PersonaPricing, PROFESSEUR_PLANS } from "@/components/landing/PersonaPricing";
 
 const problemsProfs = [
   {
@@ -531,6 +532,14 @@ const Professeurs = () => {
           </Accordion>
         </div>
       </section>
+
+      {/* Pricing Section */}
+      <PersonaPricing
+        title="Choisissez vos outils d'enseignant"
+        subtitle="Gratuit via votre établissement, options avancées disponibles"
+        plans={PROFESSEUR_PLANS}
+        persona="professeur"
+      />
 
       {/* CTA Section */}
       <section className="py-20 px-4 bg-primary/5">

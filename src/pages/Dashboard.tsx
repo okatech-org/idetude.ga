@@ -1,11 +1,10 @@
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { UserLayout } from "@/components/layout/UserLayout";
 import { GlassCard } from "@/components/ui/glass-card";
-import { GlassButton } from "@/components/ui/glass-button";
 import { TeacherDashboard } from "@/components/dashboard/TeacherDashboard";
 import { StudentDashboard } from "@/components/dashboard/StudentDashboard";
 import { ParentDashboard } from "@/components/dashboard/ParentDashboard";
+import { SuperAdminDashboard } from "@/components/dashboard/SuperAdminDashboard";
 import {
   User,
   Shield,
@@ -31,7 +30,6 @@ const roleLabels: Record<string, { label: string; icon: React.ElementType; color
 };
 
 const Dashboard = () => {
-  const navigate = useNavigate();
   const { user, profile, roles } = useAuth();
 
   // Determine which role-specific dashboard to show
@@ -75,50 +73,8 @@ const Dashboard = () => {
           </div>
         </GlassCard>
 
-        {/* Super Admin Section */}
-        {isSuperAdmin && (
-          <GlassCard className="p-6 border-2 border-red-500/20" solid>
-            <div className="flex items-center gap-3 mb-4">
-              <Shield className="h-6 w-6 text-red-500" />
-              <h2 className="text-lg font-bold text-foreground">
-                Panneau Super Administrateur
-              </h2>
-            </div>
-            <p className="text-muted-foreground mb-4">
-              Vous avez accès à toutes les fonctionnalités d'administration de la plateforme.
-            </p>
-            <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-3">
-              <GlassButton 
-                variant="outline" 
-                className="justify-start"
-                onClick={() => navigate("/admin/users")}
-              >
-                <Users className="h-4 w-4" />
-                Utilisateurs
-              </GlassButton>
-              <GlassButton 
-                variant="outline" 
-                className="justify-start"
-                onClick={() => navigate("/admin/establishments")}
-              >
-                <Building2 className="h-4 w-4" />
-                Établissements
-              </GlassButton>
-              <GlassButton 
-                variant="outline" 
-                className="justify-start"
-                onClick={() => navigate("/admin/moderation")}
-              >
-                <Shield className="h-4 w-4" />
-                Modération
-              </GlassButton>
-              <GlassButton variant="outline" className="justify-start">
-                <Settings className="h-4 w-4" />
-                Configuration
-              </GlassButton>
-            </div>
-          </GlassCard>
-        )}
+        {/* Super Admin Dashboard */}
+        {isSuperAdmin && <SuperAdminDashboard />}
 
         {/* Role-specific Dashboard */}
         {isTeacher && !isSuperAdmin && <TeacherDashboard />}

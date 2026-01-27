@@ -345,9 +345,9 @@ export const SuperAdminDashboard = () => {
   ];
 
   return (
-    <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div className="space-y-4 md:space-y-6">
+      {/* KPI Cards - Responsive grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
         {kpiStats.map((stat, index) => (
           <Card 
             key={stat.title} 
@@ -355,21 +355,21 @@ export const SuperAdminDashboard = () => {
             onClick={() => navigate(stat.link)}
             style={{ animationDelay: `${index * 100}ms` }}
           >
-            <CardContent className="p-4">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-center justify-between">
-                <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                <div className={`p-1.5 md:p-2 rounded-lg ${stat.bgColor}`}>
+                  <stat.icon className={`h-3.5 w-3.5 md:h-4 md:w-4 ${stat.color}`} />
                 </div>
-                <div className={`flex items-center gap-1 text-xs ${stat.trendUp ? 'text-green-500' : 'text-red-500'}`}>
-                  {stat.trendUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                <div className={`hidden sm:flex items-center gap-1 text-[10px] md:text-xs ${stat.trendUp ? 'text-green-500' : 'text-red-500'}`}>
+                  {stat.trendUp ? <TrendingUp className="h-2.5 w-2.5 md:h-3 md:w-3" /> : <TrendingDown className="h-2.5 w-2.5 md:h-3 md:w-3" />}
                   {stat.trend}
                 </div>
               </div>
-              <div className="mt-3">
+              <div className="mt-2 md:mt-3">
                 {isLoading ? (
-                  <Skeleton className="h-8 w-16" />
+                  <Skeleton className="h-6 md:h-8 w-12 md:w-16" />
                 ) : (
-                  <p className="text-2xl font-bold">
+                  <p className="text-xl md:text-2xl font-bold">
                     <AnimatedCounter 
                       value={stat.value} 
                       duration={1500} 
@@ -377,60 +377,60 @@ export const SuperAdminDashboard = () => {
                     />
                   </p>
                 )}
-                <p className="text-xs text-muted-foreground">{stat.title}</p>
+                <p className="text-[10px] md:text-xs text-muted-foreground">{stat.title}</p>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Quick Actions */}
-      <GlassCard className="p-4" solid>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-foreground">Actions rapides</h3>
-          <Badge variant="secondary" className="text-xs">
-            <Bell className="h-3 w-3 mr-1" />
-            {notificationsCount || 0} notifications
+      {/* Quick Actions - Responsive */}
+      <GlassCard className="p-3 md:p-4" solid>
+        <div className="flex items-center justify-between mb-2 md:mb-3">
+          <h3 className="text-sm md:text-base font-semibold text-foreground">Actions rapides</h3>
+          <Badge variant="secondary" className="text-[10px] md:text-xs">
+            <Bell className="h-2.5 w-2.5 md:h-3 md:w-3 mr-0.5 md:mr-1" />
+            {notificationsCount || 0}
           </Badge>
         </div>
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-1.5 md:gap-2">
           {quickActions.map((action) => (
             <GlassButton
               key={action.label}
               variant="ghost"
-              className="flex-col h-auto py-3 gap-1"
+              className="flex-col h-auto py-2 md:py-3 gap-0.5 md:gap-1"
               onClick={() => navigate(action.link)}
             >
-              <action.icon className={`h-5 w-5 ${action.color}`} />
-              <span className="text-xs">{action.label}</span>
+              <action.icon className={`h-4 w-4 md:h-5 md:w-5 ${action.color}`} />
+              <span className="text-[10px] md:text-xs">{action.label}</span>
             </GlassButton>
           ))}
         </div>
       </GlassCard>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Content Grid - Stack on mobile/tablet */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Left Column - Charts */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 md:space-y-6">
           {/* Growth Chart */}
           <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
+            <CardHeader className="p-3 md:p-6 pb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-sm md:text-base flex items-center gap-2">
+                    <Activity className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
                     Croissance Mensuelle
                   </CardTitle>
-                  <CardDescription>Évolution des établissements et utilisateurs</CardDescription>
+                  <CardDescription className="text-xs md:text-sm hidden sm:block">Évolution des établissements et utilisateurs</CardDescription>
                 </div>
-                <GlassButton variant="ghost" size="sm" onClick={() => navigate('/admin/analytics')}>
-                  <Eye className="h-4 w-4 mr-1" />
-                  Détails
+                <GlassButton variant="ghost" size="sm" onClick={() => navigate('/admin/analytics')} className="self-end sm:self-auto">
+                  <Eye className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1" />
+                  <span className="text-xs md:text-sm">Détails</span>
                 </GlassButton>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="h-[200px]">
+            <CardContent className="p-3 md:p-6 pt-0">
+              <div className="h-[160px] md:h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={monthlyGrowthData}>
                     <defs>
@@ -444,13 +444,14 @@ export const SuperAdminDashboard = () => {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="month" className="text-xs" />
-                    <YAxis className="text-xs" />
+                    <XAxis dataKey="month" className="text-[10px] md:text-xs" tick={{ fontSize: 10 }} />
+                    <YAxis className="text-[10px] md:text-xs" tick={{ fontSize: 10 }} width={30} />
                     <Tooltip 
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--background))',
                         border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px'
+                        borderRadius: '8px',
+                        fontSize: '12px'
                       }}
                     />
                     <Area 
@@ -476,7 +477,7 @@ export const SuperAdminDashboard = () => {
           </Card>
 
           {/* Distribution Charts Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             {/* By Type */}
             <Card>
               <CardHeader className="pb-2">

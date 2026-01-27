@@ -36,7 +36,17 @@ import {
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 
 export default function AdminSettings() {
-  const { enabledMethods, toggleMethod, setEnabledMethods, displayMode, setDisplayMode } = useCreationMethodConfig();
+  const { 
+    enabledMethods, 
+    toggleMethod, 
+    displayMode, 
+    setDisplayMode,
+    hasChanges: creationConfigHasChanges,
+    saveConfig: saveCreationConfig,
+    revertConfig: revertCreationConfig,
+    resetConfig: resetCreationConfig,
+  } = useCreationMethodConfig();
+  
   const { 
     settings, 
     updateSetting, 
@@ -47,11 +57,16 @@ export default function AdminSettings() {
     hasChanges: platformHasChanges 
   } = usePlatformSettings();
 
+  // Combined change detection
+  const hasChanges = platformHasChanges || creationConfigHasChanges;
+
   const handleToggleMethod = (method: CreationMethod) => {
     toggleMethod(method);
   };
 
   const handleSave = async () => {
+    // Save both configurations
+    saveCreationConfig();
     const success = await saveSettings();
     if (success) {
       toast.success("Paramètres sauvegardés avec succès");
@@ -62,13 +77,13 @@ export default function AdminSettings() {
 
   const handleReset = () => {
     resetSettings();
-    setEnabledMethods(["1-step"]);
-    setDisplayMode("modal");
+    resetCreationConfig();
     toast.info("Paramètres réinitialisés aux valeurs par défaut");
   };
 
   const handleRevert = () => {
     revertChanges();
+    revertCreationConfig();
     toast.info("Modifications annulées");
   };
 
@@ -77,7 +92,6 @@ export default function AdminSettings() {
   };
 
   const creationMethods: CreationMethod[] = ['1-step', '2-step', '3-step'];
-
   return (
     <UserLayout>
       <div className="space-y-6">
@@ -92,7 +106,7 @@ export default function AdminSettings() {
             </p>
           </div>
           <div className="flex gap-2">
-            {platformHasChanges && (
+            {hasChanges && (
               <Button 
                 variant="ghost" 
                 onClick={handleRevert}
@@ -110,7 +124,7 @@ export default function AdminSettings() {
             </Button>
             <Button 
               onClick={handleSave}
-              disabled={!platformHasChanges || isSaving}
+              disabled={!hasChanges || isSaving}
             >
               <Save className="h-4 w-4 mr-2" />
               {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
@@ -118,7 +132,7 @@ export default function AdminSettings() {
           </div>
         </div>
 
-        {platformHasChanges && (
+        {hasChanges && (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
             <p className="text-sm text-amber-600 dark:text-amber-400">

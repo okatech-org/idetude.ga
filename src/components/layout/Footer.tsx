@@ -2,6 +2,12 @@ import { Link } from "react-router-dom";
 import { GraduationCap, Mail, MapPin, Phone, Facebook, Twitter, Linkedin, Youtube } from "lucide-react";
 
 const footerLinks = {
+  solutions: [
+    { name: "Établissements", href: "/etablissements" },
+    { name: "Parents", href: "/parents" },
+    { name: "Professeurs", href: "/professeurs" },
+    { name: "Élèves", href: "/eleves" },
+  ],
   product: [
     { name: "Fonctionnalités", href: "/#fonctionnalites" },
     { name: "Tutoriels", href: "/tutoriels" },
@@ -33,7 +39,7 @@ export const Footer = () => {
   return (
     <footer className="glass-card-solid border-t border-border/30 mt-20">
       <div className="container mx-auto px-4 py-12 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-12">
           {/* Brand */}
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-4">
@@ -60,6 +66,23 @@ export const Footer = () => {
                 <span>+241 XX XX XX XX</span>
               </div>
             </div>
+          </div>
+
+          {/* Solutions Links */}
+          <div>
+            <h4 className="font-semibold text-foreground mb-4">Solutions</h4>
+            <ul className="space-y-3">
+              {footerLinks.solutions.map((link) => (
+                <li key={link.name}>
+                  <Link
+                    to={link.href}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
 
           {/* Product Links */}

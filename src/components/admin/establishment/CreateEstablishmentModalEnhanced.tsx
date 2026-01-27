@@ -934,12 +934,32 @@ export const CreateEstablishmentModalEnhanced = ({
                 {/* Education Systems */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label>Système(s) éducatif(s) *</Label>
-                    {languageDesignation && (
-                      <Badge variant="outline" className="bg-primary/10 border-primary text-primary">
-                        {languageDesignation.icon} {languageDesignation.label}
+                    <div className="flex items-center gap-3">
+                      <Label>Système(s) éducatif(s) *</Label>
+                      <Badge variant="outline" className="gap-1">
+                        <GraduationCap className="h-3 w-3" />
+                        {formData.educationSystems.length} sélectionné{formData.educationSystems.length > 1 ? 's' : ''}
                       </Badge>
-                    )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {languageDesignation && (
+                        <Badge variant="outline" className="bg-primary/10 border-primary text-primary">
+                          {languageDesignation.icon} {languageDesignation.label}
+                        </Badge>
+                      )}
+                      {expandedCategories.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setExpandedCategories([])}
+                          className="h-7 text-xs gap-1"
+                        >
+                          <Minimize2 className="h-3 w-3" />
+                          Tout réduire
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   {formData.educationSystems.length > 0 && (

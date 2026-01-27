@@ -346,9 +346,22 @@ export const SuperAdminDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Header with alerts */}
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-        {/* System Alerts - Left */}
-        <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-3">
+        {/* Title Block - Top Right aligned */}
+        <div className="flex items-center justify-end gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-foreground text-right">Panneau Super Administrateur</h2>
+            <p className="text-sm text-muted-foreground text-right">
+              Vue d'ensemble de l'écosystème • {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })}
+            </p>
+          </div>
+          <div className="p-2 rounded-xl bg-red-500/10">
+            <Shield className="h-6 w-6 text-red-500" />
+          </div>
+        </div>
+
+        {/* System Alerts - Bottom, same line */}
+        <div className="flex flex-wrap justify-end gap-2">
           {systemAlerts.map((alert) => (
             <button
               key={alert.id}
@@ -363,19 +376,6 @@ export const SuperAdminDashboard = () => {
               {alert.title}
             </button>
           ))}
-        </div>
-
-        {/* Title Block - Right */}
-        <div className="flex items-center gap-3">
-          <div>
-            <h2 className="text-xl font-bold text-foreground text-right">Panneau Super Administrateur</h2>
-            <p className="text-sm text-muted-foreground text-right">
-              Vue d'ensemble de l'écosystème • {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })}
-            </p>
-          </div>
-          <div className="p-2 rounded-xl bg-red-500/10">
-            <Shield className="h-6 w-6 text-red-500" />
-          </div>
         </div>
       </div>
 

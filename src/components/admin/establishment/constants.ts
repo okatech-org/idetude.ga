@@ -85,16 +85,16 @@ export const ESTABLISHMENT_TYPES = [
 
 export const TYPE_QUALIFICATIONS: Record<string, string[]> = {
   maternelle: [
-    "Bilingue", "Montessori", "Catholique", "Islamique", "Protestante", 
+    "Bilingue", "Montessori", "Catholique", "Islamique", "Protestante",
     "Internationale", "Publique", "Privée", "Conventionnée", "Laïque"
   ],
   primaire: [
-    "Bilingue", "Catholique", "Islamique", "Protestante", "Internationale", 
+    "Bilingue", "Catholique", "Islamique", "Protestante", "Internationale",
     "d'Application", "Publique", "Privée", "Conventionnée", "Laïque",
     "d'Excellence", "Pilote", "Expérimentale"
   ],
   college: [
-    "Général", "Technique", "Catholique", "Islamique", "Protestante", 
+    "Général", "Technique", "Catholique", "Islamique", "Protestante",
     "International", "Bilingue", "Public", "Privé", "Conventionné",
     "d'Excellence", "Pilote", "d'Enseignement Général"
   ],
@@ -124,6 +124,7 @@ export const EDUCATION_SYSTEM_CATEGORIES = [
     label: "Francophones",
     icon: "🇫🇷",
     systems: [
+      { value: "gabonais", label: "Gabonais", icon: "🇬🇦", description: "Système national du Gabon (CEP, BEPC, BAC)", mainLanguage: "fr" },
       { value: "francophone", label: "Francophone (France)", icon: "🇫🇷", description: "Baccalauréat français (BEPC, BAC)", mainLanguage: "fr" },
       { value: "belge", label: "Belge", icon: "🇧🇪", description: "Système belge francophone", mainLanguage: "fr" },
       { value: "suisse", label: "Suisse", icon: "🇨🇭", description: "Maturité suisse / Certificat fédéral", mainLanguage: "fr" },
@@ -207,14 +208,14 @@ export const getTeachingLanguagesFromSystems = (educationSystems: string[]): str
 };
 
 export const getLanguageDesignation = (
-  educationSystems: string[], 
+  educationSystems: string[],
   additionalTeachingLanguages: string[]
 ): { label: string; icon: string; totalLanguages: number } | null => {
   const systemLanguages = getTeachingLanguagesFromSystems(educationSystems);
   const allTeachingLanguages = new Set([...systemLanguages, ...additionalTeachingLanguages]);
   const totalLanguages = allTeachingLanguages.size;
   const isMixedSystem = educationSystems.length > 1;
-  
+
   if (totalLanguages === 1) {
     return isMixedSystem ? { label: "Mixte / Hybride", icon: "🔀", totalLanguages } : null;
   }

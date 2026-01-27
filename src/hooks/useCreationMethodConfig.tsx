@@ -1,14 +1,18 @@
 import { useState, createContext, useContext, ReactNode } from "react";
 
 export type CreationMethod = "1-step" | "2-step" | "3-step";
+export type DisplayMode = "modal" | "fullpage";
 
 export interface CreationMethodConfig {
   enabledMethods: CreationMethod[];
   setEnabledMethods: (methods: CreationMethod[]) => void;
   toggleMethod: (method: CreationMethod) => void;
+  displayMode: DisplayMode;
+  setDisplayMode: (mode: DisplayMode) => void;
 }
 
 const STORAGE_KEY = "establishment_creation_methods";
+const DISPLAY_MODE_KEY = "establishment_display_mode";
 
 const CreationMethodContext = createContext<CreationMethodConfig | undefined>(undefined);
 
@@ -27,8 +31,17 @@ const getStoredMethods = (): CreationMethod[] => {
   return ["1-step"];
 };
 
+const getStoredDisplayMode = (): DisplayMode => {
+  const stored = localStorage.getItem(DISPLAY_MODE_KEY);
+  if (stored === "modal" || stored === "fullpage") {
+    return stored;
+  }
+  return "modal";
+};
+
 export const CreationMethodProvider = ({ children }: { children: ReactNode }) => {
   const [enabledMethods, setEnabledMethodsState] = useState<CreationMethod[]>(getStoredMethods);
+  const [displayMode, setDisplayModeState] = useState<DisplayMode>(getStoredDisplayMode);
 
   const setEnabledMethods = (methods: CreationMethod[]) => {
     const finalMethods: CreationMethod[] = methods.length > 0 ? methods : ["1-step"];
@@ -43,8 +56,13 @@ export const CreationMethodProvider = ({ children }: { children: ReactNode }) =>
     setEnabledMethods(newMethods);
   };
 
+  const setDisplayMode = (mode: DisplayMode) => {
+    setDisplayModeState(mode);
+    localStorage.setItem(DISPLAY_MODE_KEY, mode);
+  };
+
   return (
-    <CreationMethodContext.Provider value={{ enabledMethods, setEnabledMethods, toggleMethod }}>
+    <CreationMethodContext.Provider value={{ enabledMethods, setEnabledMethods, toggleMethod, displayMode, setDisplayMode }}>
       {children}
     </CreationMethodContext.Provider>
   );
@@ -55,8 +73,10 @@ export const useCreationMethodConfig = (): CreationMethodConfig => {
   if (!context) {
     // Fallback if not wrapped in provider
     const enabledMethods = getStoredMethods();
+    const displayMode = getStoredDisplayMode();
     return {
       enabledMethods,
+      displayMode,
       setEnabledMethods: (m: CreationMethod[]) => {
         const final = m.length > 0 ? m : ["1-step"];
         localStorage.setItem(STORAGE_KEY, JSON.stringify(final));
@@ -68,6 +88,9 @@ export const useCreationMethodConfig = (): CreationMethodConfig => {
           : [...current, method];
         const final = newMethods.length > 0 ? newMethods : ["1-step"];
         localStorage.setItem(STORAGE_KEY, JSON.stringify(final));
+      },
+      setDisplayMode: (mode: DisplayMode) => {
+        localStorage.setItem(DISPLAY_MODE_KEY, mode);
       },
     };
   }

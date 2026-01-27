@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   Settings, 
   Bell,
@@ -19,12 +20,15 @@ import {
   RefreshCw,
   AlertTriangle,
   Building2,
-  Layers
+  Layers,
+  Maximize2,
+  PanelTop
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { 
-  CreationMethod, 
+  CreationMethod,
+  DisplayMode,
   useCreationMethodConfig, 
   getMethodLabel, 
   getMethodDescription 
@@ -66,7 +70,7 @@ const defaultSettings: PlatformSettings = {
 };
 
 export default function AdminSettings() {
-  const { enabledMethods, toggleMethod, setEnabledMethods } = useCreationMethodConfig();
+  const { enabledMethods, toggleMethod, setEnabledMethods, displayMode, setDisplayMode } = useCreationMethodConfig();
   const [settings, setSettings] = useState<PlatformSettings>(defaultSettings);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -96,8 +100,14 @@ export default function AdminSettings() {
   const handleReset = () => {
     setSettings(defaultSettings);
     setEnabledMethods(["1-step"]);
+    setDisplayMode("modal");
     setHasChanges(false);
     toast.info("Paramètres réinitialisés");
+  };
+
+  const handleDisplayModeChange = (mode: DisplayMode) => {
+    setDisplayMode(mode);
+    setHasChanges(true);
   };
 
   const creationMethods: CreationMethod[] = ['1-step', '2-step', '3-step'];
@@ -345,62 +355,128 @@ export default function AdminSettings() {
                 Création d'établissements
               </CardTitle>
               <CardDescription>
-                Sélectionnez les méthodes de création disponibles. Si plusieurs sont activées, l'utilisateur pourra choisir.
+                Configurez les méthodes de création et le mode d'affichage des formulaires.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {creationMethods.map((method) => {
-                  const isEnabled = enabledMethods.includes(method);
-                  return (
-                    <label
-                      key={method}
-                      htmlFor={`method-${method}`}
-                      className={`relative flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        isEnabled
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Checkbox 
-                          id={`method-${method}`}
-                          checked={isEnabled}
-                          onCheckedChange={() => handleToggleMethod(method)}
-                        />
-                        <div className="flex items-center gap-2">
-                          <Layers className="h-4 w-4 text-primary" />
-                          <span className="font-medium">{getMethodLabel(method)}</span>
-                        </div>
+            <CardContent className="space-y-6">
+              {/* Display Mode Section */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <PanelTop className="h-4 w-4" />
+                  Mode d'affichage
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Choisissez comment les formulaires de création s'affichent. L'utilisateur peut basculer entre les deux modes pendant la création.
+                </p>
+                <RadioGroup 
+                  value={displayMode} 
+                  onValueChange={(v) => handleDisplayModeChange(v as DisplayMode)}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                >
+                  <label
+                    htmlFor="mode-modal"
+                    className={`relative flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      displayMode === "modal"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <RadioGroupItem value="modal" id="mode-modal" className="mt-1" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <PanelTop className="h-4 w-4 text-primary" />
+                        <span className="font-medium">Bloc flottant (Modal)</span>
                       </div>
-                      <p className="mt-2 text-sm text-muted-foreground pl-7">
-                        {getMethodDescription(method)}
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Ouvre un dialogue par-dessus la page actuelle. Pratique pour les créations rapides.
                       </p>
-                      {isEnabled && (
-                        <Badge className="absolute top-2 right-2 text-xs">Actif</Badge>
-                      )}
-                    </label>
-                  );
-                })}
+                    </div>
+                    {displayMode === "modal" && (
+                      <Badge className="absolute top-2 right-2 text-xs">Par défaut</Badge>
+                    )}
+                  </label>
+                  <label
+                    htmlFor="mode-fullpage"
+                    className={`relative flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      displayMode === "fullpage"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    }`}
+                  >
+                    <RadioGroupItem value="fullpage" id="mode-fullpage" className="mt-1" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Maximize2 className="h-4 w-4 text-primary" />
+                        <span className="font-medium">Pleine page</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Utilise toute la page pour plus d'espace. Idéal pour les configurations détaillées.
+                      </p>
+                    </div>
+                    {displayMode === "fullpage" && (
+                      <Badge className="absolute top-2 right-2 text-xs">Par défaut</Badge>
+                    )}
+                  </label>
+                </RadioGroup>
               </div>
 
-              <div className="mt-4 p-3 rounded-lg bg-muted/50 text-sm">
+              <Separator />
+
+              {/* Creation Methods Section */}
+              <div className="space-y-4">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <Layers className="h-4 w-4" />
+                  Méthodes de création
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Sélectionnez les méthodes disponibles. Si plusieurs sont activées, l'utilisateur pourra choisir.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {creationMethods.map((method) => {
+                    const isEnabled = enabledMethods.includes(method);
+                    return (
+                      <label
+                        key={method}
+                        htmlFor={`method-${method}`}
+                        className={`relative flex flex-col p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          isEnabled
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Checkbox 
+                            id={`method-${method}`}
+                            checked={isEnabled}
+                            onCheckedChange={() => handleToggleMethod(method)}
+                          />
+                          <div className="flex items-center gap-2">
+                            <Layers className="h-4 w-4 text-primary" />
+                            <span className="font-medium">{getMethodLabel(method)}</span>
+                          </div>
+                        </div>
+                        <p className="mt-2 text-sm text-muted-foreground pl-7">
+                          {getMethodDescription(method)}
+                        </p>
+                        {isEnabled && (
+                          <Badge className="absolute top-2 right-2 text-xs">Actif</Badge>
+                        )}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-muted/50 text-sm">
                 <p className="font-medium mb-1">
-                  {enabledMethods.length > 1 
-                    ? `${enabledMethods.length} méthodes activées - L'utilisateur choisira au moment de la création`
-                    : "Méthode unique - Utilisée automatiquement"
-                  }
+                  Résumé de la configuration :
                 </p>
                 <ul className="space-y-1 text-muted-foreground mt-2">
-                  {enabledMethods.includes('1-step') && (
-                    <li>• <strong>1 étape</strong> : Tous les onglets accessibles simultanément</li>
-                  )}
-                  {enabledMethods.includes('2-step') && (
-                    <li>• <strong>2 étapes</strong> : Informations → Configuration complète</li>
-                  )}
-                  {enabledMethods.includes('3-step') && (
-                    <li>• <strong>3 étapes</strong> : Informations → Structure → Personnel</li>
-                  )}
+                  <li>• <strong>Affichage</strong> : {displayMode === "modal" ? "Bloc flottant" : "Pleine page"} (basculement possible)</li>
+                  <li>• <strong>Méthodes</strong> : {enabledMethods.length > 1 
+                    ? `${enabledMethods.length} méthodes - L'utilisateur choisira`
+                    : "Méthode unique"
+                  }</li>
                 </ul>
               </div>
             </CardContent>

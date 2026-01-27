@@ -27,10 +27,12 @@ import {
 } from "./types";
 import {
   EDUCATION_CYCLES, ESTABLISHMENT_TYPES, TYPE_QUALIFICATIONS,
-  EDUCATION_SYSTEM_CATEGORIES, EDUCATION_SYSTEMS, LANGUAGES, COUNTRIES,
-  OPTIONS_LYCEE, getTeachingLanguagesFromSystems, getLanguageDesignation,
-  getSelectedLevelsDisplay
+  LANGUAGES, COUNTRIES, OPTIONS_LYCEE, getSelectedLevelsDisplay
 } from "./constants";
+import {
+  GLOBAL_EDUCATION_SYSTEM_CATEGORIES, ALL_EDUCATION_SYSTEMS,
+  getTeachingLanguagesFromSystems, getLanguageDesignation
+} from "./educationSystems";
 import { useEstablishmentDraft } from "./useEstablishmentDraft";
 import { StaffManagementTab } from "./StaffManagementTab";
 import { DraftsList } from "./DraftsList";
@@ -144,7 +146,7 @@ export const CreateEstablishmentModalEnhanced = ({
   const selectedGroupName = groups.find(g => g.id === formData.group_id)?.name;
 
   // Filter categories based on search
-  const filteredCategories = EDUCATION_SYSTEM_CATEGORIES.map(category => ({
+  const filteredCategories = GLOBAL_EDUCATION_SYSTEM_CATEGORIES.map(category => ({
     ...category,
     systems: category.systems.filter(system =>
       system.label.toLowerCase().includes(systemSearchTerm.toLowerCase()) ||
@@ -929,7 +931,7 @@ export const CreateEstablishmentModalEnhanced = ({
                   {formData.educationSystems.length > 0 && (
                     <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
                       {formData.educationSystems.map(sysValue => {
-                        const system = EDUCATION_SYSTEMS.find(s => s.value === sysValue);
+                        const system = ALL_EDUCATION_SYSTEMS.find(s => s.value === sysValue);
                         return system ? (
                           <Badge key={sysValue} variant="secondary" className="gap-2 pr-1">
                             <span>{system.icon}</span>
@@ -954,55 +956,109 @@ export const CreateEstablishmentModalEnhanced = ({
                     <Input
                       value={systemSearchTerm}
                       onChange={(e) => setSystemSearchTerm(e.target.value)}
-                      placeholder="Rechercher un système éducatif..."
+                      placeholder="Rechercher un système éducatif (ex: Gabonais, IB, Cambridge...)"
                       className="pl-10"
                     />
                   </div>
 
-                  <div className="grid grid-cols-4 gap-2 max-h-[280px] overflow-y-auto p-2 border rounded-lg">
-                    {EDUCATION_SYSTEMS
-                      .filter(sys => sys.label.toLowerCase().includes(systemSearchTerm.toLowerCase()) || sys.description.toLowerCase().includes(systemSearchTerm.toLowerCase()))
-                      .map((system) => {
-                        const isSelected = formData.educationSystems.includes(system.value);
+                  <div className="max-h-[320px] overflow-y-auto border rounded-lg">
+                    {GLOBAL_EDUCATION_SYSTEM_CATEGORIES
+                      .filter(cat => {
+                        if (!systemSearchTerm) return true;
+                        const searchLower = systemSearchTerm.toLowerCase();
+                        return cat.label.toLowerCase().includes(searchLower) ||
+                          cat.systems.some(sys => 
+                            sys.label.toLowerCase().includes(searchLower) || 
+                            sys.description.toLowerCase().includes(searchLower)
+                          );
+                      })
+                      .map((category) => {
+                        const isExpanded = expandedCategories.includes(category.id);
+                        const filteredSystems = systemSearchTerm
+                          ? category.systems.filter(sys =>
+                              sys.label.toLowerCase().includes(systemSearchTerm.toLowerCase()) ||
+                              sys.description.toLowerCase().includes(systemSearchTerm.toLowerCase())
+                            )
+                          : category.systems;
+                        
+                        if (filteredSystems.length === 0) return null;
+                        
+                        const selectedCount = filteredSystems.filter(sys => 
+                          formData.educationSystems.includes(sys.value)
+                        ).length;
+
                         return (
-                          <button
-                            key={system.value}
-                            type="button"
-                            onClick={() => {
-                              if (isSelected) {
-                                updateFormData({
-                                  educationSystems: formData.educationSystems.filter(s => s !== system.value)
-                                });
-                              } else {
-                                updateFormData({
-                                  educationSystems: [...formData.educationSystems, system.value]
-                                });
-                              }
-                            }}
-                            className={cn(
-                              "relative flex flex-col items-center justify-center gap-1 p-2 rounded-lg border-2 transition-all duration-200 group text-center min-h-[80px]",
-                              isSelected
-                                ? "border-primary bg-primary/5 shadow-sm"
-                                : "border-border/50 bg-background hover:border-primary/50 hover:bg-muted/50"
-                            )}
-                          >
-                            <div className={cn(
-                              "w-8 h-8 rounded-full flex items-center justify-center text-lg transition-transform duration-300",
-                              isSelected ? "bg-primary/10 scale-110" : "bg-muted scale-100 group-hover:scale-105"
-                            )}>
-                              {system.icon}
-                            </div>
+                          <div key={category.id} className="border-b last:border-b-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setExpandedCategories(prev =>
+                                  prev.includes(category.id)
+                                    ? prev.filter(id => id !== category.id)
+                                    : [...prev, category.id]
+                                );
+                              }}
+                              className="w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">{category.icon}</span>
+                                <span className="font-medium text-sm">{category.label}</span>
+                                <span className="text-xs text-muted-foreground">({filteredSystems.length})</span>
+                                {selectedCount > 0 && (
+                                  <Badge variant="default" className="text-xs h-5">
+                                    {selectedCount} sélectionné{selectedCount > 1 ? 's' : ''}
+                                  </Badge>
+                                )}
+                              </div>
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </button>
 
-                            <span className="font-medium text-[10px] line-clamp-1 leading-tight">
-                              {system.label}
-                            </span>
-
-                            {isSelected && (
-                              <div className="absolute top-1 right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-sm">
-                                <CheckCircle2 className="w-2.5 h-2.5" />
+                            {isExpanded && (
+                              <div className="grid grid-cols-4 gap-1.5 p-2 bg-muted/20">
+                                {filteredSystems.map((system) => {
+                                  const isSelected = formData.educationSystems.includes(system.value);
+                                  return (
+                                    <button
+                                      key={system.value}
+                                      type="button"
+                                      onClick={() => {
+                                        if (isSelected) {
+                                          updateFormData({
+                                            educationSystems: formData.educationSystems.filter(s => s !== system.value)
+                                          });
+                                        } else {
+                                          updateFormData({
+                                            educationSystems: [...formData.educationSystems, system.value]
+                                          });
+                                        }
+                                      }}
+                                      title={system.description}
+                                      className={cn(
+                                        "relative flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-md border transition-all duration-200 group text-center min-h-[60px]",
+                                        isSelected
+                                          ? "border-primary bg-primary/10 shadow-sm"
+                                          : "border-transparent bg-background hover:border-primary/50 hover:bg-muted/50"
+                                      )}
+                                    >
+                                      <span className="text-base">{system.icon}</span>
+                                      <span className="font-medium text-[9px] line-clamp-2 leading-tight">
+                                        {system.label}
+                                      </span>
+                                      {isSelected && (
+                                        <div className="absolute top-0.5 right-0.5 w-3 h-3 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
+                                          <CheckCircle2 className="w-2 h-2" />
+                                        </div>
+                                      )}
+                                    </button>
+                                  );
+                                })}
                               </div>
                             )}
-                          </button>
+                          </div>
                         );
                       })}
                   </div>

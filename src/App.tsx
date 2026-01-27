@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { NotificationsProvider } from "@/hooks/useNotifications";
+import { CreationMethodProvider } from "@/hooks/useCreationMethodConfig";
 import Index from "./pages/Index";
 import Actualites from "./pages/Actualites";
 import Sensibilisation from "./pages/Sensibilisation";
@@ -50,54 +51,56 @@ const App = () => (
     <ThemeProvider defaultTheme="system" storageKey="idetude-theme">
       <AuthProvider>
         <NotificationsProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/actualites" element={<Actualites />} />
-              <Route path="/sensibilisation" element={<Sensibilisation />} />
-              <Route path="/tutoriels" element={<Tutoriels />} />
-              <Route path="/demo" element={<Demo />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/connexion" element={<Auth />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/messages" element={<Messages />} />
-              <Route path="/notes" element={<Grades />} />
-              <Route path="/absences" element={<Absences />} />
-              <Route path="/emploi-du-temps" element={<Schedule />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/bulletins" element={<ReportCards />} />
-              <Route path="/devoirs" element={<Assignments />} />
-              <Route path="/chat" element={<Chat />} />
-              <Route path="/paiements" element={<Payments />} />
-              <Route path="/rendez-vous" element={<Appointments />} />
-              <Route path="/documents" element={<Documents />} />
-              <Route path="/groupes" element={<ClassGroups />} />
-              <Route path="/calendrier" element={<SchoolCalendar />} />
-              <Route path="/ressources" element={<Resources />} />
-              <Route path="/ressources/stats" element={<ResourceAnalytics />} />
-              <Route path="/competences" element={<Competencies />} />
-              <Route path="/export" element={<DataExport />} />
-              <Route path="/admin/users" element={<UsersManagement />} />
-              <Route path="/admin/establishments" element={<EstablishmentsManagement />} />
-              <Route path="/admin/establishments/config" element={<EstablishmentConfig />} />
-              <Route path="/admin/moderation" element={<CommentModeration />} />
-              <Route path="/admin/countries" element={<CountriesManagement />} />
-              <Route path="/admin/regions" element={<RegionsManagement />} />
-              <Route path="/admin/groups" element={<SchoolGroupsManagement />} />
-              <Route path="/admin/analytics" element={<GlobalAnalytics />} />
-              <Route path="/admin/activity" element={<ActivityLog />} />
-              <Route path="/admin/export" element={<GlobalExport />} />
-              <Route path="/admin/settings" element={<AdminSettings />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </NotificationsProvider>
-    </AuthProvider>
-  </ThemeProvider>
+          <CreationMethodProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/actualites" element={<Actualites />} />
+                  <Route path="/sensibilisation" element={<Sensibilisation />} />
+                  <Route path="/tutoriels" element={<Tutoriels />} />
+                  <Route path="/demo" element={<Demo />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/connexion" element={<Auth />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/messages" element={<Messages />} />
+                  <Route path="/notes" element={<Grades />} />
+                  <Route path="/absences" element={<Absences />} />
+                  <Route path="/emploi-du-temps" element={<Schedule />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/bulletins" element={<ReportCards />} />
+                  <Route path="/devoirs" element={<Assignments />} />
+                  <Route path="/chat" element={<Chat />} />
+                  <Route path="/paiements" element={<Payments />} />
+                  <Route path="/rendez-vous" element={<Appointments />} />
+                  <Route path="/documents" element={<Documents />} />
+                  <Route path="/groupes" element={<ClassGroups />} />
+                  <Route path="/calendrier" element={<SchoolCalendar />} />
+                  <Route path="/ressources" element={<Resources />} />
+                  <Route path="/ressources/stats" element={<ResourceAnalytics />} />
+                  <Route path="/competences" element={<Competencies />} />
+                  <Route path="/export" element={<DataExport />} />
+                  <Route path="/admin/users" element={<UsersManagement />} />
+                  <Route path="/admin/establishments" element={<EstablishmentsManagement />} />
+                  <Route path="/admin/establishments/config" element={<EstablishmentConfig />} />
+                  <Route path="/admin/moderation" element={<CommentModeration />} />
+                  <Route path="/admin/countries" element={<CountriesManagement />} />
+                  <Route path="/admin/regions" element={<RegionsManagement />} />
+                  <Route path="/admin/groups" element={<SchoolGroupsManagement />} />
+                  <Route path="/admin/analytics" element={<GlobalAnalytics />} />
+                  <Route path="/admin/activity" element={<ActivityLog />} />
+                  <Route path="/admin/export" element={<GlobalExport />} />
+                  <Route path="/admin/settings" element={<AdminSettings />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </CreationMethodProvider>
+        </NotificationsProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

@@ -78,10 +78,49 @@ export const ESTABLISHMENT_TYPES = [
   { value: "maternelle", label: "Maternelle", defaultCycles: ["maternelle"], icon: "🏒" },
   { value: "primaire", label: "École Primaire", defaultCycles: ["primaire"], icon: "📚" },
   { value: "college", label: "Collège", defaultCycles: ["college"], icon: "🎓" },
-  { value: "lycee", label: "Lycée", defaultCycles: ["lycee"], icon: "📖" },
+  { value: "lycee", label: "Lycée", defaultCycles: ["lycee", "technique"], icon: "📖" },
   { value: "superieur", label: "Enseignement Supérieur", defaultCycles: ["superieur"], icon: "🎓" },
   { value: "universite", label: "Université", defaultCycles: ["superieur"], icon: "🏛️" },
+  { value: "complexe", label: "Complexe Scolaire", defaultCycles: ["maternelle", "primaire", "college", "lycee"], icon: "🏫" },
+  { value: "groupe", label: "Groupe Scolaire", defaultCycles: ["maternelle", "primaire"], icon: "🏘️" },
 ];
+
+// Obtenir les cycles applicables en fonction des types d'établissement sélectionnés
+export const getApplicableCycles = (typesWithQualification: { type: string; qualification: string }[]): string[] => {
+  if (typesWithQualification.length === 0) {
+    // Si aucun type sélectionné, retourner tous les cycles
+    return Object.keys(EDUCATION_CYCLES);
+  }
+  
+  const applicableCycles = new Set<string>();
+  
+  typesWithQualification.forEach(twq => {
+    const estType = ESTABLISHMENT_TYPES.find(t => t.value === twq.type);
+    if (estType) {
+      estType.defaultCycles.forEach(cycle => applicableCycles.add(cycle));
+    }
+    
+    // Ajouter le cycle "technique" pour les lycées techniques/professionnels
+    if (twq.type === "lycee" && 
+        (twq.qualification?.toLowerCase().includes("technique") || 
+         twq.qualification?.toLowerCase().includes("professionnel"))) {
+      applicableCycles.add("technique");
+    }
+  });
+  
+  return Array.from(applicableCycles);
+};
+
+// Vérifier si un niveau appartient à un des cycles applicables
+export const isLevelInApplicableCycles = (levelId: string, applicableCycles: string[]): boolean => {
+  for (const cycleKey of applicableCycles) {
+    const cycle = EDUCATION_CYCLES[cycleKey as keyof typeof EDUCATION_CYCLES];
+    if (cycle && cycle.levels.some(l => l.id === levelId)) {
+      return true;
+    }
+  }
+  return false;
+};
 
 export const TYPE_QUALIFICATIONS: Record<string, string[]> = {
   maternelle: [

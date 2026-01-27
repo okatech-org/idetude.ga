@@ -32,7 +32,7 @@ import {
   generateClassNames,
   generateClassId 
 } from "./classConfigTypes";
-import { EDUCATION_CYCLES, OPTIONS_LYCEE } from "./constants";
+import { EDUCATION_CYCLES, OPTIONS_LYCEE, getApplicableCycles } from "./constants";
 
 interface ClassConfigTabProps {
   selectedLevels: string[];
@@ -59,8 +59,16 @@ export const ClassConfigTab = ({
   const [customClassCount, setCustomClassCount] = useState<number>(3);
   const [applyToAll, setApplyToAll] = useState(true);
 
+  // Obtenir les cycles applicables basés sur les types d'établissement
+  const applicableCycles = getApplicableCycles(typesWithQualification);
+  
   const presets = getPresetsForSystem(educationSystems);
   const showOptions = typesWithQualification.some(twq => ["lycee"].includes(twq.type));
+  const showTechnique = typesWithQualification.some(twq => 
+    twq.type === "lycee" && 
+    (twq.qualification?.toLowerCase().includes("technique") || 
+     twq.qualification?.toLowerCase().includes("professionnel"))
+  );
 
   // Appliquer un preset à tous les niveaux sélectionnés
   const applyPreset = () => {
@@ -171,13 +179,24 @@ export const ClassConfigTab = ({
   return (
     <div className="space-y-6">
       {/* Info box */}
-      <Alert className="border-primary/30 bg-primary/5">
-        <Info className="h-4 w-4 text-primary" />
-        <AlertDescription className="text-sm">
-          <strong>Configuration des classes :</strong> Sélectionnez d'abord les niveaux enseignés, 
-          puis configurez les classes de chaque niveau (ex: 6ème A, 6ème B, 6ème C).
-        </AlertDescription>
-      </Alert>
+      {applicableCycles.length === 0 ? (
+        <Alert className="border-amber-500/30 bg-amber-50 dark:bg-amber-900/20">
+          <Info className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-sm text-amber-700 dark:text-amber-300">
+            <strong>Aucun type d'établissement sélectionné.</strong> Veuillez d'abord sélectionner 
+            un ou plusieurs types d'établissement dans l'onglet "Informations" pour voir les niveaux disponibles.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Alert className="border-primary/30 bg-primary/5">
+          <Info className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-sm">
+            <strong>Configuration des classes :</strong> Les niveaux affichés correspondent aux types 
+            d'établissement sélectionnés ({typesWithQualification.map(t => t.type).join(", ")}). 
+            Configurez les classes de chaque niveau (ex: 6ème A, 6ème B).
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Pré-configuration rapide */}
       <div className="p-4 rounded-lg border bg-muted/30 space-y-4">
@@ -266,14 +285,17 @@ export const ClassConfigTab = ({
       </div>
 
       {/* Sélection des niveaux et configuration des classes */}
-      <Accordion type="multiple" defaultValue={Object.keys(EDUCATION_CYCLES)} className="space-y-2">
-        {Object.entries(EDUCATION_CYCLES).map(([cycleKey, cycle]) => {
-          const cycleLevelIds = cycle.levels.map(l => l.id);
-          const selectedCount = cycleLevelIds.filter(id => selectedLevels.includes(id)).length;
-          const allSelected = selectedCount === cycleLevelIds.length;
-          const cycleClassCount = classesConfig
-            .filter(c => cycleLevelIds.includes(c.levelId))
-            .reduce((acc, c) => acc + c.classes.length, 0);
+      {applicableCycles.length > 0 && (
+        <Accordion type="multiple" defaultValue={applicableCycles} className="space-y-2">
+          {Object.entries(EDUCATION_CYCLES)
+            .filter(([cycleKey]) => applicableCycles.includes(cycleKey))
+            .map(([cycleKey, cycle]) => {
+            const cycleLevelIds = cycle.levels.map(l => l.id);
+            const selectedCount = cycleLevelIds.filter(id => selectedLevels.includes(id)).length;
+            const allSelected = selectedCount === cycleLevelIds.length;
+            const cycleClassCount = classesConfig
+              .filter(c => cycleLevelIds.includes(c.levelId))
+              .reduce((acc, c) => acc + c.classes.length, 0);
 
           return (
             <AccordionItem 
@@ -355,7 +377,8 @@ export const ClassConfigTab = ({
             </AccordionItem>
           );
         })}
-      </Accordion>
+        </Accordion>
+      )}
 
       {/* Options Lycée */}
       {showOptions && (

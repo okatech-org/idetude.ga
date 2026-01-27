@@ -1,5 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { UserLayout } from "@/components/layout/UserLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { TeacherDashboard } from "@/components/dashboard/TeacherDashboard";
@@ -15,6 +17,7 @@ import {
   Users,
   Settings,
   AlertTriangle,
+  Info,
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -33,13 +36,6 @@ const roleLabels: Record<string, { label: string; icon: React.ElementType; color
   parent_secondary: { label: "Parent Secondaire", icon: Users, color: "from-rose-500/20 to-rose-500/5" },
 };
 
-// System alerts for Super Admin
-const systemAlerts = [
-  { id: '1', type: 'warning', title: '3 établissements sans directeur', link: '/admin/establishments' },
-  { id: '2', type: 'info', title: '12 utilisateurs en attente de validation', link: '/admin/users' },
-  { id: '3', type: 'warning', title: '5 commentaires signalés à modérer', link: '/admin/moderation' },
-];
-
 const Dashboard = () => {
   const { user, profile, roles } = useAuth();
   const navigate = useNavigate();
@@ -49,6 +45,93 @@ const Dashboard = () => {
   const isStudent = roles.includes("student");
   const isParent = roles.includes("parent_primary") || roles.includes("parent_secondary");
   const isSuperAdmin = roles.includes("super_admin");
+
+  // Dynamic alerts for Super Admin
+  const { data: establishmentsWithoutDirector } = useQuery({
+    queryKey: ['alerts-establishments-no-director'],
+    queryFn: async () => {
+      // Get all establishments
+      const { data: establishments, error: estError } = await supabase
+        .from('establishments')
+        .select('id');
+      if (estError) throw estError;
+      
+      // Get establishments with a director
+      const { data: staffWithDirector, error: staffError } = await supabase
+        .from('establishment_staff')
+        .select('establishment_id')
+        .eq('staff_type', 'direction')
+        .eq('is_active', true);
+      if (staffError) throw staffError;
+      
+      const establishmentsWithDirector = new Set(staffWithDirector?.map(s => s.establishment_id) || []);
+      const withoutDirector = establishments?.filter(e => !establishmentsWithDirector.has(e.id)) || [];
+      
+      return withoutDirector.length;
+    },
+    enabled: isSuperAdmin,
+  });
+
+  const { data: pendingUsersCount } = useQuery({
+    queryKey: ['alerts-pending-users'],
+    queryFn: async () => {
+      // Users without any role assigned
+      const { data: profiles, error: profError } = await supabase
+        .from('profiles')
+        .select('id');
+      if (profError) throw profError;
+      
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id');
+      if (rolesError) throw rolesError;
+      
+      const usersWithRoles = new Set(userRoles?.map(r => r.user_id) || []);
+      const pendingUsers = profiles?.filter(p => !usersWithRoles.has(p.id)) || [];
+      
+      return pendingUsers.length;
+    },
+    enabled: isSuperAdmin,
+  });
+
+  const { data: flaggedCommentsCount } = useQuery({
+    queryKey: ['alerts-flagged-comments'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('resource_comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_flagged', true)
+        .eq('is_hidden', false);
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: isSuperAdmin,
+  });
+
+  // Build dynamic system alerts
+  const systemAlerts = [
+    ...(establishmentsWithoutDirector && establishmentsWithoutDirector > 0 ? [{
+      id: '1',
+      type: 'warning' as const,
+      title: `${establishmentsWithoutDirector} établissement${establishmentsWithoutDirector > 1 ? 's' : ''} sans directeur`,
+      link: '/admin/establishments',
+      icon: Building2,
+    }] : []),
+    ...(pendingUsersCount && pendingUsersCount > 0 ? [{
+      id: '2',
+      type: 'info' as const,
+      title: `${pendingUsersCount} utilisateur${pendingUsersCount > 1 ? 's' : ''} en attente de validation`,
+      link: '/admin/users',
+      icon: Users,
+    }] : []),
+    ...(flaggedCommentsCount && flaggedCommentsCount > 0 ? [{
+      id: '3',
+      type: 'warning' as const,
+      title: `${flaggedCommentsCount} commentaire${flaggedCommentsCount > 1 ? 's' : ''} signalé${flaggedCommentsCount > 1 ? 's' : ''} à modérer`,
+      link: '/admin/moderation',
+      icon: AlertTriangle,
+    }] : []),
+  ];
 
   return (
     <UserLayout title="Tableau de bord">
@@ -103,22 +186,30 @@ const Dashboard = () => {
             </div>
 
             {/* Bottom row - System Alerts aligned right */}
-            {isSuperAdmin && (
-              <div className="flex flex-wrap justify-end gap-2">
-                {systemAlerts.map((alert) => (
-                  <button
-                    key={alert.id}
-                    onClick={() => navigate(alert.link)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                      alert.type === 'warning' 
-                        ? 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20' 
-                        : 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20'
-                    }`}
-                  >
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    {alert.title}
-                  </button>
-                ))}
+            {isSuperAdmin && systemAlerts.length > 0 && (
+              <div className="flex flex-wrap justify-end gap-2 animate-fade-in">
+                {systemAlerts.map((alert, index) => {
+                  const AlertIcon = alert.icon;
+                  return (
+                    <button
+                      key={alert.id}
+                      onClick={() => navigate(alert.link)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all hover:scale-105 ${
+                        alert.type === 'warning' 
+                          ? 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20' 
+                          : 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20'
+                      }`}
+                      style={{ animationDelay: `${index * 100}ms` }}
+                    >
+                      {alert.type === 'warning' ? (
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                      ) : (
+                        <Info className="h-3.5 w-3.5" />
+                      )}
+                      {alert.title}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

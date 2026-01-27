@@ -27,7 +27,8 @@ import {
 } from "./types";
 import {
   EDUCATION_CYCLES, ESTABLISHMENT_TYPES, TYPE_QUALIFICATIONS,
-  LANGUAGES, COUNTRIES, OPTIONS_LYCEE, getSelectedLevelsDisplay
+  LANGUAGES, COUNTRIES, OPTIONS_LYCEE, getSelectedLevelsDisplay,
+  getApplicableCycles, isLevelInApplicableCycles
 } from "./constants";
 import {
   GLOBAL_EDUCATION_SYSTEM_CATEGORIES, ALL_EDUCATION_SYSTEMS,
@@ -195,8 +196,16 @@ export const CreateEstablishmentModalEnhanced = ({
     }
   }, [open]);
 
-  // Update levels when types change
+  // Update levels when types change - auto-select default levels and filter out non-applicable ones
   useEffect(() => {
+    const applicableCycles = getApplicableCycles(formData.typesWithQualification);
+    
+    // Filter out currently selected levels that are no longer applicable
+    const filteredCurrentLevels = formData.selectedLevels.filter(levelId => 
+      isLevelInApplicableCycles(levelId, applicableCycles)
+    );
+    
+    // Get default levels for the new types
     const defaultLevels: string[] = [];
     formData.typesWithQualification.forEach(twq => {
       const estType = ESTABLISHMENT_TYPES.find(t => t.value === twq.type);
@@ -213,8 +222,13 @@ export const CreateEstablishmentModalEnhanced = ({
         });
       }
     });
-    if (defaultLevels.length > 0 && formData.selectedLevels.length === 0) {
+    
+    // If no levels are selected or all were filtered out, use defaults
+    if (filteredCurrentLevels.length === 0 && defaultLevels.length > 0) {
       updateFormData({ selectedLevels: defaultLevels });
+    } else if (filteredCurrentLevels.length !== formData.selectedLevels.length) {
+      // Some levels were filtered out, update with the filtered list
+      updateFormData({ selectedLevels: filteredCurrentLevels });
     }
   }, [JSON.stringify(formData.typesWithQualification)]);
 

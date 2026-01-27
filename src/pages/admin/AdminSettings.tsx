@@ -22,9 +22,9 @@ import {
   Building2,
   Layers,
   Maximize2,
-  PanelTop
+  PanelTop,
+  Undo2
 } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
 import { 
   CreationMethod,
@@ -33,81 +33,47 @@ import {
   getMethodLabel, 
   getMethodDescription 
 } from "@/hooks/useCreationMethodConfig";
-
-interface PlatformSettings {
-  // Notifications
-  emailNotifications: boolean;
-  pushNotifications: boolean;
-  activityDigest: boolean;
-  
-  // Security
-  twoFactorRequired: boolean;
-  sessionTimeout: number;
-  maxLoginAttempts: number;
-  
-  // Platform
-  maintenanceMode: boolean;
-  allowNewRegistrations: boolean;
-  defaultLanguage: string;
-  
-  // Branding
-  platformName: string;
-  supportEmail: string;
-}
-
-const defaultSettings: PlatformSettings = {
-  emailNotifications: true,
-  pushNotifications: true,
-  activityDigest: false,
-  twoFactorRequired: false,
-  sessionTimeout: 60,
-  maxLoginAttempts: 5,
-  maintenanceMode: false,
-  allowNewRegistrations: true,
-  defaultLanguage: 'fr',
-  platformName: 'iDETUDE',
-  supportEmail: 'support@idetude.app',
-};
+import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 
 export default function AdminSettings() {
   const { enabledMethods, toggleMethod, setEnabledMethods, displayMode, setDisplayMode } = useCreationMethodConfig();
-  const [settings, setSettings] = useState<PlatformSettings>(defaultSettings);
-  const [isSaving, setIsSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
-
-  const updateSetting = <K extends keyof PlatformSettings>(
-    key: K, 
-    value: PlatformSettings[K]
-  ) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-    setHasChanges(true);
-  };
+  const { 
+    settings, 
+    updateSetting, 
+    saveSettings, 
+    resetSettings, 
+    revertChanges,
+    isSaving, 
+    hasChanges: platformHasChanges 
+  } = usePlatformSettings();
 
   const handleToggleMethod = (method: CreationMethod) => {
     toggleMethod(method);
-    setHasChanges(true);
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
-    // Simulate API call for other settings
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    setHasChanges(false);
-    toast.success("Paramètres sauvegardés avec succès");
+    const success = await saveSettings();
+    if (success) {
+      toast.success("Paramètres sauvegardés avec succès");
+    } else {
+      toast.error("Erreur lors de la sauvegarde");
+    }
   };
 
   const handleReset = () => {
-    setSettings(defaultSettings);
+    resetSettings();
     setEnabledMethods(["1-step"]);
     setDisplayMode("modal");
-    setHasChanges(false);
-    toast.info("Paramètres réinitialisés");
+    toast.info("Paramètres réinitialisés aux valeurs par défaut");
+  };
+
+  const handleRevert = () => {
+    revertChanges();
+    toast.info("Modifications annulées");
   };
 
   const handleDisplayModeChange = (mode: DisplayMode) => {
     setDisplayMode(mode);
-    setHasChanges(true);
   };
 
   const creationMethods: CreationMethod[] = ['1-step', '2-step', '3-step'];
@@ -126,17 +92,25 @@ export default function AdminSettings() {
             </p>
           </div>
           <div className="flex gap-2">
+            {platformHasChanges && (
+              <Button 
+                variant="ghost" 
+                onClick={handleRevert}
+              >
+                <Undo2 className="h-4 w-4 mr-2" />
+                Annuler
+              </Button>
+            )}
             <Button 
               variant="outline" 
               onClick={handleReset}
-              disabled={!hasChanges}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Réinitialiser
             </Button>
             <Button 
               onClick={handleSave}
-              disabled={!hasChanges || isSaving}
+              disabled={!platformHasChanges || isSaving}
             >
               <Save className="h-4 w-4 mr-2" />
               {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
@@ -144,7 +118,7 @@ export default function AdminSettings() {
           </div>
         </div>
 
-        {hasChanges && (
+        {platformHasChanges && (
           <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
             <p className="text-sm text-amber-600 dark:text-amber-400">

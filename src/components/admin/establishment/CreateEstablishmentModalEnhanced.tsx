@@ -17,7 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Building2, MapPin, Users, GraduationCap, School, Navigation, 
   Loader2, MapPinned, AlertCircle, Map, Search, ChevronDown, 
-  ChevronRight, Save, Clock, FolderOpen, CheckCircle2, Eye, Settings
+  ChevronRight, Save, Clock, FolderOpen, CheckCircle2, Eye, Settings,
+  ArrowRight, ArrowLeft
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LocationPickerMap } from "../LocationPickerMap";
@@ -39,6 +40,7 @@ import { ValidatedInputWrapper } from "./FieldValidation";
 import { ConfirmationStep } from "./ConfirmationStep";
 import { SuccessAnimation } from "./SuccessAnimation";
 import { ModulesConfigTab } from "./ModulesConfigTab";
+import { useCreationMethodConfig, getStepsForMethod } from "@/hooks/useCreationMethodConfig";
 
 interface CreateEstablishmentModalEnhancedProps {
   open: boolean;
@@ -70,6 +72,11 @@ export const CreateEstablishmentModalEnhanced = ({
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdEstablishmentId, setCreatedEstablishmentId] = useState<string | null>(null);
   const [createdEstablishmentName, setCreatedEstablishmentName] = useState("");
+  const [currentWizardStep, setCurrentWizardStep] = useState(0);
+
+  // Get creation method configuration
+  const { method: creationMethod } = useCreationMethodConfig();
+  const wizardSteps = getStepsForMethod(creationMethod);
 
   const {
     draftId,
@@ -520,23 +527,92 @@ export const CreateEstablishmentModalEnhanced = ({
 
         <Tabs value={currentStep} onValueChange={updateStep} className="w-full">
           <div className="px-6">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="informations" className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Informations</span>
-              </TabsTrigger>
-              <TabsTrigger value="niveaux" className="flex items-center gap-2">
-                <GraduationCap className="h-4 w-4" />
-                <span className="hidden sm:inline">Niveaux</span>
-              </TabsTrigger>
-              <TabsTrigger value="modules" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Modules</span>
-              </TabsTrigger>
-              <TabsTrigger value="administration" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Personnel</span>
-              </TabsTrigger>
+            {/* Wizard Step Indicator for multi-step methods */}
+            {creationMethod !== '1-step' && (
+              <div className="mb-4 flex items-center justify-center gap-2">
+                {wizardSteps.map((step, idx) => (
+                  <div key={step.id} className="flex items-center">
+                    <button
+                      onClick={() => {
+                        setCurrentWizardStep(idx);
+                        updateStep(step.tabs[0]);
+                      }}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all",
+                        currentWizardStep === idx
+                          ? "bg-primary text-primary-foreground shadow-md"
+                          : currentWizardStep > idx
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      )}
+                    >
+                      <span className={cn(
+                        "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+                        currentWizardStep === idx
+                          ? "bg-primary-foreground/20"
+                          : currentWizardStep > idx
+                            ? "bg-green-500 text-white"
+                            : "bg-background"
+                      )}>
+                        {currentWizardStep > idx ? "✓" : idx + 1}
+                      </span>
+                      <span className="hidden sm:inline">{step.label}</span>
+                    </button>
+                    {idx < wizardSteps.length - 1 && (
+                      <ArrowRight className={cn(
+                        "h-4 w-4 mx-2",
+                        currentWizardStep > idx ? "text-green-500" : "text-muted-foreground"
+                      )} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Tab Navigation - show all tabs for 1-step, or current step's tabs for multi-step */}
+            <TabsList className={cn(
+              "grid w-full",
+              creationMethod === '1-step' 
+                ? "grid-cols-4" 
+                : `grid-cols-${wizardSteps[currentWizardStep]?.tabs.length || 4}`
+            )}>
+              {creationMethod === '1-step' ? (
+                <>
+                  <TabsTrigger value="informations" className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Informations</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="niveaux" className="flex items-center gap-2">
+                    <GraduationCap className="h-4 w-4" />
+                    <span className="hidden sm:inline">Niveaux</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="modules" className="flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    <span className="hidden sm:inline">Modules</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="administration" className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span className="hidden sm:inline">Personnel</span>
+                  </TabsTrigger>
+                </>
+              ) : (
+                wizardSteps[currentWizardStep]?.tabs.map((tab) => {
+                  const tabConfig: Record<string, { icon: typeof Building2; label: string }> = {
+                    informations: { icon: Building2, label: "Informations" },
+                    niveaux: { icon: GraduationCap, label: "Niveaux" },
+                    modules: { icon: Settings, label: "Modules" },
+                    administration: { icon: Users, label: "Personnel" },
+                  };
+                  const config = tabConfig[tab];
+                  const Icon = config?.icon || Building2;
+                  return (
+                    <TabsTrigger key={tab} value={tab} className="flex items-center gap-2">
+                      <Icon className="h-4 w-4" />
+                      <span className="hidden sm:inline">{config?.label || tab}</span>
+                    </TabsTrigger>
+                  );
+                })
+              )}
             </TabsList>
           </div>
 
@@ -1176,6 +1252,56 @@ export const CreateEstablishmentModalEnhanced = ({
                   </>
                 )}
               </GlassButton>
+            </>
+          ) : creationMethod !== '1-step' ? (
+            <>
+              <div className="flex-1 flex justify-between">
+                <GlassButton 
+                  variant="outline" 
+                  onClick={() => {
+                    if (currentWizardStep > 0) {
+                      const prevStep = currentWizardStep - 1;
+                      setCurrentWizardStep(prevStep);
+                      updateStep(wizardSteps[prevStep].tabs[0]);
+                    } else {
+                      onOpenChange(false);
+                    }
+                  }} 
+                  disabled={loading}
+                  className="gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  {currentWizardStep > 0 ? "Précédent" : "Annuler"}
+                </GlassButton>
+                
+                {currentWizardStep < wizardSteps.length - 1 ? (
+                  <GlassButton 
+                    variant="primary" 
+                    onClick={() => {
+                      const nextStep = currentWizardStep + 1;
+                      setCurrentWizardStep(nextStep);
+                      updateStep(wizardSteps[nextStep].tabs[0]);
+                    }}
+                    disabled={
+                      currentWizardStep === 0 && !(validation.name && validation.educationSystems && validation.types && validation.location)
+                    }
+                    className="gap-2"
+                  >
+                    Suivant
+                    <ArrowRight className="h-4 w-4" />
+                  </GlassButton>
+                ) : (
+                  <GlassButton 
+                    variant="primary" 
+                    onClick={() => setShowConfirmation(true)}
+                    disabled={!isFormValid}
+                    className="gap-2"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Vérifier et créer
+                  </GlassButton>
+                )}
+              </div>
             </>
           ) : (
             <>

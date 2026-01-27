@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AnimatedCounter } from "@/hooks/useAnimatedCounter";
 import { 
   BarChart, 
   Bar, 
@@ -347,11 +348,12 @@ export const SuperAdminDashboard = () => {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {kpiStats.map((stat) => (
+        {kpiStats.map((stat, index) => (
           <Card 
             key={stat.title} 
-            className="cursor-pointer hover:shadow-md transition-shadow"
+            className="cursor-pointer hover:shadow-md transition-all hover:scale-[1.02] animate-fade-in"
             onClick={() => navigate(stat.link)}
+            style={{ animationDelay: `${index * 100}ms` }}
           >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -367,7 +369,13 @@ export const SuperAdminDashboard = () => {
                 {isLoading ? (
                   <Skeleton className="h-8 w-16" />
                 ) : (
-                  <p className="text-2xl font-bold">{stat.value}</p>
+                  <p className="text-2xl font-bold">
+                    <AnimatedCounter 
+                      value={stat.value} 
+                      duration={1500} 
+                      delay={index * 150}
+                    />
+                  </p>
                 )}
                 <p className="text-xs text-muted-foreground">{stat.title}</p>
               </div>

@@ -86,34 +86,32 @@ const Dashboard = () => {
 
             {/* Right - Super Admin info */}
             {isSuperAdmin && (
-              <div className="flex flex-col items-end gap-2">
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <h2 className="text-lg font-bold text-foreground">Panneau Super Administrateur</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Vue d'ensemble de l'écosystème • {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })}
-                    </p>
+              <div className="flex items-start gap-3">
+                <div className="text-right">
+                  <h2 className="text-lg font-bold text-foreground">Panneau Super Administrateur</h2>
+                  {/* System Alerts - below title, same alignment */}
+                  <div className="flex flex-wrap justify-end gap-2 mt-1">
+                    {systemAlerts.map((alert) => (
+                      <button
+                        key={alert.id}
+                        onClick={() => navigate(alert.link)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                          alert.type === 'warning' 
+                            ? 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20' 
+                            : 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20'
+                        }`}
+                      >
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        {alert.title}
+                      </button>
+                    ))}
                   </div>
-                  <div className="p-2 rounded-xl bg-red-500/10">
-                    <Shield className="h-6 w-6 text-red-500" />
-                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Vue d'ensemble de l'écosystème • {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })}
+                  </p>
                 </div>
-                {/* System Alerts */}
-                <div className="flex flex-wrap justify-end gap-2">
-                  {systemAlerts.map((alert) => (
-                    <button
-                      key={alert.id}
-                      onClick={() => navigate(alert.link)}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                        alert.type === 'warning' 
-                          ? 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20' 
-                          : 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20'
-                      }`}
-                    >
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                      {alert.title}
-                    </button>
-                  ))}
+                <div className="p-2 rounded-xl bg-red-500/10">
+                  <Shield className="h-6 w-6 text-red-500" />
                 </div>
               </div>
             )}

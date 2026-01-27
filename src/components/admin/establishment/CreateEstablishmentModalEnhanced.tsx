@@ -40,7 +40,7 @@ import { ValidatedInputWrapper } from "./FieldValidation";
 import { ConfirmationStep } from "./ConfirmationStep";
 import { SuccessAnimation } from "./SuccessAnimation";
 import { ModulesConfigTab } from "./ModulesConfigTab";
-import { useCreationMethodConfig, getStepsForMethod } from "@/hooks/useCreationMethodConfig";
+import { useCreationMethodConfig, getStepsForMethod, CreationMethod, getMethodLabel, getMethodDescription } from "@/hooks/useCreationMethodConfig";
 
 interface CreateEstablishmentModalEnhancedProps {
   open: boolean;
@@ -73,9 +73,14 @@ export const CreateEstablishmentModalEnhanced = ({
   const [createdEstablishmentId, setCreatedEstablishmentId] = useState<string | null>(null);
   const [createdEstablishmentName, setCreatedEstablishmentName] = useState("");
   const [currentWizardStep, setCurrentWizardStep] = useState(0);
+  const [selectedCreationMethod, setSelectedCreationMethod] = useState<CreationMethod | null>(null);
+  const [showMethodSelector, setShowMethodSelector] = useState(false);
 
   // Get creation method configuration
-  const { method: creationMethod } = useCreationMethodConfig();
+  const { enabledMethods } = useCreationMethodConfig();
+  
+  // Determine the active creation method
+  const creationMethod: CreationMethod = selectedCreationMethod || enabledMethods[0] || "1-step";
   const wizardSteps = getStepsForMethod(creationMethod);
 
   const {
@@ -204,6 +209,15 @@ export const CreateEstablishmentModalEnhanced = ({
       setSystemSearchTerm("");
       setExpandedCategories(["francophone", "anglophone", "international"]);
       setShowDrafts(false);
+      setCurrentWizardStep(0);
+      // Show method selector if multiple methods are enabled
+      if (enabledMethods.length > 1) {
+        setShowMethodSelector(true);
+        setSelectedCreationMethod(null);
+      } else {
+        setShowMethodSelector(false);
+        setSelectedCreationMethod(enabledMethods[0] || "1-step");
+      }
     }
     onOpenChange(isOpen);
   };
@@ -525,6 +539,50 @@ export const CreateEstablishmentModalEnhanced = ({
           </div>
         )}
 
+        {/* Method Selector - shown when multiple methods are enabled */}
+        {showMethodSelector && enabledMethods.length > 1 && (
+          <div className="px-6 py-4">
+            <div className="text-center mb-4">
+              <h3 className="text-lg font-semibold">Choisissez votre méthode de création</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Sélectionnez le nombre d'étapes pour configurer votre établissement
+              </p>
+            </div>
+            <div className={cn(
+              "grid gap-4",
+              enabledMethods.length === 2 ? "grid-cols-2" : "grid-cols-3"
+            )}>
+              {enabledMethods.map((method) => (
+                <button
+                  key={method}
+                  onClick={() => {
+                    setSelectedCreationMethod(method);
+                    setShowMethodSelector(false);
+                    setCurrentWizardStep(0);
+                    updateStep("informations");
+                  }}
+                  className={cn(
+                    "flex flex-col items-center p-6 rounded-lg border-2 transition-all hover:border-primary hover:bg-primary/5",
+                    "border-border bg-background"
+                  )}
+                >
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                    <span className="text-xl font-bold text-primary">
+                      {method === "1-step" ? "1" : method === "2-step" ? "2" : "3"}
+                    </span>
+                  </div>
+                  <span className="font-medium text-lg">{getMethodLabel(method)}</span>
+                  <p className="text-sm text-muted-foreground mt-2 text-center">
+                    {getMethodDescription(method)}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Main content - hidden when method selector is shown */}
+        {!showMethodSelector && (
         <Tabs value={currentStep} onValueChange={updateStep} className="w-full">
           <div className="px-6">
             {/* Wizard Step Indicator for multi-step methods */}
@@ -1199,6 +1257,7 @@ export const CreateEstablishmentModalEnhanced = ({
             </TabsContent>
           </ScrollArea>
         </Tabs>
+        )}
 
         {/* Confirmation View */}
         {showConfirmation && !showSuccess && (

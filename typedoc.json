@@ -1,0 +1,23 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "entryPoints": [
+        "src/index.ts",
+        "src/hooks",
+        "src/components",
+        "src/utils"
+    ],
+    "out": "docs",
+    "name": "iDETUDE Documentation",
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "excludeExternals": true,
+    "readme": "README.md",
+    "includeVersion": true,
+    "plugin": [],
+    "exclude": [
+        "**/node_modules/**",
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/*.spec.ts"
+    ]
+}

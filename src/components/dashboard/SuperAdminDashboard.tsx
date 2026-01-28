@@ -8,13 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnimatedCounter } from "@/hooks/useAnimatedCounter";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -80,8 +80,8 @@ const activityColors: Record<ActivityType, string> = {
   message_sent: 'bg-rose-500/10 text-rose-500',
 };
 
-// Mock recent activities
-const recentActivities: ActivityItem[] = [
+// Mock recent activities (fallback)
+const fallbackActivities: ActivityItem[] = [
   {
     id: '1',
     type: 'establishment_created',
@@ -98,29 +98,12 @@ const recentActivities: ActivityItem[] = [
     actor: { name: 'Paul Ondo', role: 'Directeur' },
     timestamp: new Date(Date.now() - 1000 * 60 * 45),
   },
-  {
-    id: '3',
-    type: 'role_assigned',
-    title: 'Rôle attribué',
-    description: 'CPE assigné à Sylvie Mba',
-    actor: { name: 'System', role: 'Automatique' },
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-  },
-  {
-    id: '4',
-    type: 'settings_changed',
-    title: 'Configuration modifiée',
-    description: 'Modules mis à jour pour Collège Saint-Exupéry',
-    actor: { name: 'Jean Moussavou', role: 'Super Admin' },
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5),
-  },
 ];
 
-// Mock alerts
-const systemAlerts = [
+// Mock alerts (fallback)
+const fallbackAlerts = [
   { id: '1', type: 'warning', title: '3 établissements sans directeur', link: '/admin/establishments' },
   { id: '2', type: 'info', title: '12 utilisateurs en attente de validation', link: '/admin/users' },
-  { id: '3', type: 'warning', title: '5 commentaires signalés à modérer', link: '/admin/moderation' },
 ];
 
 // Monthly growth mock data
@@ -202,12 +185,12 @@ export const SuperAdminDashboard = () => {
         .from('establishments')
         .select('type');
       if (error) throw error;
-      
+
       const counts: Record<string, number> = {};
       data?.forEach(e => {
         counts[e.type] = (counts[e.type] || 0) + 1;
       });
-      
+
       const typeLabels: Record<string, string> = {
         'maternelle': 'Maternelle',
         'primaire': 'Primaire',
@@ -217,7 +200,7 @@ export const SuperAdminDashboard = () => {
         'complexe_scolaire': 'Complexe',
         'formation_pro': 'Formation Pro'
       };
-      
+
       return Object.entries(counts).map(([type, count]) => ({
         name: typeLabels[type] || type,
         value: count
@@ -233,18 +216,18 @@ export const SuperAdminDashboard = () => {
         .from('establishments')
         .select('country_code');
       if (error) throw error;
-      
+
       const { data: countries } = await supabase
         .from('countries')
         .select('code, name, flag_emoji');
-      
+
       const countryMap = new Map(countries?.map(c => [c.code, c]) || []);
       const counts: Record<string, number> = {};
-      
+
       establishments?.forEach(e => {
         counts[e.country_code] = (counts[e.country_code] || 0) + 1;
       });
-      
+
       return Object.entries(counts).map(([code, count]) => ({
         name: countryMap.get(code)?.name || code,
         flag: countryMap.get(code)?.flag_emoji || '🏳️',
@@ -280,53 +263,121 @@ export const SuperAdminDashboard = () => {
     }
   });
 
+  // Fetch real audit logs
+  const { data: auditLogs } = useQuery({
+    queryKey: ['dashboard-audit-logs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('admin_audit_logs')
+        .select(`
+          id,
+          action_type,
+          resource_type,
+          resource_name,
+          created_at,
+          actor_id
+        `)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (error) {
+        console.warn('Audit logs not available:', error.message);
+        return null;
+      }
+      return data;
+    }
+  });
+
+  // Fetch system alerts
+  const { data: systemAlerts } = useQuery({
+    queryKey: ['dashboard-system-alerts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('system_alerts')
+        .select('*')
+        .eq('is_resolved', false)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      if (error) {
+        console.warn('System alerts not available:', error.message);
+        return null;
+      }
+      return data;
+    }
+  });
+
+  // Transform audit logs to activity items
+  const recentActivities: ActivityItem[] = auditLogs?.map(log => {
+    const actionTypeMap: Record<string, ActivityType> = {
+      'CREATE': log.resource_type === 'establishments' ? 'establishment_created' : 'user_created',
+      'UPDATE': 'settings_changed',
+      'DELETE': 'settings_changed',
+      'INSERT': log.resource_type === 'user_roles' ? 'role_assigned' : 'user_created',
+    };
+    return {
+      id: log.id,
+      type: actionTypeMap[log.action_type] || 'settings_changed',
+      title: `${log.action_type} ${log.resource_type}`,
+      description: log.resource_name || `${log.resource_type} modifié`,
+      actor: { name: 'Admin', role: 'Super Admin' },
+      timestamp: new Date(log.created_at),
+    };
+  }) || fallbackActivities;
+
+  // Use real alerts or fallback
+  const displayAlerts = systemAlerts?.map(alert => ({
+    id: alert.id,
+    type: alert.alert_type,
+    title: alert.title,
+    link: alert.link || '/admin/activity',
+  })) || fallbackAlerts;
+
   const isLoading = loadingCountries || loadingRegions || loadingGroups || loadingEstablishments || loadingUsers;
 
   const kpiStats = [
-    { 
-      title: "Pays", 
-      value: countriesCount, 
-      icon: Globe, 
+    {
+      title: "Pays",
+      value: countriesCount,
+      icon: Globe,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
       trend: "+2",
       trendUp: true,
       link: "/admin/countries"
     },
-    { 
-      title: "Régions", 
-      value: regionsCount, 
-      icon: MapPin, 
+    {
+      title: "Régions",
+      value: regionsCount,
+      icon: MapPin,
       color: "text-green-500",
       bgColor: "bg-green-500/10",
       trend: "+5",
       trendUp: true,
       link: "/admin/countries"
     },
-    { 
-      title: "Groupes", 
-      value: groupsCount, 
-      icon: Layers, 
+    {
+      title: "Groupes",
+      value: groupsCount,
+      icon: Layers,
       color: "text-purple-500",
       bgColor: "bg-purple-500/10",
       trend: "+3",
       trendUp: true,
       link: "/admin/groups"
     },
-    { 
-      title: "Établissements", 
-      value: establishmentsCount, 
-      icon: Building2, 
+    {
+      title: "Établissements",
+      value: establishmentsCount,
+      icon: Building2,
       color: "text-amber-500",
       bgColor: "bg-amber-500/10",
       trend: "+12",
       trendUp: true,
       link: "/admin/establishments"
     },
-    { 
-      title: "Utilisateurs", 
-      value: usersCount, 
-      icon: Users, 
+    {
+      title: "Utilisateurs",
+      value: usersCount,
+      icon: Users,
       color: "text-rose-500",
       bgColor: "bg-rose-500/10",
       trend: "+48",
@@ -349,8 +400,8 @@ export const SuperAdminDashboard = () => {
       {/* KPI Cards - Responsive grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-4">
         {kpiStats.map((stat, index) => (
-          <Card 
-            key={stat.title} 
+          <Card
+            key={stat.title}
             className="cursor-pointer hover:shadow-md transition-all hover:scale-[1.02] animate-fade-in"
             onClick={() => navigate(stat.link)}
             style={{ animationDelay: `${index * 100}ms` }}
@@ -370,9 +421,9 @@ export const SuperAdminDashboard = () => {
                   <Skeleton className="h-6 md:h-8 w-12 md:w-16" />
                 ) : (
                   <p className="text-xl md:text-2xl font-bold">
-                    <AnimatedCounter 
-                      value={stat.value} 
-                      duration={1500} 
+                    <AnimatedCounter
+                      value={stat.value}
+                      duration={1500}
                       delay={index * 150}
                     />
                   </p>
@@ -435,38 +486,38 @@ export const SuperAdminDashboard = () => {
                   <AreaChart data={monthlyGrowthData}>
                     <defs>
                       <linearGradient id="colorEtab" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                     <XAxis dataKey="month" className="text-[10px] md:text-xs" tick={{ fontSize: 10 }} />
                     <YAxis className="text-[10px] md:text-xs" tick={{ fontSize: 10 }} width={30} />
-                    <Tooltip 
-                      contentStyle={{ 
+                    <Tooltip
+                      contentStyle={{
                         backgroundColor: 'hsl(var(--background))',
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
                         fontSize: '12px'
                       }}
                     />
-                    <Area 
-                      type="monotone" 
-                      dataKey="utilisateurs" 
+                    <Area
+                      type="monotone"
+                      dataKey="utilisateurs"
                       name="Utilisateurs"
-                      stroke="#10b981" 
+                      stroke="#10b981"
                       fillOpacity={1}
                       fill="url(#colorUsers)"
                     />
-                    <Area 
-                      type="monotone" 
-                      dataKey="etablissements" 
+                    <Area
+                      type="monotone"
+                      dataKey="etablissements"
                       name="Établissements"
-                      stroke="hsl(var(--primary))" 
+                      stroke="hsl(var(--primary))"
                       fillOpacity={1}
                       fill="url(#colorEtab)"
                     />
@@ -500,8 +551,8 @@ export const SuperAdminDashboard = () => {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
+                      <Tooltip
+                        contentStyle={{
                           backgroundColor: 'hsl(var(--background))',
                           border: '1px solid hsl(var(--border))',
                           borderRadius: '8px'
@@ -532,9 +583,9 @@ export const SuperAdminDashboard = () => {
                     <BarChart data={establishmentsByCountry || []} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                       <XAxis type="number" className="text-xs" />
-                      <YAxis 
-                        type="category" 
-                        dataKey="name" 
+                      <YAxis
+                        type="category"
+                        dataKey="name"
                         width={80}
                         className="text-xs"
                         tickFormatter={(value, index) => {
@@ -542,8 +593,8 @@ export const SuperAdminDashboard = () => {
                           return item ? `${item.flag} ${value}` : value;
                         }}
                       />
-                      <Tooltip 
-                        contentStyle={{ 
+                      <Tooltip
+                        contentStyle={{
                           backgroundColor: 'hsl(var(--background))',
                           border: '1px solid hsl(var(--border))',
                           borderRadius: '8px'

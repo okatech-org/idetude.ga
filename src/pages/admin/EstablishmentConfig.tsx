@@ -143,6 +143,22 @@ interface ClassSection {
   section_id: string;
 }
 
+interface EstablishmentStaff {
+  id: string;
+  establishment_id: string;
+  user_id: string | null;
+  staff_type: string;
+  category: string | null;
+  position: string | null;
+  department: string | null;
+  contract_type: string | null;
+  is_active: boolean;
+  is_class_principal: boolean | null;
+  start_date: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata: any;
+}
+
 const typeLabels: Record<string, string> = {
   direction: "Direction",
   department: "Département",
@@ -165,6 +181,7 @@ const EstablishmentConfig = () => {
   const [classStudents, setClassStudents] = useState<ClassStudent[]>([]);
   const [linguisticSections, setLinguisticSections] = useState<LinguisticSection[]>([]);
   const [classSections, setClassSections] = useState<ClassSection[]>([]);
+  const [establishmentStaff, setEstablishmentStaff] = useState<EstablishmentStaff[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal states
@@ -270,7 +287,7 @@ const EstablishmentConfig = () => {
             .eq("is_active", true);
 
           if (upError) throw upError;
-          
+
           // Fetch profiles for user positions
           if (upData && upData.length > 0) {
             const userIds = [...new Set(upData.map((up) => up.user_id))];
@@ -311,7 +328,7 @@ const EstablishmentConfig = () => {
           .in("class_id", classIds);
 
         if (ctError) throw ctError;
-        
+
         // Fetch profiles for teachers
         if (ctData && ctData.length > 0) {
           const teacherIds = [...new Set(ctData.map((ct) => ct.teacher_id))];
@@ -374,6 +391,17 @@ const EstablishmentConfig = () => {
 
       if (lingSectionsError) throw lingSectionsError;
       setLinguisticSections(lingSectionsData || []);
+
+      // Fetch establishment staff (personnel added during creation)
+      const { data: staffData, error: staffError } = await supabase
+        .from("establishment_staff")
+        .select("*")
+        .eq("establishment_id", establishmentId)
+        .eq("is_active", true)
+        .order("staff_type");
+
+      if (staffError) throw staffError;
+      setEstablishmentStaff(staffData || []);
     } catch (error) {
       console.error("Error fetching establishment data:", error);
       toast.error("Erreur lors du chargement des données");
@@ -593,7 +621,7 @@ const EstablishmentConfig = () => {
 
   const handleModulesChange = async (modules: string[]) => {
     if (!establishment) return;
-    
+
     try {
       const { error } = await supabase
         .from("establishments")
@@ -957,6 +985,71 @@ const EstablishmentConfig = () => {
                   ))}
               </div>
             )}
+
+            {/* Personnel from creation (establishment_staff) */}
+            <div className="mt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-md font-semibold text-foreground flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  Personnel enregistré ({establishmentStaff.length})
+                </h3>
+              </div>
+              {establishmentStaff.length === 0 ? (
+                <GlassCard className="p-8 text-center" solid>
+                  <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">Aucun personnel enregistré</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Le personnel ajouté lors de la création de l'établissement apparaîtra ici
+                  </p>
+                </GlassCard>
+              ) : (
+                <GlassCard className="p-4" solid>
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {establishmentStaff.map((staff) => {
+                      const staffLabels: Record<string, string> = {
+                        teacher: "Enseignant",
+                        administrative: "Administratif",
+                        support: "Personnel de soutien",
+                        student: "Élève",
+                        parent: "Parent d'élève",
+                      };
+                      const name = staff.metadata?.firstName && staff.metadata?.lastName
+                        ? `${staff.metadata.firstName} ${staff.metadata.lastName}`
+                        : staff.metadata?.email || "Non renseigné";
+
+                      return (
+                        <div
+                          key={staff.id}
+                          className="p-3 rounded-lg bg-muted/30 flex items-center gap-3"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-foreground truncate">{name}</p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant="secondary" className="text-xs">
+                                {staffLabels[staff.staff_type] || staff.staff_type}
+                              </Badge>
+                              {staff.position && (
+                                <Badge variant="outline" className="text-xs">
+                                  {staff.position}
+                                </Badge>
+                              )}
+                              {staff.department && (
+                                <span className="text-xs text-muted-foreground">
+                                  {staff.department}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </GlassCard>
+              )}
+            </div>
           </TabsContent>
 
           {/* Classes Tab */}
@@ -1015,13 +1108,15 @@ const EstablishmentConfig = () => {
                           </div>
                         </div>
                         <div className="flex gap-1">
-                          <GlassButton 
-                            variant="ghost" 
-                            size="sm" 
+                          <GlassButton
+                            variant="primary"
+                            size="sm"
                             onClick={() => openStudentEnrollment(cls)}
                             title="Gérer les élèves"
+                            className="gap-1"
                           >
                             <UserPlus className="h-4 w-4" />
+                            <span className="hidden sm:inline">Élèves</span>
                           </GlassButton>
                           <GlassButton variant="ghost" size="sm" onClick={() => openEditClass(cls)}>
                             <Edit className="h-4 w-4" />
@@ -1412,11 +1507,10 @@ const EstablishmentConfig = () => {
                             });
                           }
                         }}
-                        className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                          isSelected
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-muted hover:bg-muted/80"
-                        }`}
+                        className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted hover:bg-muted/80"
+                          }`}
                       >
                         {section.name}
                         {section.code && (

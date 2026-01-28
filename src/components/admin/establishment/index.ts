@@ -5,6 +5,7 @@ export { DraftsList } from "./DraftsList";
 export { ClassConfigTab } from "./ClassConfigTab";
 export { LevelClassesConfig } from "./LevelClassesConfig";
 export { useEstablishmentDraft } from "./useEstablishmentDraft";
+export { ArchiveEstablishmentModal, type ArchiveAction } from "./ArchiveEstablishmentModal";
 export * from "./types";
 export * from "./constants";
 export * from "./classConfigTypes";

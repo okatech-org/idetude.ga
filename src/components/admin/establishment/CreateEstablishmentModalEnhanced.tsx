@@ -43,6 +43,7 @@ import { ValidatedInputWrapper } from "./FieldValidation";
 import { ConfirmationStep } from "./ConfirmationStep";
 import { SuccessAnimation } from "./SuccessAnimation";
 import { ModulesConfigTab } from "./ModulesConfigTab";
+import { createClassesForEstablishment } from "./createEstablishmentService";
 import { useCreationMethodConfig, getStepsForMethod, CreationMethod, getMethodLabel, getMethodDescription, DisplayMode } from "@/hooks/useCreationMethodConfig";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -199,12 +200,12 @@ export const CreateEstablishmentModalEnhanced = ({
   // Update levels when types change - auto-select default levels and filter out non-applicable ones
   useEffect(() => {
     const applicableCycles = getApplicableCycles(formData.typesWithQualification);
-    
+
     // Filter out currently selected levels that are no longer applicable
-    const filteredCurrentLevels = formData.selectedLevels.filter(levelId => 
+    const filteredCurrentLevels = formData.selectedLevels.filter(levelId =>
       isLevelInApplicableCycles(levelId, applicableCycles)
     );
-    
+
     // Get default levels for the new types
     const defaultLevels: string[] = [];
     formData.typesWithQualification.forEach(twq => {
@@ -222,7 +223,7 @@ export const CreateEstablishmentModalEnhanced = ({
         });
       }
     });
-    
+
     // If no levels are selected or all were filtered out, use defaults
     if (filteredCurrentLevels.length === 0 && defaultLevels.length > 0) {
       updateFormData({ selectedLevels: defaultLevels });
@@ -405,11 +406,17 @@ export const CreateEstablishmentModalEnhanced = ({
     setLoading(true);
     try {
       const autoCode = generateUniqueCode();
-      const typesForDb = formData.typesWithQualification
-        .map(twq => twq.qualification ? `${twq.type}:${twq.qualification}` : twq.type)
-        .join(",");
 
-      const allOptions = [...formData.options];
+      // Use only the first type for DB compatibility with existing CHECK constraint
+      // Full type data is stored in options until migrations are applied
+      const primaryType = formData.typesWithQualification[0]?.type || "primaire";
+
+      // Store complete type info in options for future use
+      const typesInfo = formData.typesWithQualification.map(twq =>
+        twq.qualification ? `type:${twq.type}:${twq.qualification}` : `type:${twq.type}`
+      );
+
+      const allOptions = [...formData.options, ...typesInfo];
       formData.educationSystems.forEach(sys => allOptions.push(`system:${sys}`));
       formData.additionalTeachingLanguages.forEach(lang => allOptions.push(`teaching_lang:${lang}`));
       if (languageDesignation) {
@@ -422,7 +429,7 @@ export const CreateEstablishmentModalEnhanced = ({
         .insert({
           name: formData.name,
           code: autoCode,
-          type: typesForDb,
+          type: primaryType,
           address: formData.address || null,
           phone: formData.phone || null,
           email: formData.email || null,
@@ -466,6 +473,23 @@ export const CreateEstablishmentModalEnhanced = ({
         if (staffError) {
           console.error("Error creating staff:", staffError);
           toast.warning("Établissement créé, mais erreur lors de l'ajout du personnel");
+        }
+      }
+
+      // Create classes from configuration
+      if (formData.classesConfig.length > 0 && establishment) {
+        const currentYear = new Date().getFullYear();
+        const schoolYear = `${currentYear}-${currentYear + 1}`;
+
+        const classResult = await createClassesForEstablishment(
+          establishment.id,
+          formData.classesConfig,
+          schoolYear
+        );
+
+        if (!classResult.success) {
+          console.error("Error creating classes:", classResult.error);
+          toast.warning("Établissement créé, mais erreur lors de l'ajout des classes");
         }
       }
 
@@ -525,12 +549,12 @@ export const CreateEstablishmentModalEnhanced = ({
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
       <DialogContent className={cn(
-        "p-0 transition-all duration-300",
+        "p-0 transition-all duration-300 flex flex-col",
         currentDisplayMode === "fullpage"
           ? "max-w-[100vw] w-[100vw] h-[100vh] max-h-[100vh] rounded-none"
           : "max-w-5xl max-h-[90vh]"
       )}>
-        <DialogHeader className="p-6 pb-0">
+        <DialogHeader className="p-6 pb-0 flex-shrink-0">
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2 text-xl">
               <Building2 className="h-5 w-5" />
@@ -589,823 +613,827 @@ export const CreateEstablishmentModalEnhanced = ({
           </div>
         </DialogHeader>
 
-        {showDrafts && (
-          <div className="px-6 py-2">
-            <DraftsList
-              onResume={handleResumeDraft}
-              onDelete={() => { }}
-            />
-          </div>
-        )}
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto min-h-0">
 
-        {/* Method Selector - shown when multiple methods are enabled */}
-        {showMethodSelector && enabledMethods.length > 1 && (
-          <div className="px-6 py-4">
-            <div className="text-center mb-4">
-              <h3 className="text-lg font-semibold">Choisissez votre méthode de création</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Sélectionnez le nombre d'étapes pour configurer votre établissement
-              </p>
+          {showDrafts && (
+            <div className="px-6 py-2">
+              <DraftsList
+                onResume={handleResumeDraft}
+                onDelete={() => { }}
+              />
             </div>
-            <div className={cn(
-              "grid gap-4",
-              enabledMethods.length === 2 ? "grid-cols-2" : "grid-cols-3"
-            )}>
-              {enabledMethods.map((method) => (
-                <button
-                  key={method}
-                  onClick={() => {
-                    setSelectedCreationMethod(method);
-                    setShowMethodSelector(false);
-                    setCurrentWizardStep(0);
-                    updateStep("informations");
-                  }}
-                  className={cn(
-                    "flex flex-col items-center p-6 rounded-lg border-2 transition-all hover:border-primary hover:bg-primary/5",
-                    "border-border bg-background"
-                  )}
-                >
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                    <span className="text-xl font-bold text-primary">
-                      {method === "1-step" ? "1" : method === "2-step" ? "2" : "3"}
-                    </span>
-                  </div>
-                  <span className="font-medium text-lg">{getMethodLabel(method)}</span>
-                  <p className="text-sm text-muted-foreground mt-2 text-center">
-                    {getMethodDescription(method)}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+          )}
 
-        {/* Main content - hidden when method selector is shown */}
-        {!showMethodSelector && (
-          <Tabs value={currentStep} onValueChange={updateStep} className="w-full">
-            <div className="px-6">
-              {/* Wizard Step Indicator for multi-step methods */}
-              {creationMethod !== '1-step' && (
-                <div className="mb-4 flex items-center justify-center gap-2">
-                  {wizardSteps.map((step, idx) => (
-                    <div key={step.id} className="flex items-center">
-                      <button
-                        onClick={() => {
-                          setCurrentWizardStep(idx);
-                          updateStep(step.tabs[0]);
-                        }}
-                        className={cn(
-                          "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all",
-                          currentWizardStep === idx
-                            ? "bg-primary text-primary-foreground shadow-md"
-                            : currentWizardStep > idx
-                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                              : "bg-muted text-muted-foreground hover:bg-muted/80"
-                        )}
-                      >
-                        <span className={cn(
-                          "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
-                          currentWizardStep === idx
-                            ? "bg-primary-foreground/20"
-                            : currentWizardStep > idx
-                              ? "bg-green-500 text-white"
-                              : "bg-background"
-                        )}>
-                          {currentWizardStep > idx ? "✓" : idx + 1}
-                        </span>
-                        <span className="hidden sm:inline">{step.label}</span>
-                      </button>
-                      {idx < wizardSteps.length - 1 && (
-                        <ArrowRight className={cn(
-                          "h-4 w-4 mx-2",
-                          currentWizardStep > idx ? "text-green-500" : "text-muted-foreground"
-                        )} />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Tab Navigation - show all tabs for 1-step, or current step's tabs for multi-step */}
-              <TabsList className={cn(
-                "grid w-full",
-                creationMethod === '1-step'
-                  ? "grid-cols-4"
-                  : `grid-cols-${wizardSteps[currentWizardStep]?.tabs.length || 4}`
+          {/* Method Selector - shown when multiple methods are enabled */}
+          {showMethodSelector && enabledMethods.length > 1 && (
+            <div className="px-6 py-4">
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-semibold">Choisissez votre méthode de création</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Sélectionnez le nombre d'étapes pour configurer votre établissement
+                </p>
+              </div>
+              <div className={cn(
+                "grid gap-4",
+                enabledMethods.length === 2 ? "grid-cols-2" : "grid-cols-3"
               )}>
-                {creationMethod === '1-step' ? (
-                  <>
-                    <TabsTrigger value="informations" className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4" />
-                      <span className="hidden sm:inline">Informations</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="niveaux" className="flex items-center gap-2">
-                      <GraduationCap className="h-4 w-4" />
-                      <span className="hidden sm:inline">Niveaux</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="modules" className="flex items-center gap-2">
-                      <Settings className="h-4 w-4" />
-                      <span className="hidden sm:inline">Modules</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="administration" className="flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      <span className="hidden sm:inline">Personnel</span>
-                    </TabsTrigger>
-                  </>
-                ) : (
-                  wizardSteps[currentWizardStep]?.tabs.map((tab) => {
-                    const tabConfig: Record<string, { icon: typeof Building2; label: string }> = {
-                      informations: { icon: Building2, label: "Informations" },
-                      niveaux: { icon: GraduationCap, label: "Niveaux" },
-                      modules: { icon: Settings, label: "Modules" },
-                      administration: { icon: Users, label: "Personnel" },
-                    };
-                    const config = tabConfig[tab];
-                    const Icon = config?.icon || Building2;
-                    return (
-                      <TabsTrigger key={tab} value={tab} className="flex items-center gap-2">
-                        <Icon className="h-4 w-4" />
-                        <span className="hidden sm:inline">{config?.label || tab}</span>
-                      </TabsTrigger>
-                    );
-                  })
-                )}
-              </TabsList>
-            </div>
-
-            <ScrollArea className={cn(
-              "px-6 mt-4",
-              currentDisplayMode === "fullpage" ? "h-[calc(100vh-280px)]" : "h-[55vh]"
-            )}>
-              {/* Tab: Informations */}
-              <TabsContent value="informations" className="space-y-4 mt-0">
-                {/* Progress Indicator */}
-                {(() => {
-                  const steps = [
-                    { label: "Nom", complete: formData.name.trim().length > 0, icon: "✏️" },
-                    { label: "Système éducatif", complete: formData.educationSystems.length > 0, icon: "📚" },
-                    { label: "Type", complete: formData.typesWithQualification.length > 0, icon: "🏫" },
-                    { label: "Niveaux", complete: formData.selectedLevels.length > 0, icon: "🎓" },
-                    { label: "Localisation GPS", complete: formData.latitude !== null && formData.longitude !== null, icon: "📍" },
-                  ];
-                  const completedCount = steps.filter(s => s.complete).length;
-                  const progressPercent = Math.round((completedCount / steps.length) * 100);
-
-                  return (
-                    <div className="p-4 rounded-lg border bg-gradient-to-r from-primary/5 via-background to-secondary/5">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-medium">Progression</span>
-                        <span className={cn(
-                          "text-sm font-semibold px-2 py-0.5 rounded-full",
-                          progressPercent === 100
-                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-muted text-muted-foreground"
-                        )}>
-                          {completedCount}/{steps.length} champs requis
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-muted rounded-full overflow-hidden mb-3">
-                        <div
-                          className={cn(
-                            "h-full transition-all duration-500 rounded-full",
-                            progressPercent === 100
-                              ? "bg-green-500"
-                              : progressPercent >= 60
-                                ? "bg-primary"
-                                : "bg-amber-500"
-                          )}
-                          style={{ width: `${progressPercent}%` }}
-                        />
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {steps.map((step, idx) => (
-                          <div
-                            key={idx}
-                            className={cn(
-                              "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
-                              step.complete
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                : "bg-muted text-muted-foreground"
-                            )}
-                          >
-                            <span>{step.icon}</span>
-                            <span>{step.label}</span>
-                            {step.complete && <span className="text-green-600 dark:text-green-400">✓</span>}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                <ValidatedInputWrapper
-                  label="Nom de l'établissement"
-                  required
-                  isValid={validation.name}
-                  isTouched={formData.name.length > 0}
-                  validMessage="Nom valide"
-                  invalidMessage="Le nom doit contenir au moins 2 caractères"
-                  helpText="Entrez le nom propre de l'établissement (ex: Saint-Michel, La Réussite)"
-                >
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => updateFormData({ name: e.target.value })}
-                    placeholder="Ex: Saint-Michel"
+                {enabledMethods.map((method) => (
+                  <button
+                    key={method}
+                    onClick={() => {
+                      setSelectedCreationMethod(method);
+                      setShowMethodSelector(false);
+                      setCurrentWizardStep(0);
+                      updateStep("informations");
+                    }}
                     className={cn(
-                      "text-base",
-                      formData.name.length > 0 && (validation.name
-                        ? "border-green-500 focus-visible:ring-green-500/20"
-                        : "border-destructive focus-visible:ring-destructive/20")
+                      "flex flex-col items-center p-6 rounded-lg border-2 transition-all hover:border-primary hover:bg-primary/5",
+                      "border-border bg-background"
                     )}
-                  />
-                </ValidatedInputWrapper>
-
-                {/* Name preview */}
-                {(formData.name || formData.typesWithQualification.length > 0 || languageDesignation) && (
-                  <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-r from-primary/5 to-secondary/5">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-semibold flex items-center gap-2">
-                        <School className="h-4 w-4" />
-                        Prévisualisation du nom complet
-                      </Label>
-                      <span className="text-xs text-muted-foreground">Réorganisez les éléments ci-dessous</span>
+                  >
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                      <span className="text-xl font-bold text-primary">
+                        {method === "1-step" ? "1" : method === "2-step" ? "2" : "3"}
+                      </span>
                     </div>
+                    <span className="font-medium text-lg">{getMethodLabel(method)}</span>
+                    <p className="text-sm text-muted-foreground mt-2 text-center">
+                      {getMethodDescription(method)}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-                    <div className="p-3 rounded-lg bg-background border-2 border-primary/30">
-                      <p className="text-lg font-semibold text-center">
-                        {(() => {
-                          const elements: Record<string, string> = {
-                            type: formData.typesWithQualification[0]
-                              ? ESTABLISHMENT_TYPES.find(t => t.value === formData.typesWithQualification[0].type)?.label || ""
-                              : "",
-                            qualification: formData.typesWithQualification[0]?.qualification || "",
-                            designation: languageDesignation?.label || "",
-                            name: formData.name || "..."
-                          };
+          {/* Main content - hidden when method selector is shown */}
+          {!showMethodSelector && (
+            <Tabs value={currentStep} onValueChange={updateStep} className="w-full">
+              <div className="px-6">
+                {/* Wizard Step Indicator for multi-step methods */}
+                {creationMethod !== '1-step' && (
+                  <div className="mb-4 flex items-center justify-center gap-2">
+                    {wizardSteps.map((step, idx) => (
+                      <div key={step.id} className="flex items-center">
+                        <button
+                          onClick={() => {
+                            setCurrentWizardStep(idx);
+                            updateStep(step.tabs[0]);
+                          }}
+                          className={cn(
+                            "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all",
+                            currentWizardStep === idx
+                              ? "bg-primary text-primary-foreground shadow-md"
+                              : currentWizardStep > idx
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          )}
+                        >
+                          <span className={cn(
+                            "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold",
+                            currentWizardStep === idx
+                              ? "bg-primary-foreground/20"
+                              : currentWizardStep > idx
+                                ? "bg-green-500 text-white"
+                                : "bg-background"
+                          )}>
+                            {currentWizardStep > idx ? "✓" : idx + 1}
+                          </span>
+                          <span className="hidden sm:inline">{step.label}</span>
+                        </button>
+                        {idx < wizardSteps.length - 1 && (
+                          <ArrowRight className={cn(
+                            "h-4 w-4 mx-2",
+                            currentWizardStep > idx ? "text-green-500" : "text-muted-foreground"
+                          )} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-                          return formData.nameElementsOrder
-                            .map(key => elements[key])
-                            .filter(Boolean)
-                            .join(" ");
-                        })()}
-                      </p>
-                    </div>
+                {/* Tab Navigation - show all tabs for 1-step, or current step's tabs for multi-step */}
+                <TabsList className={cn(
+                  "grid w-full",
+                  creationMethod === '1-step'
+                    ? "grid-cols-4"
+                    : `grid-cols-${wizardSteps[currentWizardStep]?.tabs.length || 4}`
+                )}>
+                  {creationMethod === '1-step' ? (
+                    <>
+                      <TabsTrigger value="informations" className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        <span className="hidden sm:inline">Informations</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="niveaux" className="flex items-center gap-2">
+                        <GraduationCap className="h-4 w-4" />
+                        <span className="hidden sm:inline">Niveaux</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="modules" className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        <span className="hidden sm:inline">Modules</span>
+                      </TabsTrigger>
+                      <TabsTrigger value="administration" className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        <span className="hidden sm:inline">Personnel</span>
+                      </TabsTrigger>
+                    </>
+                  ) : (
+                    wizardSteps[currentWizardStep]?.tabs.map((tab) => {
+                      const tabConfig: Record<string, { icon: typeof Building2; label: string }> = {
+                        informations: { icon: Building2, label: "Informations" },
+                        niveaux: { icon: GraduationCap, label: "Niveaux" },
+                        modules: { icon: Settings, label: "Modules" },
+                        administration: { icon: Users, label: "Personnel" },
+                      };
+                      const config = tabConfig[tab];
+                      const Icon = config?.icon || Building2;
+                      return (
+                        <TabsTrigger key={tab} value={tab} className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          <span className="hidden sm:inline">{config?.label || tab}</span>
+                        </TabsTrigger>
+                      );
+                    })
+                  )}
+                </TabsList>
+              </div>
 
-                    <div className="space-y-2">
-                      <p className="text-xs text-muted-foreground">Cliquez sur les flèches pour réorganiser :</p>
-                      <div className="flex flex-wrap gap-2">
-                        {formData.nameElementsOrder.map((element, index) => {
-                          const elementLabels: Record<string, { label: string; color: string; value: string }> = {
-                            type: {
-                              label: "Type",
-                              color: "bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300",
-                              value: formData.typesWithQualification[0]
-                                ? ESTABLISHMENT_TYPES.find(t => t.value === formData.typesWithQualification[0].type)?.label || "—"
-                                : "—"
-                            },
-                            qualification: {
-                              label: "Qualification",
-                              color: "bg-purple-500/10 border-purple-500/30 text-purple-700 dark:text-purple-300",
-                              value: formData.typesWithQualification[0]?.qualification || "—"
-                            },
-                            designation: {
-                              label: "Désignation",
-                              color: "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300",
-                              value: languageDesignation?.label || "—"
-                            },
-                            name: {
-                              label: "Nom",
-                              color: "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300",
-                              value: formData.name || "—"
-                            },
-                          };
+              <ScrollArea className={cn(
+                "px-6 mt-4",
+                currentDisplayMode === "fullpage" ? "h-[calc(100vh-280px)]" : "h-[55vh]"
+              )}>
+                {/* Tab: Informations */}
+                <TabsContent value="informations" className="space-y-4 mt-0">
+                  {/* Progress Indicator */}
+                  {(() => {
+                    const steps = [
+                      { label: "Nom", complete: formData.name.trim().length > 0, icon: "✏️" },
+                      { label: "Système éducatif", complete: formData.educationSystems.length > 0, icon: "📚" },
+                      { label: "Type", complete: formData.typesWithQualification.length > 0, icon: "🏫" },
+                      { label: "Niveaux", complete: formData.selectedLevels.length > 0, icon: "🎓" },
+                      { label: "Localisation GPS", complete: formData.latitude !== null && formData.longitude !== null, icon: "📍" },
+                    ];
+                    const completedCount = steps.filter(s => s.complete).length;
+                    const progressPercent = Math.round((completedCount / steps.length) * 100);
 
-                          const info = elementLabels[element];
-
-                          return (
-                            <div key={element} className={cn(
-                              "flex items-center gap-1 px-2 py-1.5 rounded-lg border text-sm",
-                              info.color
-                            )}>
-                              <button
-                                type="button"
-                                disabled={index === 0}
-                                onClick={() => {
-                                  const newOrder = [...formData.nameElementsOrder];
-                                  [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
-                                  updateFormData({ nameElementsOrder: newOrder });
-                                }}
-                                className={cn(
-                                  "p-0.5 rounded hover:bg-background/50",
-                                  index === 0 && "opacity-30 cursor-not-allowed"
-                                )}
-                              >
-                                ◀
-                              </button>
-
-                              <div className="flex flex-col items-center min-w-[60px]">
-                                <span className="text-[10px] font-medium opacity-70">{info.label}</span>
-                                <span className="font-semibold text-xs truncate max-w-[80px]">{info.value}</span>
-                              </div>
-
-                              <button
-                                type="button"
-                                disabled={index === formData.nameElementsOrder.length - 1}
-                                onClick={() => {
-                                  const newOrder = [...formData.nameElementsOrder];
-                                  [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
-                                  updateFormData({ nameElementsOrder: newOrder });
-                                }}
-                                className={cn(
-                                  "p-0.5 rounded hover:bg-background/50",
-                                  index === formData.nameElementsOrder.length - 1 && "opacity-30 cursor-not-allowed"
-                                )}
-                              >
-                                ▶
-                              </button>
+                    return (
+                      <div className="p-4 rounded-lg border bg-gradient-to-r from-primary/5 via-background to-secondary/5">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-medium">Progression</span>
+                          <span className={cn(
+                            "text-sm font-semibold px-2 py-0.5 rounded-full",
+                            progressPercent === 100
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              : "bg-muted text-muted-foreground"
+                          )}>
+                            {completedCount}/{steps.length} champs requis
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-muted rounded-full overflow-hidden mb-3">
+                          <div
+                            className={cn(
+                              "h-full transition-all duration-500 rounded-full",
+                              progressPercent === 100
+                                ? "bg-green-500"
+                                : progressPercent >= 60
+                                  ? "bg-primary"
+                                  : "bg-amber-500"
+                            )}
+                            style={{ width: `${progressPercent}%` }}
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {steps.map((step, idx) => (
+                            <div
+                              key={idx}
+                              className={cn(
+                                "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                                step.complete
+                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                  : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              <span>{step.icon}</span>
+                              <span>{step.label}</span>
+                              {step.complete && <span className="text-green-600 dark:text-green-400">✓</span>}
                             </div>
-                          );
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  <ValidatedInputWrapper
+                    label="Nom de l'établissement"
+                    required
+                    isValid={validation.name}
+                    isTouched={formData.name.length > 0}
+                    validMessage="Nom valide"
+                    invalidMessage="Le nom doit contenir au moins 2 caractères"
+                    helpText="Entrez le nom propre de l'établissement (ex: Saint-Michel, La Réussite)"
+                  >
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => updateFormData({ name: e.target.value })}
+                      placeholder="Ex: Saint-Michel"
+                      className={cn(
+                        "text-base",
+                        formData.name.length > 0 && (validation.name
+                          ? "border-green-500 focus-visible:ring-green-500/20"
+                          : "border-destructive focus-visible:ring-destructive/20")
+                      )}
+                    />
+                  </ValidatedInputWrapper>
+
+                  {/* Name preview */}
+                  {(formData.name || formData.typesWithQualification.length > 0 || languageDesignation) && (
+                    <div className="space-y-3 p-4 rounded-lg border bg-gradient-to-r from-primary/5 to-secondary/5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-semibold flex items-center gap-2">
+                          <School className="h-4 w-4" />
+                          Prévisualisation du nom complet
+                        </Label>
+                        <span className="text-xs text-muted-foreground">Réorganisez les éléments ci-dessous</span>
+                      </div>
+
+                      <div className="p-3 rounded-lg bg-background border-2 border-primary/30">
+                        <p className="text-lg font-semibold text-center">
+                          {(() => {
+                            const elements: Record<string, string> = {
+                              type: formData.typesWithQualification[0]
+                                ? ESTABLISHMENT_TYPES.find(t => t.value === formData.typesWithQualification[0].type)?.label || ""
+                                : "",
+                              qualification: formData.typesWithQualification[0]?.qualification || "",
+                              designation: languageDesignation?.label || "",
+                              name: formData.name || "..."
+                            };
+
+                            return formData.nameElementsOrder
+                              .map(key => elements[key])
+                              .filter(Boolean)
+                              .join(" ");
+                          })()}
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground">Cliquez sur les flèches pour réorganiser :</p>
+                        <div className="flex flex-wrap gap-2">
+                          {formData.nameElementsOrder.map((element, index) => {
+                            const elementLabels: Record<string, { label: string; color: string; value: string }> = {
+                              type: {
+                                label: "Type",
+                                color: "bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300",
+                                value: formData.typesWithQualification[0]
+                                  ? ESTABLISHMENT_TYPES.find(t => t.value === formData.typesWithQualification[0].type)?.label || "—"
+                                  : "—"
+                              },
+                              qualification: {
+                                label: "Qualification",
+                                color: "bg-purple-500/10 border-purple-500/30 text-purple-700 dark:text-purple-300",
+                                value: formData.typesWithQualification[0]?.qualification || "—"
+                              },
+                              designation: {
+                                label: "Désignation",
+                                color: "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300",
+                                value: languageDesignation?.label || "—"
+                              },
+                              name: {
+                                label: "Nom",
+                                color: "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300",
+                                value: formData.name || "—"
+                              },
+                            };
+
+                            const info = elementLabels[element];
+
+                            return (
+                              <div key={element} className={cn(
+                                "flex items-center gap-1 px-2 py-1.5 rounded-lg border text-sm",
+                                info.color
+                              )}>
+                                <button
+                                  type="button"
+                                  disabled={index === 0}
+                                  onClick={() => {
+                                    const newOrder = [...formData.nameElementsOrder];
+                                    [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+                                    updateFormData({ nameElementsOrder: newOrder });
+                                  }}
+                                  className={cn(
+                                    "p-0.5 rounded hover:bg-background/50",
+                                    index === 0 && "opacity-30 cursor-not-allowed"
+                                  )}
+                                >
+                                  ◀
+                                </button>
+
+                                <div className="flex flex-col items-center min-w-[60px]">
+                                  <span className="text-[10px] font-medium opacity-70">{info.label}</span>
+                                  <span className="font-semibold text-xs truncate max-w-[80px]">{info.value}</span>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  disabled={index === formData.nameElementsOrder.length - 1}
+                                  onClick={() => {
+                                    const newOrder = [...formData.nameElementsOrder];
+                                    [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+                                    updateFormData({ nameElementsOrder: newOrder });
+                                  }}
+                                  className={cn(
+                                    "p-0.5 rounded hover:bg-background/50",
+                                    index === formData.nameElementsOrder.length - 1 && "opacity-30 cursor-not-allowed"
+                                  )}
+                                >
+                                  ▶
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Education Systems */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Label>Système(s) éducatif(s) *</Label>
+                        <Badge variant="outline" className="gap-1">
+                          <GraduationCap className="h-3 w-3" />
+                          {formData.educationSystems.length} sélectionné{formData.educationSystems.length > 1 ? 's' : ''}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {languageDesignation && (
+                          <Badge variant="outline" className="bg-primary/10 border-primary text-primary">
+                            {languageDesignation.icon} {languageDesignation.label}
+                          </Badge>
+                        )}
+                        {expandedCategories.length > 0 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setExpandedCategories([])}
+                            className="h-7 text-xs gap-1"
+                          >
+                            <Minimize2 className="h-3 w-3" />
+                            Tout réduire
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {formData.educationSystems.length > 0 && (
+                      <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                        {formData.educationSystems.map(sysValue => {
+                          const system = ALL_EDUCATION_SYSTEMS.find(s => s.value === sysValue);
+                          return system ? (
+                            <Badge key={sysValue} variant="secondary" className="gap-2 pr-1">
+                              <span>{system.icon}</span>
+                              <span>{system.label}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateFormData({
+                                  educationSystems: formData.educationSystems.filter(s => s !== sysValue)
+                                })}
+                                className="ml-1 hover:bg-destructive/20 rounded p-0.5"
+                              >
+                                ✕
+                              </button>
+                            </Badge>
+                          ) : null;
                         })}
                       </div>
-                    </div>
-                  </div>
-                )}
+                    )}
 
-                {/* Education Systems */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Label>Système(s) éducatif(s) *</Label>
-                      <Badge variant="outline" className="gap-1">
-                        <GraduationCap className="h-3 w-3" />
-                        {formData.educationSystems.length} sélectionné{formData.educationSystems.length > 1 ? 's' : ''}
-                      </Badge>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={systemSearchTerm}
+                        onChange={(e) => setSystemSearchTerm(e.target.value)}
+                        placeholder="Rechercher un système éducatif (ex: Gabonais, IB, Cambridge...)"
+                        className="pl-10"
+                      />
                     </div>
-                    <div className="flex items-center gap-2">
-                      {languageDesignation && (
-                        <Badge variant="outline" className="bg-primary/10 border-primary text-primary">
-                          {languageDesignation.icon} {languageDesignation.label}
-                        </Badge>
-                      )}
-                      {expandedCategories.length > 0 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setExpandedCategories([])}
-                          className="h-7 text-xs gap-1"
-                        >
-                          <Minimize2 className="h-3 w-3" />
-                          Tout réduire
-                        </Button>
-                      )}
-                    </div>
-                  </div>
 
-                  {formData.educationSystems.length > 0 && (
-                    <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                      {formData.educationSystems.map(sysValue => {
-                        const system = ALL_EDUCATION_SYSTEMS.find(s => s.value === sysValue);
-                        return system ? (
-                          <Badge key={sysValue} variant="secondary" className="gap-2 pr-1">
-                            <span>{system.icon}</span>
-                            <span>{system.label}</span>
-                            <button
-                              type="button"
-                              onClick={() => updateFormData({
-                                educationSystems: formData.educationSystems.filter(s => s !== sysValue)
-                              })}
-                              className="ml-1 hover:bg-destructive/20 rounded p-0.5"
-                            >
-                              ✕
-                            </button>
-                          </Badge>
-                        ) : null;
-                      })}
-                    </div>
-                  )}
-
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={systemSearchTerm}
-                      onChange={(e) => setSystemSearchTerm(e.target.value)}
-                      placeholder="Rechercher un système éducatif (ex: Gabonais, IB, Cambridge...)"
-                      className="pl-10"
-                    />
-                  </div>
-
-                  <div className="max-h-[400px] overflow-y-auto border rounded-lg p-2">
-                    <div className="grid grid-cols-4 gap-2">
-                      {GLOBAL_EDUCATION_SYSTEM_CATEGORIES
-                        .filter(cat => {
-                          if (!systemSearchTerm) return true;
-                          const searchLower = systemSearchTerm.toLowerCase();
-                          return cat.label.toLowerCase().includes(searchLower) ||
-                            cat.systems.some(sys => 
-                              sys.label.toLowerCase().includes(searchLower) || 
-                              sys.description.toLowerCase().includes(searchLower)
-                            );
-                        })
-                        .map((category) => {
-                          const isExpanded = expandedCategories.includes(category.id);
-                          const filteredSystems = systemSearchTerm
-                            ? category.systems.filter(sys =>
+                    <div className="max-h-[400px] overflow-y-auto border rounded-lg p-2">
+                      <div className="grid grid-cols-4 gap-2">
+                        {GLOBAL_EDUCATION_SYSTEM_CATEGORIES
+                          .filter(cat => {
+                            if (!systemSearchTerm) return true;
+                            const searchLower = systemSearchTerm.toLowerCase();
+                            return cat.label.toLowerCase().includes(searchLower) ||
+                              cat.systems.some(sys =>
+                                sys.label.toLowerCase().includes(searchLower) ||
+                                sys.description.toLowerCase().includes(searchLower)
+                              );
+                          })
+                          .map((category) => {
+                            const isExpanded = expandedCategories.includes(category.id);
+                            const filteredSystems = systemSearchTerm
+                              ? category.systems.filter(sys =>
                                 sys.label.toLowerCase().includes(systemSearchTerm.toLowerCase()) ||
                                 sys.description.toLowerCase().includes(systemSearchTerm.toLowerCase())
                               )
-                            : category.systems;
-                          
-                          if (filteredSystems.length === 0) return null;
-                          
-                          const selectedCount = filteredSystems.filter(sys => 
-                            formData.educationSystems.includes(sys.value)
-                          ).length;
+                              : category.systems;
 
-                          return (
-                            <div key={category.id} className="col-span-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setExpandedCategories(prev =>
-                                    prev.includes(category.id)
-                                      ? prev.filter(id => id !== category.id)
-                                      : [...prev, category.id]
-                                  );
-                                }}
-                                className={cn(
-                                  "w-full flex flex-col items-center justify-center p-2 rounded-md border transition-all duration-200 text-center min-h-[70px]",
-                                  isExpanded
-                                    ? "border-primary bg-primary/10"
-                                    : "border-border bg-background hover:border-primary/50 hover:bg-muted/50",
-                                  selectedCount > 0 && "ring-2 ring-primary/30"
-                                )}
-                              >
-                                <span className="text-lg">{category.icon}</span>
-                                <span className="font-medium text-[10px] leading-tight line-clamp-2">{category.label}</span>
-                                <div className="flex items-center gap-1 mt-0.5">
-                                  <span className="text-[9px] text-muted-foreground">({filteredSystems.length})</span>
-                                  {selectedCount > 0 && (
-                                    <Badge variant="default" className="text-[8px] h-4 px-1">
-                                      {selectedCount}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </button>
+                            if (filteredSystems.length === 0) return null;
 
-                              {isExpanded && (
-                                <div className="col-span-4 grid grid-cols-4 gap-1.5 p-2 bg-muted/20 rounded-md mt-1 mb-2">
-                                  {filteredSystems.map((system) => {
-                                    const isSelected = formData.educationSystems.includes(system.value);
-                                    return (
-                                      <button
-                                        key={system.value}
-                                        type="button"
-                                        onClick={() => {
-                                          if (isSelected) {
-                                            updateFormData({
-                                              educationSystems: formData.educationSystems.filter(s => s !== system.value)
-                                            });
-                                          } else {
-                                            updateFormData({
-                                              educationSystems: [...formData.educationSystems, system.value]
-                                            });
-                                          }
-                                        }}
-                                        title={system.description}
-                                        className={cn(
-                                          "relative flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-md border transition-all duration-200 group text-center min-h-[60px]",
-                                          isSelected
-                                            ? "border-primary bg-primary/10 shadow-sm"
-                                            : "border-transparent bg-background hover:border-primary/50 hover:bg-muted/50"
-                                        )}
-                                      >
-                                        <span className="text-base">{system.icon}</span>
-                                        <span className="font-medium text-[9px] line-clamp-2 leading-tight">
-                                          {system.label}
-                                        </span>
-                                        {isSelected && (
-                                          <div className="absolute top-0.5 right-0.5 w-3 h-3 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
-                                            <CheckCircle2 className="w-2 h-2" />
-                                          </div>
-                                        )}
-                                      </button>
+                            const selectedCount = filteredSystems.filter(sys =>
+                              formData.educationSystems.includes(sys.value)
+                            ).length;
+
+                            return (
+                              <div key={category.id} className="col-span-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setExpandedCategories(prev =>
+                                      prev.includes(category.id)
+                                        ? prev.filter(id => id !== category.id)
+                                        : [...prev, category.id]
                                     );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                                  }}
+                                  className={cn(
+                                    "w-full flex flex-col items-center justify-center p-2 rounded-md border transition-all duration-200 text-center min-h-[70px]",
+                                    isExpanded
+                                      ? "border-primary bg-primary/10"
+                                      : "border-border bg-background hover:border-primary/50 hover:bg-muted/50",
+                                    selectedCount > 0 && "ring-2 ring-primary/30"
+                                  )}
+                                >
+                                  <span className="text-lg">{category.icon}</span>
+                                  <span className="font-medium text-[10px] leading-tight line-clamp-2">{category.label}</span>
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <span className="text-[9px] text-muted-foreground">({filteredSystems.length})</span>
+                                    {selectedCount > 0 && (
+                                      <Badge variant="default" className="text-[8px] h-4 px-1">
+                                        {selectedCount}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </button>
+
+                                {isExpanded && (
+                                  <div className="col-span-4 grid grid-cols-4 gap-1.5 p-2 bg-muted/20 rounded-md mt-1 mb-2">
+                                    {filteredSystems.map((system) => {
+                                      const isSelected = formData.educationSystems.includes(system.value);
+                                      return (
+                                        <button
+                                          key={system.value}
+                                          type="button"
+                                          onClick={() => {
+                                            if (isSelected) {
+                                              updateFormData({
+                                                educationSystems: formData.educationSystems.filter(s => s !== system.value)
+                                              });
+                                            } else {
+                                              updateFormData({
+                                                educationSystems: [...formData.educationSystems, system.value]
+                                              });
+                                            }
+                                          }}
+                                          title={system.description}
+                                          className={cn(
+                                            "relative flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-md border transition-all duration-200 group text-center min-h-[60px]",
+                                            isSelected
+                                              ? "border-primary bg-primary/10 shadow-sm"
+                                              : "border-transparent bg-background hover:border-primary/50 hover:bg-muted/50"
+                                          )}
+                                        >
+                                          <span className="text-base">{system.icon}</span>
+                                          <span className="font-medium text-[9px] line-clamp-2 leading-tight">
+                                            {system.label}
+                                          </span>
+                                          {isSelected && (
+                                            <div className="absolute top-0.5 right-0.5 w-3 h-3 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
+                                              <CheckCircle2 className="w-2 h-2" />
+                                            </div>
+                                          )}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Types */}
-                <div className="space-y-3">
-                  <Label>Type(s) d'établissement *</Label>
+                  {/* Types */}
+                  <div className="space-y-3">
+                    <Label>Type(s) d'établissement *</Label>
 
-                  <div className="space-y-2">
-                    {formData.typesWithQualification.map((twq, index) => {
-                      const typeInfo = ESTABLISHMENT_TYPES.find(t => t.value === twq.type);
-                      const suggestions = TYPE_QUALIFICATIONS[twq.type] || [];
-                      return (
-                        <div key={index} className="flex items-center gap-2 p-3 rounded-lg border bg-primary/5 border-primary/20">
-                          <span className="text-lg">{typeInfo?.icon}</span>
-                          <span className="font-medium min-w-[100px]">{typeInfo?.label}</span>
-                          <Select
-                            value={twq.qualification || "none"}
-                            onValueChange={(v) => {
-                              const updated = [...formData.typesWithQualification];
-                              updated[index] = { ...twq, qualification: v === "none" ? "" : v };
-                              updateFormData({ typesWithQualification: updated });
-                            }}
-                          >
-                            <SelectTrigger className="flex-1 h-8">
-                              <SelectValue placeholder="Sélectionner une qualification" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="none">Sans qualification</SelectItem>
-                              {suggestions.map(s => (
-                                <SelectItem key={s} value={s}>{s}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              updateFormData({
-                                typesWithQualification: formData.typesWithQualification.filter((_, i) => i !== index)
-                              });
-                            }}
-                            className="text-destructive hover:bg-destructive/10 p-1 rounded"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      );
-                    })}
+                    <div className="space-y-2">
+                      {formData.typesWithQualification.map((twq, index) => {
+                        const typeInfo = ESTABLISHMENT_TYPES.find(t => t.value === twq.type);
+                        const suggestions = TYPE_QUALIFICATIONS[twq.type] || [];
+                        return (
+                          <div key={index} className="flex items-center gap-2 p-3 rounded-lg border bg-primary/5 border-primary/20">
+                            <span className="text-lg">{typeInfo?.icon}</span>
+                            <span className="font-medium min-w-[100px]">{typeInfo?.label}</span>
+                            <Select
+                              value={twq.qualification || "none"}
+                              onValueChange={(v) => {
+                                const updated = [...formData.typesWithQualification];
+                                updated[index] = { ...twq, qualification: v === "none" ? "" : v };
+                                updateFormData({ typesWithQualification: updated });
+                              }}
+                            >
+                              <SelectTrigger className="flex-1 h-8">
+                                <SelectValue placeholder="Sélectionner une qualification" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Sans qualification</SelectItem>
+                                {suggestions.map(s => (
+                                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateFormData({
+                                  typesWithQualification: formData.typesWithQualification.filter((_, i) => i !== index)
+                                });
+                              }}
+                              className="text-destructive hover:bg-destructive/10 p-1 rounded"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {ESTABLISHMENT_TYPES.map((typeOption) => (
+                        <button
+                          key={typeOption.value}
+                          type="button"
+                          onClick={() => {
+                            updateFormData({
+                              typesWithQualification: [
+                                ...formData.typesWithQualification,
+                                { type: typeOption.value, qualification: "" }
+                              ]
+                            });
+                          }}
+                          className="px-3 py-2 rounded-lg border text-sm font-medium transition-all flex items-center gap-2 bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50"
+                        >
+                          <span>{typeOption.icon}</span>
+                          <span>{typeOption.label}</span>
+                          <span className="text-primary">+</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {ESTABLISHMENT_TYPES.map((typeOption) => (
-                      <button
-                        key={typeOption.value}
-                        type="button"
-                        onClick={() => {
-                          updateFormData({
-                            typesWithQualification: [
-                              ...formData.typesWithQualification,
-                              { type: typeOption.value, qualification: "" }
-                            ]
-                          });
-                        }}
-                        className="px-3 py-2 rounded-lg border text-sm font-medium transition-all flex items-center gap-2 bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50"
+                  {/* Group and Country */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Groupe scolaire</Label>
+                      <Select
+                        value={formData.group_id || "none"}
+                        onValueChange={(v) => updateFormData({ group_id: v === "none" ? null : v })}
                       >
-                        <span>{typeOption.icon}</span>
-                        <span>{typeOption.label}</span>
-                        <span className="text-primary">+</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Group and Country */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Groupe scolaire</Label>
-                    <Select
-                      value={formData.group_id || "none"}
-                      onValueChange={(v) => updateFormData({ group_id: v === "none" ? null : v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Aucun groupe" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Aucun groupe</SelectItem>
-                        {groups.map((g) => (
-                          <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Pays</Label>
-                    <Select
-                      value={formData.country_code}
-                      onValueChange={(v) => updateFormData({ country_code: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COUNTRIES.map((country) => (
-                          <SelectItem key={country.code} value={country.code}>
-                            <span className="flex items-center gap-2">
-                              <span>{country.flag}</span>
-                              <span>{country.name}</span>
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Section Contact & Localisation */}
-                <div className="pt-6 border-t space-y-4">
-                  <div className="flex items-center gap-2">
-                    <MapPinned className="h-5 w-5 text-primary" />
-                    <h3 className="text-base font-semibold">Localisation & Contact</h3>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Aucun groupe" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Aucun groupe</SelectItem>
+                          {groups.map((g) => (
+                            <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Pays</Label>
+                      <Select
+                        value={formData.country_code}
+                        onValueChange={(v) => updateFormData({ country_code: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {COUNTRIES.map((country) => (
+                            <SelectItem key={country.code} value={country.code}>
+                              <span className="flex items-center gap-2">
+                                <span>{country.flag}</span>
+                                <span>{country.name}</span>
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
-                  <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/30">
-                    <Navigation className="h-4 w-4 text-amber-600" />
-                    <AlertDescription className="text-amber-800 dark:text-amber-200">
-                      <strong>Important :</strong> Placez-vous à l'entrée principale de l'établissement avant de capturer la position GPS.
-                    </AlertDescription>
-                  </Alert>
+                  {/* Section Contact & Localisation */}
+                  <div className="pt-6 border-t space-y-4">
+                    <div className="flex items-center gap-2">
+                      <MapPinned className="h-5 w-5 text-primary" />
+                      <h3 className="text-base font-semibold">Localisation & Contact</h3>
+                    </div>
 
-                  {geoError && (
-                    <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{geoError}</AlertDescription>
+                    <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/30">
+                      <Navigation className="h-4 w-4 text-amber-600" />
+                      <AlertDescription className="text-amber-800 dark:text-amber-200">
+                        <strong>Important :</strong> Placez-vous à l'entrée principale de l'établissement avant de capturer la position GPS.
+                      </AlertDescription>
                     </Alert>
-                  )}
 
-                  <div className="flex flex-col gap-3">
-                    {formData.latitude !== null && formData.longitude !== null ? (
-                      <div className="space-y-3">
-                        <LocationPickerMap
-                          latitude={formData.latitude}
-                          longitude={formData.longitude}
-                          onLocationChange={handleMapLocationChange}
-                        />
-                        <div className="flex justify-end">
-                          <GlassButton variant="ghost" size="sm" onClick={clearLocation}>
-                            Effacer la position
-                          </GlassButton>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="p-6 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 flex flex-col items-center gap-4">
-                          <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
-                            <Navigation className="h-8 w-8 text-muted-foreground" />
-                          </div>
-                          <div className="text-center">
-                            <p className="font-medium">Aucune position GPS définie</p>
-                            <p className="text-sm text-muted-foreground">
-                              Capturez votre position actuelle ou sélectionnez sur la carte
-                            </p>
-                          </div>
-                          <GlassButton
-                            variant="primary"
-                            onClick={getCurrentLocation}
-                            disabled={geoLoading}
-                            className="gap-2"
-                          >
-                            {geoLoading ? (
-                              <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Recherche...
-                              </>
-                            ) : (
-                              <>
-                                <Navigation className="h-4 w-4" />
-                                Capturer ma position GPS
-                              </>
-                            )}
-                          </GlassButton>
-                        </div>
+                    {geoError && (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{geoError}</AlertDescription>
+                      </Alert>
+                    )}
 
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <Map className="h-4 w-4 text-muted-foreground" />
-                            <Label className="text-sm font-medium">Ou sélectionner sur la carte</Label>
-                          </div>
+                    <div className="flex flex-col gap-3">
+                      {formData.latitude !== null && formData.longitude !== null ? (
+                        <div className="space-y-3">
                           <LocationPickerMap
                             latitude={formData.latitude}
                             longitude={formData.longitude}
                             onLocationChange={handleMapLocationChange}
                           />
+                          <div className="flex justify-end">
+                            <GlassButton variant="ghost" size="sm" onClick={clearLocation}>
+                              Effacer la position
+                            </GlassButton>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="p-6 rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 flex flex-col items-center gap-4">
+                            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+                              <Navigation className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                            <div className="text-center">
+                              <p className="font-medium">Aucune position GPS définie</p>
+                              <p className="text-sm text-muted-foreground">
+                                Capturez votre position actuelle ou sélectionnez sur la carte
+                              </p>
+                            </div>
+                            <GlassButton
+                              variant="primary"
+                              onClick={getCurrentLocation}
+                              disabled={geoLoading}
+                              className="gap-2"
+                            >
+                              {geoLoading ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Recherche...
+                                </>
+                              ) : (
+                                <>
+                                  <Navigation className="h-4 w-4" />
+                                  Capturer ma position GPS
+                                </>
+                              )}
+                            </GlassButton>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Map className="h-4 w-4 text-muted-foreground" />
+                              <Label className="text-sm font-medium">Ou sélectionner sur la carte</Label>
+                            </div>
+                            <LocationPickerMap
+                              latitude={formData.latitude}
+                              longitude={formData.longitude}
+                              onLocationChange={handleMapLocationChange}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {formData.latitude !== null && formData.longitude !== null && (
+                      <div className="pt-2 border-t space-y-3">
+                        {geoAddress && (
+                          <div className="p-3 rounded-lg bg-muted/50 border">
+                            <p className="text-sm text-foreground">{geoAddress}</p>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Latitude</Label>
+                            <Input value={formData.latitude.toFixed(6)} disabled className="bg-muted" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Longitude</Label>
+                            <Input value={formData.longitude.toFixed(6)} disabled className="bg-muted" />
+                          </div>
                         </div>
                       </div>
                     )}
-                  </div>
 
-                  {formData.latitude !== null && formData.longitude !== null && (
-                    <div className="pt-2 border-t space-y-3">
-                      {geoAddress && (
-                        <div className="p-3 rounded-lg bg-muted/50 border">
-                          <p className="text-sm text-foreground">{geoAddress}</p>
-                        </div>
-                      )}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Latitude</Label>
-                          <Input value={formData.latitude.toFixed(6)} disabled className="bg-muted" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Longitude</Label>
-                          <Input value={formData.longitude.toFixed(6)} disabled className="bg-muted" />
-                        </div>
+                    <div className="space-y-2">
+                      <Label>Adresse complète</Label>
+                      <Textarea
+                        value={formData.address}
+                        onChange={(e) => updateFormData({ address: e.target.value })}
+                        placeholder="Rue, quartier, ville..."
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Téléphone</Label>
+                        <Input
+                          value={formData.phone}
+                          onChange={(e) => updateFormData({ phone: e.target.value })}
+                          placeholder="+241 01 XX XX XX"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Email</Label>
+                        <Input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => updateFormData({ email: e.target.value })}
+                          placeholder="contact@etablissement.com"
+                        />
                       </div>
                     </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label>Adresse complète</Label>
-                    <Textarea
-                      value={formData.address}
-                      onChange={(e) => updateFormData({ address: e.target.value })}
-                      placeholder="Rue, quartier, ville..."
-                      rows={3}
-                    />
                   </div>
+                </TabsContent>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Téléphone</Label>
-                      <Input
-                        value={formData.phone}
-                        onChange={(e) => updateFormData({ phone: e.target.value })}
-                        placeholder="+241 01 XX XX XX"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Email</Label>
-                      <Input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => updateFormData({ email: e.target.value })}
-                        placeholder="contact@etablissement.com"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
+                {/* Tab: Niveaux et Classes */}
+                <TabsContent value="niveaux" className="space-y-4 mt-0">
+                  <ClassConfigTab
+                    selectedLevels={formData.selectedLevels}
+                    onSelectedLevelsChange={(levels) => updateFormData({ selectedLevels: levels })}
+                    classesConfig={formData.classesConfig}
+                    onClassesConfigChange={(config) => updateFormData({ classesConfig: config })}
+                    educationSystems={formData.educationSystems}
+                    options={formData.options}
+                    onOptionsChange={(opts) => updateFormData({ options: opts })}
+                    typesWithQualification={formData.typesWithQualification}
+                  />
+                </TabsContent>
 
-              {/* Tab: Niveaux et Classes */}
-              <TabsContent value="niveaux" className="space-y-4 mt-0">
-                <ClassConfigTab
-                  selectedLevels={formData.selectedLevels}
-                  onSelectedLevelsChange={(levels) => updateFormData({ selectedLevels: levels })}
-                  classesConfig={formData.classesConfig}
-                  onClassesConfigChange={(config) => updateFormData({ classesConfig: config })}
-                  educationSystems={formData.educationSystems}
-                  options={formData.options}
-                  onOptionsChange={(opts) => updateFormData({ options: opts })}
-                  typesWithQualification={formData.typesWithQualification}
-                />
-              </TabsContent>
+                {/* Tab: Modules */}
+                <TabsContent value="modules" className="space-y-4 mt-0">
+                  <ModulesConfigTab
+                    enabledModules={formData.enabledModules}
+                    onModulesChange={(modules) => updateFormData({ enabledModules: modules })}
+                  />
+                </TabsContent>
 
-              {/* Tab: Modules */}
-              <TabsContent value="modules" className="space-y-4 mt-0">
-                <ModulesConfigTab
-                  enabledModules={formData.enabledModules}
-                  onModulesChange={(modules) => updateFormData({ enabledModules: modules })}
-                />
-              </TabsContent>
+                {/* Tab: Personnel */}
+                <TabsContent value="administration" className="space-y-4 mt-0">
+                  <StaffManagementTab
+                    staff={staff}
+                    onChange={updateStaff}
+                    classesConfig={formData.classesConfig.flatMap(lc => lc.classes)}
+                    selectedLevels={formData.selectedLevels}
+                  />
+                </TabsContent>
+              </ScrollArea>
+            </Tabs>
+          )}
 
-              {/* Tab: Personnel */}
-              <TabsContent value="administration" className="space-y-4 mt-0">
-                <StaffManagementTab
+          {/* Confirmation View */}
+          {showConfirmation && !showSuccess && (
+            <div className="px-6">
+              <ScrollArea className="h-[55vh]">
+                <ConfirmationStep
+                  formData={formData}
                   staff={staff}
-                  onChange={updateStaff}
-                  classesConfig={formData.classesConfig.flatMap(lc => lc.classes)}
-                  selectedLevels={formData.selectedLevels}
+                  languageDesignation={languageDesignation}
+                  groupName={selectedGroupName}
+                  onNavigateToTab={handleNavigateFromConfirmation}
                 />
-              </TabsContent>
-            </ScrollArea>
-          </Tabs>
-        )}
+              </ScrollArea>
+            </div>
+          )}
 
-        {/* Confirmation View */}
-        {showConfirmation && !showSuccess && (
-          <div className="px-6">
-            <ScrollArea className="h-[55vh]">
-              <ConfirmationStep
-                formData={formData}
-                staff={staff}
-                languageDesignation={languageDesignation}
-                groupName={selectedGroupName}
-                onNavigateToTab={handleNavigateFromConfirmation}
-              />
-            </ScrollArea>
-          </div>
-        )}
+          {/* Success Animation */}
+          {showSuccess && (
+            <SuccessAnimation
+              establishmentName={createdEstablishmentName}
+              onContinue={handleSuccessContinue}
+              autoRedirectDelay={4000}
+            />
+          )}
+        </div>
 
-        {/* Success Animation */}
-        {showSuccess && (
-          <SuccessAnimation
-            establishmentName={createdEstablishmentName}
-            onContinue={handleSuccessContinue}
-            autoRedirectDelay={4000}
-          />
-        )}
-
-        <DialogFooter className="p-6 pt-4 border-t">
+        <DialogFooter className="p-6 pt-4 border-t flex-shrink-0 bg-background">
           {showConfirmation ? (
             <>
               <GlassButton
@@ -1506,6 +1534,6 @@ export const CreateEstablishmentModalEnhanced = ({
           )}
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   );
 };

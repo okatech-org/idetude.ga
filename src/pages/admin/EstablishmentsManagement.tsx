@@ -8,7 +8,7 @@ import { GlassInput } from "@/components/ui/glass-input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ViewEstablishmentModal } from "@/components/admin/ViewEstablishmentModal";
-import { CreateEstablishmentModalEnhanced } from "@/components/admin/establishment";
+import { CreateEstablishmentModalEnhanced, ArchiveEstablishmentModal, type ArchiveAction } from "@/components/admin/establishment";
 import { CreateGroupModal } from "@/components/admin/CreateGroupModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -26,6 +26,9 @@ import {
   Database,
   FileJson,
   Cog,
+  Archive,
+  Trash2,
+  Undo2,
 } from "lucide-react";
 import { countries, type Country, type School as SchoolType, type SchoolGroup } from "@/data/demo-accounts";
 
@@ -43,8 +46,8 @@ const parseEstablishmentTypes = (typeString: string) => {
   return typeString.split(",").map(part => {
     const [type, qualification] = part.split(":");
     const typeInfo = typeLabels[type];
-    const label = qualification 
-      ? `${typeInfo?.label || type} ${qualification}` 
+    const label = qualification
+      ? `${typeInfo?.label || type} ${qualification}`
       : typeInfo?.label || type;
     return { type, qualification: qualification || "", label, color: typeInfo?.color || "" };
   });
@@ -60,6 +63,9 @@ interface DbEstablishment {
   levels: string | null;
   student_capacity: number | null;
   group_id: string | null;
+  is_archived?: boolean;
+  archived_at?: string | null;
+  archived_by?: string | null;
 }
 
 interface DbGroup {
@@ -79,8 +85,14 @@ const EstablishmentsManagement = () => {
   const [showCreateEstablishmentModal, setShowCreateEstablishmentModal] = useState(false);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
 
+  // Archive modal state
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [archiveAction, setArchiveAction] = useState<ArchiveAction>("archive");
+  const [selectedEstablishment, setSelectedEstablishment] = useState<DbEstablishment | null>(null);
+
   // Database data
   const [dbEstablishments, setDbEstablishments] = useState<DbEstablishment[]>([]);
+  const [archivedEstablishments, setArchivedEstablishments] = useState<DbEstablishment[]>([]);
   const [dbGroups, setDbGroups] = useState<DbGroup[]>([]);
   const [loadingDb, setLoadingDb] = useState(true);
 
@@ -108,14 +120,21 @@ const EstablishmentsManagement = () => {
       if (groupsError) throw groupsError;
       setDbGroups(groupsData || []);
 
-      // Fetch establishments
+      // Fetch all establishments
       const { data: estData, error: estError } = await supabase
         .from("establishments")
         .select("*")
         .order("name");
 
       if (estError) throw estError;
-      setDbEstablishments(estData || []);
+
+      // Separate active and archived establishments
+      const allEstablishments = estData || [];
+      const active = allEstablishments.filter((e: DbEstablishment) => !e.is_archived);
+      const archived = allEstablishments.filter((e: DbEstablishment) => e.is_archived);
+
+      setDbEstablishments(active);
+      setArchivedEstablishments(archived);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -123,10 +142,17 @@ const EstablishmentsManagement = () => {
     }
   };
 
+  // Handle archive action (archive/restore/delete)
+  const handleArchiveAction = (establishment: DbEstablishment, action: ArchiveAction) => {
+    setSelectedEstablishment(establishment);
+    setArchiveAction(action);
+    setShowArchiveModal(true);
+  };
+
   // Get all schools from demo data
   const getAllSchools = () => {
     const schools: { school: SchoolType; country: Country; group?: SchoolGroup }[] = [];
-    
+
     countries.forEach((country) => {
       country.schoolGroups.forEach((group) => {
         group.schools.forEach((school) => {
@@ -137,12 +163,12 @@ const EstablishmentsManagement = () => {
         schools.push({ school, country });
       });
     });
-    
+
     return schools;
   };
 
   const allSchools = getAllSchools();
-  
+
   const filteredSchools = allSchools.filter((item) => {
     const matchesSearch =
       item.school.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -164,6 +190,7 @@ const EstablishmentsManagement = () => {
     demoSchools: allSchools.length,
     dbSchools: dbEstablishments.length,
     dbGroups: dbGroups.length,
+    archivedSchools: archivedEstablishments.length,
   };
 
   if (authLoading) {
@@ -263,12 +290,16 @@ const EstablishmentsManagement = () => {
           </div>
         </GlassCard>
 
-        {/* Tabs for DB vs Demo data */}
+        {/* Tabs for DB vs Demo vs Archived data */}
         <Tabs defaultValue="database" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="database" className="flex items-center gap-2">
               <Database className="h-4 w-4" />
               Base de données ({dbEstablishments.length})
+            </TabsTrigger>
+            <TabsTrigger value="archived" className="flex items-center gap-2">
+              <Archive className="h-4 w-4" />
+              Archivés ({archivedEstablishments.length})
             </TabsTrigger>
             <TabsTrigger value="demo" className="flex items-center gap-2">
               <FileJson className="h-4 w-4" />
@@ -393,6 +424,18 @@ const EstablishmentsManagement = () => {
                               <Cog className="h-3.5 w-3.5" />
                               Gestion
                             </GlassButton>
+                            <GlassButton
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleArchiveAction(est, "archive");
+                              }}
+                              className="text-muted-foreground hover:text-amber-600"
+                              title="Archiver"
+                            >
+                              <Archive className="h-3.5 w-3.5" />
+                            </GlassButton>
                           </div>
                         </div>
                       </div>
@@ -501,6 +544,90 @@ const EstablishmentsManagement = () => {
               </div>
             </GlassCard>
           </TabsContent>
+
+          {/* Archived Tab */}
+          <TabsContent value="archived" className="space-y-4">
+            <GlassCard className="p-6" solid>
+              <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                <Archive className="h-5 w-5 text-amber-500" />
+                Établissements Archivés ({archivedEstablishments.length})
+              </h2>
+              {archivedEstablishments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Archive className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Aucun établissement archivé</p>
+                  <p className="text-sm mt-1">Les établissements archivés apparaîtront ici</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {archivedEstablishments.map((est) => (
+                    <div
+                      key={est.id}
+                      className="p-4 rounded-xl bg-muted/30 border border-amber-500/20 opacity-75 hover:opacity-100 transition-opacity"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500/20 to-amber-500/5 flex items-center justify-center">
+                            <Archive className="h-6 w-6 text-amber-500" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-foreground">{est.name}</p>
+                            {est.address && (
+                              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {est.address}
+                              </p>
+                            )}
+                            {est.archived_at && (
+                              <p className="text-xs text-amber-600 mt-1">
+                                Archivé le {new Date(est.archived_at).toLocaleDateString("fr-FR")}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-lg">{est.country_code === "GA" ? "🇬🇦" : "🇨🇩"}</span>
+                          {parseEstablishmentTypes(est.type).map((typeInfo, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className={typeInfo.color}
+                            >
+                              {typeInfo.label}
+                            </Badge>
+                          ))}
+                          <GlassButton
+                            variant="primary"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleArchiveAction(est, "restore");
+                            }}
+                            className="gap-1"
+                          >
+                            <Undo2 className="h-3.5 w-3.5" />
+                            Restaurer
+                          </GlassButton>
+                          <GlassButton
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleArchiveAction(est, "delete");
+                            }}
+                            className="text-red-600 hover:text-red-700"
+                            title="Supprimer définitivement"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </GlassButton>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </GlassCard>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -524,6 +651,17 @@ const EstablishmentsManagement = () => {
       <CreateGroupModal
         open={showCreateGroupModal}
         onOpenChange={setShowCreateGroupModal}
+        onSuccess={fetchDbData}
+      />
+
+      {/* Archive Establishment Modal */}
+      <ArchiveEstablishmentModal
+        open={showArchiveModal}
+        onOpenChange={setShowArchiveModal}
+        establishmentId={selectedEstablishment?.id || null}
+        establishmentName={selectedEstablishment?.name || ""}
+        action={archiveAction}
+        userId={user?.id || ""}
         onSuccess={fetchDbData}
       />
     </UserLayout>

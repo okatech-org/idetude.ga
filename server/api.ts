@@ -13,13 +13,12 @@ const PORT = process.env.PORT || 3001;
 
 // Database connection pool
 const pool = new Pool({
-    host: process.env.CLOUDSQL_HOST || '35.195.248.19',
-    port: parseInt(process.env.CLOUDSQL_PORT || '5432'),
-    database: process.env.CLOUDSQL_DATABASE || 'postgres',
-    user: process.env.CLOUDSQL_USER || 'postgres',
-    password: process.env.CLOUDSQL_PASSWORD || 'sovereign_db_pass_2026',
     max: 10,
     idleTimeoutMillis: 30000,
+    // Disable SSL when using Cloud SQL Proxy (localhost), enable for direct connection
+    ssl: (process.env.CLOUDSQL_HOST === '127.0.0.1' || process.env.CLOUDSQL_HOST === 'localhost')
+        ? false
+        : { rejectUnauthorized: false },
 });
 
 app.use(cors());

@@ -44,6 +44,7 @@ import { LinguisticSectionsModal } from "@/components/admin/LinguisticSectionsMo
 import { ModulesConfigTab } from "@/components/admin/establishment/ModulesConfigTab";
 import { HRConfigTab } from "@/components/admin/establishment/HRConfigTab";
 import { EstablishmentSearch } from "@/components/admin/establishment/EstablishmentSearch";
+import { StaffDetailDrawer } from "@/components/admin/StaffDetailDrawer";
 
 interface Establishment {
   id: string;
@@ -208,6 +209,10 @@ const EstablishmentConfig = () => {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
   const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
   const [selectedClassForEnrollment, setSelectedClassForEnrollment] = useState<Class | null>(null);
+
+  // Staff drawer state
+  const [selectedStaff, setSelectedStaff] = useState<EstablishmentStaff | null>(null);
+  const [showStaffDrawer, setShowStaffDrawer] = useState(false);
 
   // Form states
   const [departmentForm, setDepartmentForm] = useState({
@@ -691,6 +696,16 @@ const EstablishmentConfig = () => {
     setShowStudentEnrollmentModal(true);
   };
 
+  const openStaffConfig = (staff: EstablishmentStaff) => {
+    setSelectedStaff(staff);
+    setShowStaffDrawer(true);
+  };
+
+  const openStaffEdit = (staff: EstablishmentStaff) => {
+    setSelectedStaff(staff);
+    setShowStaffDrawer(true);
+  };
+
   if (authLoading || loading) {
     return (
       <UserLayout>
@@ -978,10 +993,10 @@ const EstablishmentConfig = () => {
 
                             {/* Actions */}
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <GlassButton variant="ghost" size="sm" title="Configurer">
+                              <GlassButton variant="ghost" size="sm" title="Configurer" onClick={() => openStaffConfig(staff)}>
                                 <Settings className="h-3.5 w-3.5" />
                               </GlassButton>
-                              <GlassButton variant="ghost" size="sm" title="Modifier">
+                              <GlassButton variant="ghost" size="sm" title="Modifier" onClick={() => openStaffEdit(staff)}>
                                 <Edit className="h-3.5 w-3.5" />
                               </GlassButton>
                             </div>
@@ -1161,10 +1176,10 @@ const EstablishmentConfig = () => {
 
                             {/* Actions */}
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <GlassButton variant="ghost" size="sm" title="Configurer">
+                              <GlassButton variant="ghost" size="sm" title="Configurer" onClick={() => openStaffConfig(staff)}>
                                 <Settings className="h-3.5 w-3.5" />
                               </GlassButton>
-                              <GlassButton variant="ghost" size="sm" title="Modifier">
+                              <GlassButton variant="ghost" size="sm" title="Modifier" onClick={() => openStaffEdit(staff)}>
                                 <Edit className="h-3.5 w-3.5" />
                               </GlassButton>
                             </div>
@@ -1823,6 +1838,30 @@ const EstablishmentConfig = () => {
           onSuccess={fetchEstablishmentData}
         />
       )}
+
+      {/* Staff Detail Drawer */}
+      <StaffDetailDrawer
+        staff={selectedStaff ? {
+          id: selectedStaff.id,
+          first_name: selectedStaff.first_name || '',
+          last_name: selectedStaff.last_name || '',
+          email: selectedStaff.email || '',
+          phone: selectedStaff.phone,
+          staff_type: selectedStaff.staff_type,
+          position: selectedStaff.position,
+          department: selectedStaff.department,
+          contract_type: selectedStaff.contract_type,
+          is_active: selectedStaff.is_active,
+          start_date: selectedStaff.start_date,
+        } : null}
+        open={showStaffDrawer}
+        onClose={() => {
+          setShowStaffDrawer(false);
+          setSelectedStaff(null);
+        }}
+        onUpdate={() => fetchEstablishmentData()}
+        establishmentName={establishment?.name}
+      />
     </UserLayout>
   );
 };

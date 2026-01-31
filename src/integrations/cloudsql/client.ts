@@ -173,6 +173,15 @@ class CloudSqlClient {
         }
     }
 
+    async getProfiles(): Promise<QueryResult<Profile>> {
+        try {
+            const data = await this.request<Profile[]>('GET', '/profiles');
+            return { data, error: null, count: data.length };
+        } catch (error) {
+            return { data: null, error: error as Error };
+        }
+    }
+
     // ==================== USER ROLES ====================
 
     async getUserRoles(userId: string): Promise<QueryResult<UserRole>> {
@@ -205,6 +214,93 @@ class CloudSqlClient {
             const data = await this.request<UserEstablishment[]>(
                 'GET',
                 `/users/${userId}/establishments`
+            );
+            return { data, error: null, count: data.length };
+        } catch (error) {
+            return { data: null, error: error as Error };
+        }
+    }
+
+    // ==================== SUBJECTS ====================
+
+    async getSubjects(): Promise<QueryResult<unknown>> {
+        try {
+            const data = await this.request<unknown[]>('GET', '/subjects');
+            return { data, error: null, count: data.length };
+        } catch (error) {
+            return { data: null, error: error as Error };
+        }
+    }
+
+    async getEstablishmentSubjects(establishmentId: string): Promise<QueryResult<unknown>> {
+        try {
+            const data = await this.request<unknown[]>(
+                'GET',
+                `/establishments/${establishmentId}/subjects`
+            );
+            return { data, error: null, count: data.length };
+        } catch (error) {
+            return { data: null, error: error as Error };
+        }
+    }
+
+    // ==================== STAFF ====================
+
+    async getEstablishmentStaff(establishmentId: string): Promise<QueryResult<Profile>> {
+        try {
+            const data = await this.request<Profile[]>(
+                'GET',
+                `/establishments/${establishmentId}/staff`
+            );
+            return { data, error: null, count: data.length };
+        } catch (error) {
+            return { data: null, error: error as Error };
+        }
+    }
+
+    async getEstablishmentTeachers(establishmentId: string): Promise<QueryResult<Profile>> {
+        try {
+            const data = await this.request<Profile[]>(
+                'GET',
+                `/establishments/${establishmentId}/teachers`
+            );
+            return { data, error: null, count: data.length };
+        } catch (error) {
+            return { data: null, error: error as Error };
+        }
+    }
+
+    // ==================== STUDENTS ====================
+
+    async getEstablishmentStudents(establishmentId: string): Promise<QueryResult<Profile>> {
+        try {
+            const data = await this.request<Profile[]>(
+                'GET',
+                `/establishments/${establishmentId}/students`
+            );
+            return { data, error: null, count: data.length };
+        } catch (error) {
+            return { data: null, error: error as Error };
+        }
+    }
+
+    async getClassStudents(classId: string): Promise<QueryResult<Profile>> {
+        try {
+            const data = await this.request<Profile[]>(
+                'GET',
+                `/classes/${classId}/students`
+            );
+            return { data, error: null, count: data.length };
+        } catch (error) {
+            return { data: null, error: error as Error };
+        }
+    }
+
+    async getClassTeachers(classId: string): Promise<QueryResult<Profile>> {
+        try {
+            const data = await this.request<Profile[]>(
+                'GET',
+                `/classes/${classId}/teachers`
             );
             return { data, error: null, count: data.length };
         } catch (error) {

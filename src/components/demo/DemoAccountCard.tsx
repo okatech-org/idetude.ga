@@ -37,22 +37,11 @@ export const DemoAccountCard = ({ account, compact = false }: DemoAccountCardPro
 
   const handleQuickLogin = async () => {
     setIsLoggingIn(true);
-    
+
     try {
       // First, try to initialize demo account (creates user if not exists)
-      try {
-        await supabase.functions.invoke("init-demo-accounts", {
-          body: { 
-            action: "init",
-            email: account.email,
-            password: account.password,
-            name: account.name,
-            displayRole: account.role,
-          },
-        });
-      } catch (initError) {
-        console.log("Demo init (might already exist):", initError);
-      }
+      // NOTE: Cloud SQL Mode - Demo accounts are pre-seeded or handled via Mock Auth.
+      // Skipping legacy Supabase Edge Function call.
 
       // Sign in with the demo credentials
       const { error } = await supabase.auth.signInWithPassword({

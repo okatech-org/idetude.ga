@@ -81,6 +81,7 @@ export interface Establishment {
     country_code: string;
     levels: string | null;
     options: string[] | null;
+    enabled_modules: string[] | null;
     student_capacity: number | null;
     logo_url: string | null;
     is_archived: boolean;

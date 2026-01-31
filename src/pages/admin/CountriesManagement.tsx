@@ -115,7 +115,7 @@ const CountriesManagement = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingCountry, setEditingCountry] = useState<Country | null>(null);
-  
+
   // Hierarchical navigation state
   const [viewLevel, setViewLevel] = useState<ViewLevel>("countries");
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
@@ -185,22 +185,22 @@ const CountriesManagement = () => {
   // Compute stats per country
   const countryStats = useMemo(() => {
     const stats: Record<string, { establishments: number; groups: number; regions: number }> = {};
-    
-    regions.forEach((r) => {
+
+    (regions || []).forEach((r) => {
       if (!stats[r.country_code]) {
         stats[r.country_code] = { establishments: 0, groups: 0, regions: 0 };
       }
       stats[r.country_code].regions++;
     });
 
-    groups.forEach((g) => {
+    (groups || []).forEach((g) => {
       if (!stats[g.country_code]) {
         stats[g.country_code] = { establishments: 0, groups: 0, regions: 0 };
       }
       stats[g.country_code].groups++;
     });
 
-    establishments.forEach((e) => {
+    (establishments || []).forEach((e) => {
       if (!stats[e.country_code]) {
         stats[e.country_code] = { establishments: 0, groups: 0, regions: 0 };
       }
@@ -213,8 +213,8 @@ const CountriesManagement = () => {
   // Compute region stats
   const regionStats = useMemo(() => {
     const stats: Record<string, { groups: number; establishments: number }> = {};
-    
-    groups.forEach((g) => {
+
+    (groups || []).forEach((g) => {
       const regionName = g.location || "Non assigné";
       const key = `${g.country_code}-${regionName}`;
       if (!stats[key]) {
@@ -227,23 +227,23 @@ const CountriesManagement = () => {
   }, [groups]);
 
   // Countries with activity
-  const activeCountries = countries.filter(
-    (country) => (countryStats[country.code]?.establishments || 0) > 0 || 
-                 (countryStats[country.code]?.groups || 0) > 0
+  const activeCountries = (countries || []).filter(
+    (country) => (countryStats[country.code]?.establishments || 0) > 0 ||
+      (countryStats[country.code]?.groups || 0) > 0
   );
 
   // Filter regions by selected country
   const countryRegions = useMemo(() => {
     if (!selectedCountry) return [];
-    return regions.filter((r) => r.country_code === selectedCountry.code);
+    return (regions || []).filter((r) => r.country_code === selectedCountry.code);
   }, [regions, selectedCountry]);
 
   // Filter institutions by country and optionally by region
   const filteredInstitutions = useMemo(() => {
     if (!selectedCountry) return { groups: [], establishments: [] };
-    
-    let filteredGroups = groups.filter((g) => g.country_code === selectedCountry.code);
-    let filteredEstablishments = establishments.filter((e) => e.country_code === selectedCountry.code);
+
+    let filteredGroups = (groups || []).filter((g) => g.country_code === selectedCountry.code);
+    let filteredEstablishments = (establishments || []).filter((e) => e.country_code === selectedCountry.code);
 
     if (regionFilter !== "all" && selectedRegion) {
       filteredGroups = filteredGroups.filter((g) => g.location === selectedRegion.name);
@@ -252,7 +252,7 @@ const CountriesManagement = () => {
     return { groups: filteredGroups, establishments: filteredEstablishments };
   }, [groups, establishments, selectedCountry, selectedRegion, regionFilter]);
 
-  const filteredCountries = countries.filter(
+  const filteredCountries = (countries || []).filter(
     (country) =>
       country.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       country.code.toLowerCase().includes(searchQuery.toLowerCase())
@@ -338,7 +338,7 @@ const CountriesManagement = () => {
     <Breadcrumb className="mb-4">
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink 
+          <BreadcrumbLink
             onClick={() => { setViewLevel("countries"); setSelectedCountry(null); setSelectedRegion(null); }}
             className="cursor-pointer hover:text-foreground"
           >
@@ -352,7 +352,7 @@ const CountriesManagement = () => {
               {viewLevel === "regions" ? (
                 <BreadcrumbPage>{selectedCountry.flag_emoji} {selectedCountry.name}</BreadcrumbPage>
               ) : (
-                <BreadcrumbLink 
+                <BreadcrumbLink
                   onClick={() => { setViewLevel("regions"); setSelectedRegion(null); setRegionFilter("all"); }}
                   className="cursor-pointer hover:text-foreground"
                 >
@@ -389,7 +389,7 @@ const CountriesManagement = () => {
                 Gestion des Pays
               </h1>
               <p className="text-sm text-muted-foreground">
-                {activeCountries.length} pays actifs sur {countries.length} configurés
+                {activeCountries.length} pays actifs sur {(countries || []).length} configurés
               </p>
             </div>
           </div>
@@ -419,7 +419,7 @@ const CountriesManagement = () => {
               <Map className="h-5 w-5 text-blue-500" />
               Répartition géographique
             </h2>
-            
+
             <div className="relative w-full h-[400px] bg-gradient-to-br from-blue-950/20 to-blue-900/10 rounded-2xl border border-border/50 overflow-hidden">
               {/* Grid */}
               <div className="absolute inset-0 opacity-10">
@@ -445,7 +445,7 @@ const CountriesManagement = () => {
                 const stats = countryStats[country.code] || { establishments: 0, groups: 0, regions: 0 };
                 const total = stats.establishments + stats.groups;
                 const size = Math.min(80, 40 + total * 5);
-                
+
                 if (!pos) return null;
 
                 return (
@@ -457,7 +457,7 @@ const CountriesManagement = () => {
                   >
                     <div
                       className="absolute rounded-full bg-primary/20 animate-ping"
-                      style={{ width: size, height: size, left: -size/2, top: -size/2 }}
+                      style={{ width: size, height: size, left: -size / 2, top: -size / 2 }}
                     />
                     <div
                       className="relative flex items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-white shadow-lg shadow-primary/30 transition-transform group-hover:scale-110"
@@ -525,9 +525,9 @@ const CountriesManagement = () => {
             {activeCountries.map((country) => {
               const stats = countryStats[country.code] || { establishments: 0, groups: 0, regions: 0 };
               return (
-                <GlassCard 
-                  key={country.code} 
-                  className="p-4 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" 
+                <GlassCard
+                  key={country.code}
+                  className="p-4 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
                   solid
                   onClick={() => handleSelectCountry(country)}
                 >
@@ -556,7 +556,7 @@ const CountriesManagement = () => {
                 </GlassCard>
               );
             })}
-            
+
             {activeCountries.length === 0 && (
               <GlassCard className="p-8 col-span-full text-center" solid>
                 <Globe className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
@@ -612,8 +612,8 @@ const CountriesManagement = () => {
                     const stats = countryStats[country.code] || { establishments: 0, groups: 0, regions: 0 };
                     const hasActivity = stats.establishments > 0 || stats.groups > 0;
                     return (
-                      <TableRow 
-                        key={country.id} 
+                      <TableRow
+                        key={country.id}
                         className="cursor-pointer hover:bg-muted/50"
                         onClick={() => handleSelectCountry(country)}
                       >
@@ -717,9 +717,9 @@ const CountriesManagement = () => {
         {countryRegions.map((region) => {
           const stats = regionStats[`${region.country_code}-${region.name}`] || { groups: 0, establishments: 0 };
           return (
-            <GlassCard 
-              key={region.id} 
-              className="p-4 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all" 
+            <GlassCard
+              key={region.id}
+              className="p-4 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
               solid
               onClick={() => handleSelectRegion(region)}
             >
@@ -761,7 +761,7 @@ const CountriesManagement = () => {
           <Building2 className="h-5 w-5 text-blue-500" />
           Toutes les institutions de {selectedCountry?.name}
         </h3>
-        
+
         <div className="flex flex-wrap gap-2 mb-4">
           <Select value={regionFilter} onValueChange={(v) => {
             setRegionFilter(v);
@@ -786,8 +786,8 @@ const CountriesManagement = () => {
 
         <div className="space-y-2">
           {filteredInstitutions.groups.slice(0, 5).map((group) => (
-            <div 
-              key={group.id} 
+            <div
+              key={group.id}
               className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -804,8 +804,8 @@ const CountriesManagement = () => {
             </div>
           ))}
           {filteredInstitutions.establishments.slice(0, 5).map((est) => (
-            <div 
-              key={est.id} 
+            <div
+              key={est.id}
               className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
             >
               <div className="flex items-center gap-3">
@@ -862,8 +862,8 @@ const CountriesManagement = () => {
           </h3>
           <div className="space-y-2">
             {filteredInstitutions.groups.map((group) => (
-              <div 
-                key={group.id} 
+              <div
+                key={group.id}
                 className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
               >
                 <div className="flex items-center gap-3">
@@ -892,8 +892,8 @@ const CountriesManagement = () => {
           </h3>
           <div className="space-y-2">
             {filteredInstitutions.establishments.map((est) => (
-              <div 
-                key={est.id} 
+              <div
+                key={est.id}
                 className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
               >
                 <div className="flex items-center gap-3">
@@ -922,7 +922,7 @@ const CountriesManagement = () => {
     <UserLayout title="Gestion des Pays">
       <div className="max-w-6xl mx-auto space-y-6">
         {viewLevel !== "countries" && renderBreadcrumb()}
-        
+
         {viewLevel === "countries" && renderCountriesView()}
         {viewLevel === "regions" && renderRegionsView()}
         {viewLevel === "institutions" && renderInstitutionsView()}

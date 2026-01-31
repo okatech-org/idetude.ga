@@ -3,6 +3,9 @@
 -- Instance: idetude-db (projet: idetude)
 -- =====================================================
 
+-- Add enabled_modules column if not exists
+ALTER TABLE establishments ADD COLUMN IF NOT EXISTS enabled_modules TEXT[] DEFAULT ARRAY[]::TEXT[];
+
 -- Table des matières
 CREATE TABLE IF NOT EXISTS subjects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

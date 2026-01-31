@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { cloudSql } from "@/integrations/cloudsql/client";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
@@ -147,9 +148,7 @@ export const SuperAdminDashboard = () => {
   const { data: groupsCount, isLoading: loadingGroups } = useQuery({
     queryKey: ['dashboard-groups'],
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from('establishment_groups')
-        .select('*', { count: 'exact', head: true });
+      const { count, error } = await cloudSql.getEstablishmentGroups();
       if (error) throw error;
       return count || 0;
     }
@@ -158,9 +157,7 @@ export const SuperAdminDashboard = () => {
   const { data: establishmentsCount, isLoading: loadingEstablishments } = useQuery({
     queryKey: ['dashboard-establishments'],
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from('establishments')
-        .select('*', { count: 'exact', head: true });
+      const { count, error } = await cloudSql.getEstablishments(true);
       if (error) throw error;
       return count || 0;
     }
@@ -169,9 +166,7 @@ export const SuperAdminDashboard = () => {
   const { data: usersCount, isLoading: loadingUsers } = useQuery({
     queryKey: ['dashboard-users'],
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      const { count, error } = await cloudSql.getProfiles();
       if (error) throw error;
       return count || 0;
     }

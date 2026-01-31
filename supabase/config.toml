@@ -1,4 +1,0 @@
-project_id = "rwhvkchhvtthffbbgyts"
-
-[functions.analyze-import]
-verify_jwt = false

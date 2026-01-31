@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { NotificationsProvider } from "@/hooks/useNotifications";
@@ -32,6 +32,7 @@ import DataExport from "./pages/DataExport";
 import UsersManagement from "./pages/admin/UsersManagement";
 import EstablishmentsManagement from "./pages/admin/EstablishmentsManagement";
 import EstablishmentConfig from "./pages/admin/EstablishmentConfig";
+import EstablishmentManage from "./pages/admin/EstablishmentManage";
 import CommentModeration from "./pages/admin/CommentModeration";
 import CountriesManagement from "./pages/admin/CountriesManagement";
 import RegionsManagement from "./pages/admin/RegionsManagement";
@@ -46,8 +47,64 @@ import Etablissements from "./pages/Etablissements";
 import Parents from "./pages/Parents";
 import Professeurs from "./pages/Professeurs";
 import Eleves from "./pages/Eleves";
+import PublicEstablishmentPage from "./pages/public/PublicEstablishmentPage";
 
 const queryClient = new QueryClient();
+
+// Création du router avec les future flags v7
+const router = createBrowserRouter(
+  [
+    { path: "/", element: <Index /> },
+    { path: "/tutoriels", element: <Tutoriels /> },
+    { path: "/demo", element: <Demo /> },
+    // Persona pages
+    { path: "/etablissements", element: <Etablissements /> },
+    { path: "/parents", element: <Parents /> },
+    { path: "/professeurs", element: <Professeurs /> },
+    { path: "/eleves", element: <Eleves /> },
+    { path: "/etablissement/:slug", element: <PublicEstablishmentPage /> },
+    { path: "/etablissement/:slug/:pageSlug", element: <PublicEstablishmentPage /> },
+    { path: "/auth", element: <Auth /> },
+    { path: "/connexion", element: <Auth /> },
+    { path: "/dashboard", element: <Dashboard /> },
+    { path: "/messages", element: <Messages /> },
+    { path: "/notes", element: <Grades /> },
+    { path: "/absences", element: <Absences /> },
+    { path: "/emploi-du-temps", element: <Schedule /> },
+    { path: "/analytics", element: <Analytics /> },
+    { path: "/bulletins", element: <ReportCards /> },
+    { path: "/devoirs", element: <Assignments /> },
+    { path: "/chat", element: <Chat /> },
+    { path: "/paiements", element: <Payments /> },
+    { path: "/rendez-vous", element: <Appointments /> },
+    { path: "/documents", element: <Documents /> },
+    { path: "/groupes", element: <ClassGroups /> },
+    { path: "/calendrier", element: <SchoolCalendar /> },
+    { path: "/ressources", element: <Resources /> },
+    { path: "/ressources/stats", element: <ResourceAnalytics /> },
+    { path: "/competences", element: <Competencies /> },
+    { path: "/export", element: <DataExport /> },
+    { path: "/admin/users", element: <UsersManagement /> },
+    { path: "/admin/establishments", element: <EstablishmentsManagement /> },
+    { path: "/admin/establishments/config", element: <EstablishmentConfig /> },
+    { path: "/admin/establishments/manage", element: <EstablishmentManage /> },
+    { path: "/admin/moderation", element: <CommentModeration /> },
+    { path: "/admin/countries", element: <CountriesManagement /> },
+    { path: "/admin/regions", element: <RegionsManagement /> },
+    { path: "/admin/groups", element: <SchoolGroupsManagement /> },
+    { path: "/admin/analytics", element: <GlobalAnalytics /> },
+    { path: "/admin/activity", element: <ActivityLog /> },
+    { path: "/admin/export", element: <GlobalExport /> },
+    { path: "/admin/settings", element: <AdminSettings /> },
+    { path: "*", element: <NotFound /> },
+  ],
+  {
+    future: {
+      v7_startTransition: true,
+      v7_relativeSplatPath: true,
+    },
+  }
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -58,50 +115,7 @@ const App = () => (
             <TooltipProvider>
               <Toaster />
               <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/tutoriels" element={<Tutoriels />} />
-                  <Route path="/demo" element={<Demo />} />
-                  {/* Persona pages */}
-                  <Route path="/etablissements" element={<Etablissements />} />
-                  <Route path="/parents" element={<Parents />} />
-                  <Route path="/professeurs" element={<Professeurs />} />
-                  <Route path="/eleves" element={<Eleves />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/connexion" element={<Auth />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/messages" element={<Messages />} />
-                  <Route path="/notes" element={<Grades />} />
-                  <Route path="/absences" element={<Absences />} />
-                  <Route path="/emploi-du-temps" element={<Schedule />} />
-                  <Route path="/analytics" element={<Analytics />} />
-                  <Route path="/bulletins" element={<ReportCards />} />
-                  <Route path="/devoirs" element={<Assignments />} />
-                  <Route path="/chat" element={<Chat />} />
-                  <Route path="/paiements" element={<Payments />} />
-                  <Route path="/rendez-vous" element={<Appointments />} />
-                  <Route path="/documents" element={<Documents />} />
-                  <Route path="/groupes" element={<ClassGroups />} />
-                  <Route path="/calendrier" element={<SchoolCalendar />} />
-                  <Route path="/ressources" element={<Resources />} />
-                  <Route path="/ressources/stats" element={<ResourceAnalytics />} />
-                  <Route path="/competences" element={<Competencies />} />
-                  <Route path="/export" element={<DataExport />} />
-                  <Route path="/admin/users" element={<UsersManagement />} />
-                  <Route path="/admin/establishments" element={<EstablishmentsManagement />} />
-                  <Route path="/admin/establishments/config" element={<EstablishmentConfig />} />
-                  <Route path="/admin/moderation" element={<CommentModeration />} />
-                  <Route path="/admin/countries" element={<CountriesManagement />} />
-                  <Route path="/admin/regions" element={<RegionsManagement />} />
-                  <Route path="/admin/groups" element={<SchoolGroupsManagement />} />
-                  <Route path="/admin/analytics" element={<GlobalAnalytics />} />
-                  <Route path="/admin/activity" element={<ActivityLog />} />
-                  <Route path="/admin/export" element={<GlobalExport />} />
-                  <Route path="/admin/settings" element={<AdminSettings />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
+              <RouterProvider router={router} />
             </TooltipProvider>
           </CreationMethodProvider>
         </NotificationsProvider>

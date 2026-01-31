@@ -81,10 +81,10 @@ ON CONFLICT (id) DO NOTHING;
 -- Profiles for all lycée students
 INSERT INTO profiles (id, email, first_name, last_name, is_demo)
 SELECT id, email, raw_user_meta_data->>'first_name', raw_user_meta_data->>'last_name', true
-FROM auth.users WHERE id LIKE '666600%' AND id NOT IN (SELECT id FROM profiles) ON CONFLICT (id) DO NOTHING;
+FROM auth.users WHERE id::text LIKE '666600%' AND id NOT IN (SELECT id FROM profiles) ON CONFLICT (id) DO NOTHING;
 
 -- Roles
-INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id LIKE '666600%' ON CONFLICT DO NOTHING;
+INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id::text LIKE '666600%' ON CONFLICT DO NOTHING;
 
 -- Class assignments 2nde
 INSERT INTO class_students (student_id, class_id, school_year, registration_number, is_delegate) VALUES
@@ -162,7 +162,7 @@ INSERT INTO class_students (student_id, class_id, school_year, registration_numb
 ON CONFLICT DO NOTHING;
 
 -- Establishment links for all lycée students
-INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id LIKE '666600%' ON CONFLICT DO NOTHING;
+INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id::text LIKE '666600%' ON CONFLICT DO NOTHING;
 
 -- Final verification
 SELECT 'SEED COMPLETE! Total students: ' || COUNT(*) FROM class_students;

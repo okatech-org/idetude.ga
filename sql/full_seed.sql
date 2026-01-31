@@ -540,7 +540,7 @@ INSERT INTO profiles (id, email, first_name, last_name, is_demo) VALUES
 ('66660001-0001-0001-0001-000000000007', 'andre.essono.6a@idetude.ga', 'André', 'ESSONO', true)
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id LIKE '66660001%' ON CONFLICT DO NOTHING;
+INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id::text LIKE '66660001%' ON CONFLICT DO NOTHING;
 
 INSERT INTO class_students (student_id, class_id, school_year, registration_number, is_delegate) VALUES
 ('66660001-0001-0001-0001-000000000001', '55555555-0001-0001-0001-000000000001', '2025-2026', '6A-001', true),
@@ -552,7 +552,7 @@ INSERT INTO class_students (student_id, class_id, school_year, registration_numb
 ('66660001-0001-0001-0001-000000000007', '55555555-0001-0001-0001-000000000001', '2025-2026', '6A-007', false)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id LIKE '66660001%' ON CONFLICT DO NOTHING;
+INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id::text LIKE '66660001%' ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- 6ème B (7 élèves) - IDs: 66660002-xxxx
@@ -577,7 +577,7 @@ INSERT INTO profiles (id, email, first_name, last_name, is_demo) VALUES
 ('66660002-0001-0001-0001-000000000007', 'lucie.ndong.6b@idetude.ga', 'Lucie', 'NDONG', true)
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id LIKE '66660002%' ON CONFLICT DO NOTHING;
+INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id::text LIKE '66660002%' ON CONFLICT DO NOTHING;
 
 INSERT INTO class_students (student_id, class_id, school_year, registration_number, is_delegate) VALUES
 ('66660002-0001-0001-0001-000000000001', '55555555-0001-0001-0001-000000000002', '2025-2026', '6B-001', true),
@@ -589,7 +589,7 @@ INSERT INTO class_students (student_id, class_id, school_year, registration_numb
 ('66660002-0001-0001-0001-000000000007', '55555555-0001-0001-0001-000000000002', '2025-2026', '6B-007', false)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id LIKE '66660002%' ON CONFLICT DO NOTHING;
+INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id::text LIKE '66660002%' ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- 6ème C (7 élèves) - IDs: 66660003-xxxx
@@ -614,7 +614,7 @@ INSERT INTO profiles (id, email, first_name, last_name, is_demo) VALUES
 ('66660003-0001-0001-0001-000000000007', 'michel.eyang.6c@idetude.ga', 'Michel', 'EYANG', true)
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id LIKE '66660003%' ON CONFLICT DO NOTHING;
+INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id::text LIKE '66660003%' ON CONFLICT DO NOTHING;
 
 INSERT INTO class_students (student_id, class_id, school_year, registration_number, is_delegate) VALUES
 ('66660003-0001-0001-0001-000000000001', '55555555-0001-0001-0001-000000000003', '2025-2026', '6C-001', true),
@@ -626,7 +626,7 @@ INSERT INTO class_students (student_id, class_id, school_year, registration_numb
 ('66660003-0001-0001-0001-000000000007', '55555555-0001-0001-0001-000000000003', '2025-2026', '6C-007', false)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id LIKE '66660003%' ON CONFLICT DO NOTHING;
+INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id::text LIKE '66660003%' ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- 5ème A (7 élèves) - IDs: 66660004-xxxx
@@ -651,7 +651,7 @@ INSERT INTO profiles (id, email, first_name, last_name, is_demo) VALUES
 ('66660004-0001-0001-0001-000000000007', 'pierre.nguema.5a@idetude.ga', 'Pierre-Louis', 'NGUEMA', true)
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id LIKE '66660004%' ON CONFLICT DO NOTHING;
+INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id::text LIKE '66660004%' ON CONFLICT DO NOTHING;
 
 INSERT INTO class_students (student_id, class_id, school_year, registration_number, is_delegate) VALUES
 ('66660004-0001-0001-0001-000000000001', '55555555-0001-0001-0001-000000000004', '2025-2026', '5A-001', true),
@@ -663,7 +663,7 @@ INSERT INTO class_students (student_id, class_id, school_year, registration_numb
 ('66660004-0001-0001-0001-000000000007', '55555555-0001-0001-0001-000000000004', '2025-2026', '5A-007', false)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id LIKE '66660004%' ON CONFLICT DO NOTHING;
+INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id::text LIKE '66660004%' ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- 5ème B (7 élèves) - IDs: 66660005-xxxx
@@ -688,7 +688,7 @@ INSERT INTO profiles (id, email, first_name, last_name, is_demo) VALUES
 ('66660005-0001-0001-0001-000000000007', 'jeanne.ntoutoume.5b@idetude.ga', 'Jeanne-Marie', 'NTOUTOUME', true)
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id LIKE '66660005%' ON CONFLICT DO NOTHING;
+INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id::text LIKE '66660005%' ON CONFLICT DO NOTHING;
 
 INSERT INTO class_students (student_id, class_id, school_year, registration_number, is_delegate) VALUES
 ('66660005-0001-0001-0001-000000000001', '55555555-0001-0001-0001-000000000005', '2025-2026', '5B-001', true),
@@ -700,7 +700,7 @@ INSERT INTO class_students (student_id, class_id, school_year, registration_numb
 ('66660005-0001-0001-0001-000000000007', '55555555-0001-0001-0001-000000000005', '2025-2026', '5B-007', false)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id LIKE '66660005%' ON CONFLICT DO NOTHING;
+INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id::text LIKE '66660005%' ON CONFLICT DO NOTHING;
 
 -- =====================================================
 -- Suite des classes (5C -> Tle C)
@@ -728,7 +728,7 @@ INSERT INTO profiles (id, email, first_name, last_name, is_demo) VALUES
 ('66660006-0001-0001-0001-000000000007', 'gregoire.moussavou.5c@idetude.ga', 'Grégoire-Pierre', 'MOUSSAVOU', true)
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id LIKE '66660006%' ON CONFLICT DO NOTHING;
+INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id::text LIKE '66660006%' ON CONFLICT DO NOTHING;
 
 INSERT INTO class_students (student_id, class_id, school_year, registration_number, is_delegate) VALUES
 ('66660006-0001-0001-0001-000000000001', '55555555-0001-0001-0001-000000000006', '2025-2026', '5C-001', true),
@@ -740,7 +740,7 @@ INSERT INTO class_students (student_id, class_id, school_year, registration_numb
 ('66660006-0001-0001-0001-000000000007', '55555555-0001-0001-0001-000000000006', '2025-2026', '5C-007', false)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id LIKE '66660006%' ON CONFLICT DO NOTHING;
+INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id::text LIKE '66660006%' ON CONFLICT DO NOTHING;
 
 -- Vérification partielle (les classes suivantes seront générées dans la partie 2)
 SELECT 'Students Part 1 completed: ' || COUNT(*) || ' students (6 classes)' AS status FROM class_students;
@@ -777,10 +777,10 @@ ON CONFLICT (id) DO NOTHING;
 -- Profiles 4ème
 INSERT INTO profiles (id, email, first_name, last_name, is_demo)
 SELECT id, email, raw_user_meta_data->>'first_name', raw_user_meta_data->>'last_name', true
-FROM auth.users WHERE id LIKE '6666000%' AND id NOT IN (SELECT id FROM profiles) ON CONFLICT (id) DO NOTHING;
+FROM auth.users WHERE id::text LIKE '6666000%' AND id NOT IN (SELECT id FROM profiles) ON CONFLICT (id) DO NOTHING;
 
 -- Roles
-INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id LIKE '6666000%' ON CONFLICT DO NOTHING;
+INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id::text LIKE '6666000%' ON CONFLICT DO NOTHING;
 
 -- Class assignments 4ème
 INSERT INTO class_students (student_id, class_id, school_year, registration_number, is_delegate) VALUES
@@ -808,7 +808,7 @@ INSERT INTO class_students (student_id, class_id, school_year, registration_numb
 ON CONFLICT DO NOTHING;
 
 -- Establishment links
-INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id LIKE '6666000%' ON CONFLICT DO NOTHING;
+INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id::text LIKE '6666000%' ON CONFLICT DO NOTHING;
 
 -- 3ème A-C (21 élèves) IDs: 66660010-12
 INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES
@@ -944,10 +944,10 @@ ON CONFLICT (id) DO NOTHING;
 -- Profiles for all lycée students
 INSERT INTO profiles (id, email, first_name, last_name, is_demo)
 SELECT id, email, raw_user_meta_data->>'first_name', raw_user_meta_data->>'last_name', true
-FROM auth.users WHERE id LIKE '666600%' AND id NOT IN (SELECT id FROM profiles) ON CONFLICT (id) DO NOTHING;
+FROM auth.users WHERE id::text LIKE '666600%' AND id NOT IN (SELECT id FROM profiles) ON CONFLICT (id) DO NOTHING;
 
 -- Roles
-INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id LIKE '666600%' ON CONFLICT DO NOTHING;
+INSERT INTO user_roles (user_id, role) SELECT id, 'student' FROM auth.users WHERE id::text LIKE '666600%' ON CONFLICT DO NOTHING;
 
 -- Class assignments 2nde
 INSERT INTO class_students (student_id, class_id, school_year, registration_number, is_delegate) VALUES
@@ -1025,7 +1025,7 @@ INSERT INTO class_students (student_id, class_id, school_year, registration_numb
 ON CONFLICT DO NOTHING;
 
 -- Establishment links for all lycée students
-INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id LIKE '666600%' ON CONFLICT DO NOTHING;
+INSERT INTO user_establishments (user_id, establishment_id) SELECT id, 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' FROM auth.users WHERE id::text LIKE '666600%' ON CONFLICT DO NOTHING;
 
 -- Final verification
 SELECT 'SEED COMPLETE! Total students: ' || COUNT(*) FROM class_students;

@@ -32,6 +32,8 @@ import {
   UserPlus,
   Languages,
   Settings,
+  Star,
+  Info,
 } from "lucide-react";
 import { OrgChart } from "@/components/admin/OrgChart";
 import { AssignUserModal } from "@/components/admin/AssignUserModal";
@@ -40,6 +42,8 @@ import { QuickAssignDropdown } from "@/components/admin/QuickAssignDropdown";
 import { SubjectConfigModal } from "@/components/admin/SubjectConfigModal";
 import { LinguisticSectionsModal } from "@/components/admin/LinguisticSectionsModal";
 import { ModulesConfigTab } from "@/components/admin/establishment/ModulesConfigTab";
+import { HRConfigTab } from "@/components/admin/establishment/HRConfigTab";
+import { EstablishmentSearch } from "@/components/admin/establishment/EstablishmentSearch";
 
 interface Establishment {
   id: string;
@@ -155,6 +159,12 @@ interface EstablishmentStaff {
   is_active: boolean;
   is_class_principal: boolean | null;
   start_date: string | null;
+  // From Cloud SQL API join with profiles
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  avatar_url?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata: any;
 }
@@ -255,130 +265,109 @@ const EstablishmentConfig = () => {
       if (estError) throw estError;
       setEstablishment(estData);
 
-      // Fetch departments
-      const { data: deptData, error: deptError } = await supabase
-        .from("departments")
-        .select("*")
-        .eq("establishment_id", establishmentId)
-        .order("order_index");
-
-      if (deptError) throw deptError;
-      setDepartments(deptData || []);
-
-      // Fetch positions for all departments
-      if (deptData && deptData.length > 0) {
-        const deptIds = deptData.map((d) => d.id);
-        const { data: posData, error: posError } = await supabase
-          .from("positions")
-          .select("*")
-          .in("department_id", deptIds)
-          .order("order_index");
-
-        if (posError) throw posError;
-        setPositions(posData || []);
-
-        // Fetch user positions
-        if (posData && posData.length > 0) {
-          const posIds = posData.map((p) => p.id);
-          const { data: upData, error: upError } = await supabase
-            .from("user_positions")
-            .select("*")
-            .in("position_id", posIds)
-            .eq("is_active", true);
-
-          if (upError) throw upError;
-
-          // Fetch profiles for user positions
-          if (upData && upData.length > 0) {
-            const userIds = [...new Set(upData.map((up) => up.user_id))];
-            const { data: profilesData } = await supabase
-              .from("profiles")
-              .select("id, first_name, last_name, email")
-              .in("id", userIds);
-
-            const profilesMap = new Map(profilesData?.map((p) => [p.id, p]) || []);
-            const enrichedData = upData.map((up) => ({
-              ...up,
-              profiles: profilesMap.get(up.user_id),
-            }));
-            setUserPositions(enrichedData);
-          } else {
-            setUserPositions([]);
-          }
+      // Fetch departments from Cloud SQL API
+      try {
+        const deptResponse = await fetch(`/api/db/establishments/${establishmentId}/departments`);
+        if (deptResponse.ok) {
+          const deptData = await deptResponse.json();
+          setDepartments(deptData || []);
+        } else {
+          setDepartments([]);
         }
+      } catch (error) {
+        console.error("Error fetching departments:", error);
+        setDepartments([]);
       }
 
-      // Fetch classes
-      const { data: classData, error: classError } = await supabase
-        .from("classes")
-        .select("*")
-        .eq("establishment_id", establishmentId)
-        .order("level")
-        .order("name");
+      // Fetch positions from Cloud SQL API
+      try {
+        const posResponse = await fetch(`/api/db/establishments/${establishmentId}/positions`);
+        if (posResponse.ok) {
+          const posData = await posResponse.json();
+          setPositions(posData || []);
+        } else {
+          setPositions([]);
+        }
+      } catch (error) {
+        console.error("Error fetching positions:", error);
+        setPositions([]);
+      }
 
-      if (classError) throw classError;
-      setClasses(classData || []);
+      // User positions (still from Supabase for now - requires profile join)
+      setUserPositions([]);
 
-      // Fetch class teachers
-      if (classData && classData.length > 0) {
-        const classIds = classData.map((c) => c.id);
-        const { data: ctData, error: ctError } = await supabase
-          .from("class_teachers")
-          .select("*")
-          .in("class_id", classIds);
+      // Fetch classes from Cloud SQL API
+      try {
+        const classesResponse = await fetch(`/api/db/establishments/${establishmentId}/classes`);
+        if (classesResponse.ok) {
+          const classData = await classesResponse.json();
+          setClasses(classData || []);
+        } else {
+          setClasses([]);
+        }
+      } catch (error) {
+        console.error("Error fetching classes:", error);
+        setClasses([]);
+      }
 
-        if (ctError) throw ctError;
-
-        // Fetch profiles for teachers
-        if (ctData && ctData.length > 0) {
-          const teacherIds = [...new Set(ctData.map((ct) => ct.teacher_id))];
-          const { data: profilesData } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name, email")
-            .in("id", teacherIds);
-
-          const profilesMap = new Map(profilesData?.map((p) => [p.id, p]) || []);
-          const enrichedData = ctData.map((ct) => ({
+      // Fetch class teachers from Cloud SQL API
+      try {
+        const ctResponse = await fetch(`/api/db/establishments/${establishmentId}/teacher-assignments`);
+        if (ctResponse.ok) {
+          const ctData = await ctResponse.json();
+          // Transform to match expected format with profiles object
+          const enrichedData = ctData.map((ct: any) => ({
             ...ct,
-            profiles: profilesMap.get(ct.teacher_id),
+            profiles: {
+              first_name: ct.first_name,
+              last_name: ct.last_name,
+              email: ct.email,
+            },
+            subject: ct.subject_name,
           }));
           setClassTeachers(enrichedData);
         } else {
           setClassTeachers([]);
         }
+      } catch (error) {
+        console.error("Error fetching class teachers:", error);
+        setClassTeachers([]);
+      }
 
-        // Fetch class students
-        const { data: csData, error: csError } = await supabase
-          .from("class_students")
-          .select("*")
-          .in("class_id", classIds);
-
-        if (csError) throw csError;
-
-        if (csData && csData.length > 0) {
-          const studentIds = [...new Set(csData.map((cs) => cs.student_id))];
-          const { data: profilesData } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name, email")
-            .in("id", studentIds);
-
-          const profilesMap = new Map(profilesData?.map((p) => [p.id, p]) || []);
-          const enrichedData = csData.map((cs) => ({
-            ...cs,
-            profiles: profilesMap.get(cs.student_id),
+      // Fetch class students from Cloud SQL API
+      try {
+        const studentsResponse = await fetch(`/api/db/establishments/${establishmentId}/students`);
+        if (studentsResponse.ok) {
+          const studentsData = await studentsResponse.json();
+          // Transform to match expected format
+          const enrichedData = studentsData.map((s: any) => ({
+            ...s,
+            profiles: {
+              first_name: s.first_name,
+              last_name: s.last_name,
+              email: s.email,
+            },
           }));
           setClassStudents(enrichedData);
         } else {
           setClassStudents([]);
         }
+      } catch (error) {
+        console.error("Error fetching students:", error);
+        setClassStudents([]);
+      }
 
-        // Fetch class sections (linguistic sections association)
-        const { data: clsSectionsData, error: clsSectionsError } = await supabase
+      // Fetch class sections (linguistic sections) from Supabase (still there)
+      const { data: curClasses } = await supabase
+        .from("classes")
+        .select("id")
+        .eq("establishment_id", establishmentId);
+
+      if (curClasses && curClasses.length > 0) {
+        const { data: clsSectionsData } = await supabase
           .from("class_sections")
           .select("*")
-          .in("class_id", classIds);
-
-        if (clsSectionsError) throw clsSectionsError;
+          .in("class_id", curClasses.map(c => c.id));
         setClassSections(clsSectionsData || []);
       }
 
@@ -392,16 +381,19 @@ const EstablishmentConfig = () => {
       if (lingSectionsError) throw lingSectionsError;
       setLinguisticSections(lingSectionsData || []);
 
-      // Fetch establishment staff (personnel added during creation)
-      const { data: staffData, error: staffError } = await supabase
-        .from("establishment_staff")
-        .select("*")
-        .eq("establishment_id", establishmentId)
-        .eq("is_active", true)
-        .order("staff_type");
-
-      if (staffError) throw staffError;
-      setEstablishmentStaff(staffData || []);
+      // Fetch establishment staff from Cloud SQL API
+      try {
+        const staffResponse = await fetch(`/api/db/establishments/${establishmentId}/staff-detailed`);
+        if (staffResponse.ok) {
+          const staffData = await staffResponse.json();
+          setEstablishmentStaff(staffData || []);
+        } else {
+          setEstablishmentStaff([]);
+        }
+      } catch (error) {
+        console.error("Error fetching staff:", error);
+        setEstablishmentStaff([]);
+      }
     } catch (error) {
       console.error("Error fetching establishment data:", error);
       toast.error("Erreur lors du chargement des données");
@@ -774,7 +766,7 @@ const EstablishmentConfig = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="orgchart" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="orgchart" className="flex items-center gap-2">
               <Network className="h-4 w-4" />
               <span className="hidden sm:inline">Organigramme</span>
@@ -790,6 +782,10 @@ const EstablishmentConfig = () => {
             <TabsTrigger value="pedagogy" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Pédagogie</span>
+            </TabsTrigger>
+            <TabsTrigger value="hr" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              <span className="hidden sm:inline">RH</span>
             </TabsTrigger>
             <TabsTrigger value="modules" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -834,166 +830,102 @@ const EstablishmentConfig = () => {
                 </p>
               </GlassCard>
             ) : (
-              <div className="space-y-4">
-                {departments
-                  .filter((d) => !d.parent_id)
-                  .map((dept) => (
-                    <GlassCard key={dept.id} className="p-4" solid>
-                      <div className="flex items-start justify-between">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {/* Show ALL departments (including sub-departments) as separate cards */}
+                {departments.map((dept) => {
+                  const positionsCount = getPositionsForDepartment(dept.id).length;
+                  const isMainDept = !dept.parent_id;
+                  const parentDept = dept.parent_id ? departments.find(d => d.id === dept.parent_id) : null;
+
+                  return (
+                    <GlassCard
+                      key={dept.id}
+                      className={`p-4 ${isMainDept ? 'border-primary/30' : 'border-muted/50'}`}
+                      solid
+                    >
+                      {/* Header */}
+                      <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <FolderTree className="h-5 w-5 text-primary" />
+                          <div className={`w-10 h-10 rounded-lg ${isMainDept ? 'bg-primary/10' : 'bg-muted/30'} flex items-center justify-center`}>
+                            <FolderTree className={`h-5 w-5 ${isMainDept ? 'text-primary' : 'text-muted-foreground'}`} />
                           </div>
                           <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-semibold text-foreground">{dept.name}</p>
-                              <Badge variant="outline" className="text-xs">
+                            <p className="font-semibold text-foreground text-sm">{dept.name}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Badge variant={isMainDept ? "default" : "outline"} className="text-xs">
                                 {typeLabels[dept.type] || dept.type}
                               </Badge>
+                              {parentDept && (
+                                <span className="text-xs text-muted-foreground">• {parentDept.name}</span>
+                              )}
                             </div>
-                            {dept.description && (
-                              <p className="text-sm text-muted-foreground">{dept.description}</p>
+                          </div>
+                        </div>
+                        <GlassButton
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteDepartment(dept.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </GlassButton>
+                      </div>
+
+                      {/* Stats */}
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                        <span className="flex items-center gap-1">
+                          <Briefcase className="h-3.5 w-3.5" />
+                          {positionsCount} poste{positionsCount > 1 ? 's' : ''}
+                        </span>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <GlassButton
+                          variant="primary"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            resetPositionForm();
+                            setSelectedDepartmentId(dept.id);
+                            setShowPositionModal(true);
+                          }}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Poste
+                        </GlassButton>
+                        <GlassButton
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditDepartment(dept)}
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </GlassButton>
+                      </div>
+
+                      {/* Positions preview */}
+                      {positionsCount > 0 && (
+                        <div className="mt-3 pt-3 border-t border-border/50">
+                          <div className="flex flex-wrap gap-1.5">
+                            {getPositionsForDepartment(dept.id).slice(0, 3).map((pos) => (
+                              <Badge key={pos.id} variant="secondary" className="text-xs">
+                                {pos.name}
+                                {pos.is_head && <Star className="h-2.5 w-2.5 ml-1 text-yellow-500" />}
+                              </Badge>
+                            ))}
+                            {positionsCount > 3 && (
+                              <Badge variant="outline" className="text-xs">+{positionsCount - 3}</Badge>
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <GlassButton
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              resetPositionForm();
-                              setSelectedDepartmentId(dept.id);
-                              setShowPositionModal(true);
-                            }}
-                          >
-                            <Plus className="h-4 w-4" />
-                            Poste
-                          </GlassButton>
-                          <GlassButton variant="ghost" size="sm" onClick={() => openEditDepartment(dept)}>
-                            <Edit className="h-4 w-4" />
-                          </GlassButton>
-                          <GlassButton variant="ghost" size="sm" onClick={() => handleDeleteDepartment(dept.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </GlassButton>
-                        </div>
-                      </div>
-
-                      {/* Positions in this department */}
-                      {getPositionsForDepartment(dept.id).length > 0 && (
-                        <div className="mt-4 ml-6 space-y-3">
-                          {getPositionsForDepartment(dept.id).map((pos) => (
-                            <div
-                              key={pos.id}
-                              className="p-3 rounded-lg bg-muted/30"
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-3">
-                                  <Briefcase className="h-4 w-4 text-muted-foreground" />
-                                  <div>
-                                    <div className="flex items-center gap-2">
-                                      <p className="font-medium text-foreground">{pos.name}</p>
-                                      {pos.is_head && (
-                                        <Badge variant="secondary" className="text-xs">
-                                          Chef
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex gap-1">
-                                  <GlassButton
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handlePositionClick(pos)}
-                                    title="Gérer les affectations"
-                                  >
-                                    <UserPlus className="h-3 w-3" />
-                                  </GlassButton>
-                                  <GlassButton variant="ghost" size="sm" onClick={() => openEditPosition(pos)}>
-                                    <Edit className="h-3 w-3" />
-                                  </GlassButton>
-                                  <GlassButton variant="ghost" size="sm" onClick={() => handleDeletePosition(pos.id)}>
-                                    <Trash2 className="h-3 w-3 text-destructive" />
-                                  </GlassButton>
-                                </div>
-                              </div>
-                              {/* Quick assign dropdown */}
-                              <QuickAssignDropdown
-                                positionId={pos.id}
-                                positionName={pos.name}
-                                currentAssignments={getUsersForPosition(pos.id)}
-                                onSuccess={fetchEstablishmentData}
-                              />
-                            </div>
-                          ))}
-                        </div>
                       )}
-
-                      {/* Sub-departments */}
-                      {departments
-                        .filter((sd) => sd.parent_id === dept.id)
-                        .map((subDept) => (
-                          <div key={subDept.id} className="mt-3 ml-6 p-3 rounded-lg bg-muted/20">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                <p className="font-medium text-foreground">{subDept.name}</p>
-                                <Badge variant="outline" className="text-xs">
-                                  {typeLabels[subDept.type] || subDept.type}
-                                </Badge>
-                              </div>
-                              <div className="flex gap-1">
-                                <GlassButton
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    resetPositionForm();
-                                    setSelectedDepartmentId(subDept.id);
-                                    setShowPositionModal(true);
-                                  }}
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </GlassButton>
-                                <GlassButton variant="ghost" size="sm" onClick={() => openEditDepartment(subDept)}>
-                                  <Edit className="h-3 w-3" />
-                                </GlassButton>
-                                <GlassButton variant="ghost" size="sm" onClick={() => handleDeleteDepartment(subDept.id)}>
-                                  <Trash2 className="h-3 w-3 text-destructive" />
-                                </GlassButton>
-                              </div>
-                            </div>
-                            {/* Positions in sub-department */}
-                            {getPositionsForDepartment(subDept.id).map((pos) => (
-                              <div
-                                key={pos.id}
-                                className="mt-2 ml-4 p-2 rounded bg-muted/30 flex items-center justify-between"
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Briefcase className="h-3 w-3 text-muted-foreground" />
-                                  <span className="text-sm">{pos.name}</span>
-                                  {pos.is_head && (
-                                    <Badge variant="secondary" className="text-xs">
-                                      Chef
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ))}
                     </GlassCard>
-                  ))}
+                  );
+                })}
               </div>
             )}
 
-            {/* Personnel from creation (establishment_staff) */}
-            <div className="mt-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-md font-semibold text-foreground flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" />
-                  Personnel enregistré ({establishmentStaff.length})
-                </h3>
-              </div>
+            {/* Personnel segmenté par Corps */}
+            <div className="mt-6 space-y-6">
               {establishmentStaff.length === 0 ? (
                 <GlassCard className="p-8 text-center" solid>
                   <User className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -1003,57 +935,311 @@ const EstablishmentConfig = () => {
                   </p>
                 </GlassCard>
               ) : (
-                <GlassCard className="p-4" solid>
-                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                    {establishmentStaff.map((staff) => {
-                      const staffLabels: Record<string, string> = {
-                        teacher: "Enseignant",
-                        administrative: "Administratif",
-                        support: "Personnel de soutien",
-                        student: "Élève",
-                        parent: "Parent d'élève",
-                      };
-                      const name = staff.metadata?.firstName && staff.metadata?.lastName
-                        ? `${staff.metadata.firstName} ${staff.metadata.lastName}`
-                        : staff.metadata?.email || "Non renseigné";
+                <>
+                  {/* Corps Administratif */}
+                  {(() => {
+                    const adminCorps = establishmentStaff.filter(s =>
+                      ['direction', 'admin', 'cpe', 'surveillant', 'maintenance', 'other'].includes(s.staff_type)
+                    );
+
+                    // Sub-group by type
+                    const direction = adminCorps.filter(s => s.staff_type === 'direction');
+                    const vieScolaire = adminCorps.filter(s => ['cpe', 'surveillant'].includes(s.staff_type));
+                    const administration = adminCorps.filter(s => s.staff_type === 'admin');
+                    const services = adminCorps.filter(s => ['maintenance', 'other'].includes(s.staff_type));
+
+                    const renderStaffCard = (staff: typeof establishmentStaff[0], icon: React.ReactNode, color: string) => {
+                      const name = staff.first_name && staff.last_name
+                        ? `${staff.first_name} ${staff.last_name}`
+                        : staff.email || "Non renseigné";
+
+                      // Get position info from positions list
+                      const positionInfo = positions.find(p => p.name === staff.position);
+                      const deptInfo = positionInfo ? departments.find(d => d.id === positionInfo.department_id) : null;
 
                       return (
                         <div
                           key={staff.id}
-                          className="p-3 rounded-lg bg-muted/30 flex items-center gap-3"
+                          className="p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
                         >
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-5 w-5 text-primary" />
+                          {/* Header */}
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-full ${color} flex items-center justify-center`}>
+                                {icon}
+                              </div>
+                              <div>
+                                <p className="font-medium text-foreground">{name}</p>
+                                {staff.position && (
+                                  <p className="text-xs text-muted-foreground mt-0.5">{staff.position}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <GlassButton variant="ghost" size="sm" title="Configurer">
+                                <Settings className="h-3.5 w-3.5" />
+                              </GlassButton>
+                              <GlassButton variant="ghost" size="sm" title="Modifier">
+                                <Edit className="h-3.5 w-3.5" />
+                              </GlassButton>
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground truncate">{name}</p>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Badge variant="secondary" className="text-xs">
-                                {staffLabels[staff.staff_type] || staff.staff_type}
+
+                          {/* Department & Function */}
+                          <div className="space-y-1.5">
+                            {deptInfo && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <FolderTree className="h-3 w-3" />
+                                <span>{deptInfo.name}</span>
+                              </div>
+                            )}
+
+                            {/* Status badges */}
+                            <div className="flex flex-wrap gap-1">
+                              <Badge variant="outline" className="text-xs">
+                                {staff.staff_type === 'direction' ? 'Direction' :
+                                  staff.staff_type === 'admin' ? 'Admin' :
+                                    staff.staff_type === 'cpe' ? 'CPE' :
+                                      staff.staff_type === 'surveillant' ? 'Vie Scolaire' :
+                                        staff.staff_type === 'maintenance' ? 'Maintenance' : 'Autre'}
                               </Badge>
-                              {staff.position && (
-                                <Badge variant="outline" className="text-xs">
-                                  {staff.position}
+                              {staff.contract_type && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {staff.contract_type === 'permanent' ? 'Titulaire' :
+                                    staff.contract_type === 'contract' ? 'Contractuel' :
+                                      staff.contract_type === 'intern' ? 'Stagiaire' : staff.contract_type}
                                 </Badge>
                               )}
-                              {staff.department && (
-                                <span className="text-xs text-muted-foreground">
-                                  {staff.department}
-                                </span>
+                              {!staff.is_active && (
+                                <Badge variant="destructive" className="text-xs">Inactif</Badge>
                               )}
                             </div>
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
-                </GlassCard>
+                    };
+
+                    return adminCorps.length > 0 ? (
+                      <div>
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                            <Building2 className="h-4 w-4 text-blue-500" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-foreground">Corps Administratif</h3>
+                            <p className="text-xs text-muted-foreground">{adminCorps.length} membres</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          {/* Direction */}
+                          {direction.length > 0 && (
+                            <GlassCard className="p-4" solid>
+                              <div className="flex items-center gap-2 mb-3">
+                                <GraduationCap className="h-4 w-4 text-purple-500" />
+                                <h4 className="font-medium text-sm text-foreground">Direction</h4>
+                                <Badge variant="secondary" className="text-xs ml-auto">{direction.length}</Badge>
+                              </div>
+                              <div className="grid gap-2 md:grid-cols-3">
+                                {direction.map(s => renderStaffCard(s, <GraduationCap className="h-5 w-5 text-purple-500" />, "bg-purple-500/10"))}
+                              </div>
+                            </GlassCard>
+                          )}
+
+                          {/* Vie Scolaire */}
+                          {vieScolaire.length > 0 && (
+                            <GlassCard className="p-4" solid>
+                              <div className="flex items-center gap-2 mb-3">
+                                <Users className="h-4 w-4 text-orange-500" />
+                                <h4 className="font-medium text-sm text-foreground">Vie Scolaire</h4>
+                                <Badge variant="secondary" className="text-xs ml-auto">{vieScolaire.length}</Badge>
+                              </div>
+                              <div className="grid gap-2 md:grid-cols-3">
+                                {vieScolaire.map(s => renderStaffCard(s, <Users className="h-5 w-5 text-orange-500" />, "bg-orange-500/10"))}
+                              </div>
+                            </GlassCard>
+                          )}
+
+                          {/* Administration */}
+                          {administration.length > 0 && (
+                            <GlassCard className="p-4" solid>
+                              <div className="flex items-center gap-2 mb-3">
+                                <Briefcase className="h-4 w-4 text-green-500" />
+                                <h4 className="font-medium text-sm text-foreground">Administration</h4>
+                                <Badge variant="secondary" className="text-xs ml-auto">{administration.length}</Badge>
+                              </div>
+                              <div className="grid gap-2 md:grid-cols-3">
+                                {administration.map(s => renderStaffCard(s, <Briefcase className="h-5 w-5 text-green-500" />, "bg-green-500/10"))}
+                              </div>
+                            </GlassCard>
+                          )}
+
+                          {/* Services Généraux */}
+                          {services.length > 0 && (
+                            <GlassCard className="p-4" solid>
+                              <div className="flex items-center gap-2 mb-3">
+                                <Settings className="h-4 w-4 text-gray-500" />
+                                <h4 className="font-medium text-sm text-foreground">Services Généraux</h4>
+                                <Badge variant="secondary" className="text-xs ml-auto">{services.length}</Badge>
+                              </div>
+                              <div className="grid gap-2 md:grid-cols-3">
+                                {services.map(s => renderStaffCard(s, <Settings className="h-5 w-5 text-gray-500" />, "bg-gray-500/10"))}
+                              </div>
+                            </GlassCard>
+                          )}
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
+
+                  {/* Corps Enseignants */}
+                  {(() => {
+                    const teachers = establishmentStaff.filter(s => s.staff_type === 'teacher');
+
+                    // Get assignments for a teacher
+                    const getTeacherAssignments = (userId: string | null) => {
+                      if (!userId) return [];
+                      return classTeachers.filter(ct => ct.teacher_id === userId);
+                    };
+
+                    // Get unique subjects for a teacher
+                    const getTeacherSubjects = (userId: string | null) => {
+                      const assignments = getTeacherAssignments(userId);
+                      const subjects = [...new Set(assignments.map(a => a.subject).filter(Boolean))];
+                      return subjects as string[];
+                    };
+
+                    // Get classes for a teacher
+                    const getTeacherClasses = (userId: string | null) => {
+                      const assignments = getTeacherAssignments(userId);
+                      const classIds = [...new Set(assignments.map(a => a.class_id))];
+                      return classIds.map(id => classes.find(c => c.id === id)).filter(Boolean);
+                    };
+
+                    // Get PP class for a teacher
+                    const getPPClass = (userId: string | null) => {
+                      const assignments = getTeacherAssignments(userId);
+                      const ppAssignment = assignments.find(a => a.is_main_teacher);
+                      if (ppAssignment) {
+                        return classes.find(c => c.id === ppAssignment.class_id);
+                      }
+                      return null;
+                    };
+
+                    const renderTeacherCard = (staff: typeof establishmentStaff[0]) => {
+                      const name = staff.first_name && staff.last_name
+                        ? `${staff.first_name} ${staff.last_name}`
+                        : staff.email || "Non renseigné";
+
+                      const subjects = getTeacherSubjects(staff.user_id);
+                      const teacherClasses = getTeacherClasses(staff.user_id);
+                      const ppClass = getPPClass(staff.user_id);
+
+                      return (
+                        <div
+                          key={staff.id}
+                          className="p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
+                        >
+                          {/* Header */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                                <BookOpen className="h-5 w-5 text-blue-500" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-foreground">{name}</p>
+                                {ppClass && (
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <Star className="h-3 w-3 text-yellow-500" />
+                                    <span className="text-xs text-yellow-600">PP {ppClass.name}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <GlassButton variant="ghost" size="sm" title="Configurer">
+                                <Settings className="h-3.5 w-3.5" />
+                              </GlassButton>
+                              <GlassButton variant="ghost" size="sm" title="Modifier">
+                                <Edit className="h-3.5 w-3.5" />
+                              </GlassButton>
+                            </div>
+                          </div>
+
+                          {/* Subjects */}
+                          {subjects.length > 0 && (
+                            <div className="mb-2">
+                              <div className="flex flex-wrap gap-1">
+                                {subjects.slice(0, 2).map((subject, idx) => (
+                                  <Badge key={idx} variant="secondary" className="text-xs">
+                                    {subject}
+                                  </Badge>
+                                ))}
+                                {subjects.length > 2 && (
+                                  <Badge variant="outline" className="text-xs">+{subjects.length - 2}</Badge>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Classes */}
+                          {teacherClasses.length > 0 && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Users className="h-3 w-3" />
+                              <span>
+                                {teacherClasses.slice(0, 3).map(c => c?.name).join(', ')}
+                                {teacherClasses.length > 3 && ` +${teacherClasses.length - 3}`}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* No assignments */}
+                          {subjects.length === 0 && teacherClasses.length === 0 && (
+                            <p className="text-xs text-muted-foreground italic">
+                              Aucune affectation
+                            </p>
+                          )}
+                        </div>
+                      );
+                    };
+
+                    return teachers.length > 0 ? (
+                      <div className="mt-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                              <BookOpen className="h-4 w-4 text-indigo-500" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-foreground">Corps Enseignants</h3>
+                              <p className="text-xs text-muted-foreground">{teachers.length} enseignants</p>
+                            </div>
+                          </div>
+                          <GlassButton variant="primary" size="sm">
+                            <Plus className="h-4 w-4" />
+                            Ajouter
+                          </GlassButton>
+                        </div>
+
+                        <GlassCard className="p-4" solid>
+                          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                            {teachers.map(renderTeacherCard)}
+                          </div>
+                        </GlassCard>
+                      </div>
+                    ) : null;
+                  })()}
+                </>
               )}
             </div>
           </TabsContent>
 
           {/* Classes Tab */}
-          <TabsContent value="classes" className="space-y-4">
+          <TabsContent value="classes" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold text-foreground">Gestion des Classes</h2>
               <GlassButton
@@ -1078,125 +1264,170 @@ const EstablishmentConfig = () => {
                 </p>
               </GlassCard>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {classes.map((cls) => {
-                  const teachers = getTeachersForClass(cls.id);
-                  const mainTeacher = teachers.find((t) => t.is_main_teacher);
-                  const students = getStudentsForClass(cls.id);
-                  const sections = getSectionsForClass(cls.id);
+              <>
+                {/* Segmented by School Level */}
+                {(() => {
+                  // Group classes by cycle
+                  const collegeClasses = classes.filter((c) => ["6eme", "5eme", "4eme", "3eme"].includes(c.level));
+                  const lyceeClasses = classes.filter((c) => ["2nde", "1ere", "tle"].includes(c.level));
+                  const otherClasses = classes.filter((c) => !["6eme", "5eme", "4eme", "3eme", "2nde", "1ere", "tle"].includes(c.level));
 
-                  return (
-                    <GlassCard key={cls.id} className="p-4" solid>
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                            <GraduationCap className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-foreground">{cls.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {cls.level} {cls.section && `• ${cls.section}`}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="secondary" className="text-xs">
-                                {cls.school_year}
-                              </Badge>
-                              <Badge variant="outline" className="text-xs">
-                                {students.length} / {cls.capacity || "∞"} élèves
-                              </Badge>
+                  // Sort classes within each group
+                  const levelOrder: Record<string, number> = { "6eme": 1, "5eme": 2, "4eme": 3, "3eme": 4, "2nde": 5, "1ere": 6, "tle": 7 };
+                  const sortClasses = (a: any, b: any) => {
+                    const levelDiff = (levelOrder[a.level] || 99) - (levelOrder[b.level] || 99);
+                    if (levelDiff !== 0) return levelDiff;
+                    return (a.name || "").localeCompare(b.name || "");
+                  };
+
+                  const renderClassCard = (cls: any) => {
+                    const teachers = getTeachersForClass(cls.id);
+                    const mainTeacher = teachers.find((t) => t.is_main_teacher);
+                    const students = getStudentsForClass(cls.id);
+                    const occupancy = cls.capacity ? Math.round((students.length / cls.capacity) * 100) : 0;
+
+                    return (
+                      <div key={cls.id} className="group relative">
+                        <GlassCard className="p-4 h-full transition-all hover:shadow-lg hover:border-primary/30" solid>
+                          {/* Header Row */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shrink-0">
+                                <GraduationCap className="h-5 w-5 text-primary" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-foreground truncate">{cls.name}</p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Badge variant="outline" className="text-xs">{cls.level}</Badge>
+                                  {cls.section && <span className="text-xs text-muted-foreground">{cls.section}</span>}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Quick Stats */}
+                            <div className="text-right shrink-0">
+                              <p className="text-lg font-bold text-foreground">{students.length}</p>
+                              <p className="text-xs text-muted-foreground">élèves</p>
                             </div>
                           </div>
-                        </div>
-                        <div className="flex gap-1">
-                          <GlassButton
-                            variant="primary"
-                            size="sm"
-                            onClick={() => openStudentEnrollment(cls)}
-                            title="Gérer les élèves"
-                            className="gap-1"
-                          >
-                            <UserPlus className="h-4 w-4" />
-                            <span className="hidden sm:inline">Élèves</span>
-                          </GlassButton>
-                          <GlassButton variant="ghost" size="sm" onClick={() => openEditClass(cls)}>
-                            <Edit className="h-4 w-4" />
-                          </GlassButton>
-                          <GlassButton variant="ghost" size="sm" onClick={() => handleDeleteClass(cls.id)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </GlassButton>
-                        </div>
-                      </div>
 
-                      {/* Linguistic Sections */}
-                      {sections.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-border/50">
-                          <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
-                            <Languages className="h-3 w-3" />
-                            Sections linguistiques :
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {sections.map((section) => (
-                              <Badge key={section.id} variant="secondary" className="text-xs">
-                                {section.name}
+                          {/* PP & Capacity Row */}
+                          <div className="mt-3 flex items-center justify-between gap-2">
+                            {mainTeacher ? (
+                              <Badge variant="secondary" className="text-xs gap-1 bg-yellow-500/10 text-yellow-600 border-yellow-500/30">
+                                <Star className="h-3 w-3" />
+                                PP: {mainTeacher.profiles?.first_name} {(mainTeacher.profiles?.last_name || "").charAt(0)}.
                               </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                            ) : (
+                              <Badge variant="outline" className="text-xs text-muted-foreground">Aucun PP</Badge>
+                            )}
 
-                      {/* Teachers */}
-                      {teachers.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-border/50">
-                          <p className="text-xs text-muted-foreground mb-2">Enseignants :</p>
-                          <div className="space-y-1">
-                            {teachers.map((t) => (
-                              <div key={t.id} className="flex items-center gap-2 text-sm">
-                                <BookOpen className="h-3 w-3 text-muted-foreground" />
-                                <span>
-                                  {t.profiles?.first_name} {t.profiles?.last_name}
-                                </span>
-                                {t.is_main_teacher && (
-                                  <Badge variant="secondary" className="text-xs">
-                                    PP
-                                  </Badge>
-                                )}
-                                {t.subject && (
-                                  <span className="text-muted-foreground">({t.subject})</span>
-                                )}
+                            {/* Occupancy Bar */}
+                            {cls.capacity && (
+                              <div className="flex items-center gap-2">
+                                <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${occupancy > 90 ? 'bg-red-500' : occupancy > 70 ? 'bg-yellow-500' : 'bg-green-500'
+                                      }`}
+                                    style={{ width: `${Math.min(occupancy, 100)}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs text-muted-foreground">{occupancy}%</span>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Students preview */}
-                      {students.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-border/50">
-                          <p className="text-xs text-muted-foreground mb-2">
-                            Élèves ({students.length}) :
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {students.slice(0, 5).map((s) => (
-                              <Badge key={s.id} variant="outline" className="text-xs">
-                                {s.profiles?.first_name} {s.profiles?.last_name?.charAt(0)}.
-                              </Badge>
-                            ))}
-                            {students.length > 5 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{students.length - 5}
-                              </Badge>
                             )}
                           </div>
+
+                          {/* Actions Row - Compact */}
+                          <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <span>{cls.school_year}</span>
+                              {cls.room && <span>• {cls.room}</span>}
+                              <span>• {teachers.length} profs</span>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                              <GlassButton variant="primary" size="sm" onClick={() => openStudentEnrollment(cls)} title="Élèves" className="gap-1">
+                                <UserPlus className="h-3.5 w-3.5" />
+                              </GlassButton>
+                              <GlassButton variant="ghost" size="sm" onClick={() => openEditClass(cls)} title="Modifier">
+                                <Edit className="h-3.5 w-3.5" />
+                              </GlassButton>
+                              <GlassButton variant="ghost" size="sm" onClick={() => handleDeleteClass(cls.id)} title="Supprimer">
+                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              </GlassButton>
+                            </div>
+                          </div>
+                        </GlassCard>
+                      </div>
+                    );
+                  };
+
+                  return (
+                    <div className="space-y-8">
+                      {/* Collège Section */}
+                      {collegeClasses.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                              <School className="h-4 w-4 text-blue-500" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-foreground">Collège</h3>
+                              <p className="text-xs text-muted-foreground">{collegeClasses.length} classes • 6ème → 3ème</p>
+                            </div>
+                            <Badge variant="secondary" className="ml-auto">
+                              {collegeClasses.reduce((acc, c) => acc + getStudentsForClass(c.id).length, 0)} élèves
+                            </Badge>
+                          </div>
+                          <div className="grid gap-4 md:grid-cols-3">
+                            {collegeClasses.sort(sortClasses).map(renderClassCard)}
+                          </div>
                         </div>
                       )}
 
-                      {cls.room && (
-                        <p className="text-xs text-muted-foreground mt-2">Salle : {cls.room}</p>
+                      {/* Lycée Section */}
+                      {lyceeClasses.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                              <GraduationCap className="h-4 w-4 text-purple-500" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-foreground">Lycée</h3>
+                              <p className="text-xs text-muted-foreground">{lyceeClasses.length} classes • 2nde → Terminale</p>
+                            </div>
+                            <Badge variant="secondary" className="ml-auto">
+                              {lyceeClasses.reduce((acc, c) => acc + getStudentsForClass(c.id).length, 0)} élèves
+                            </Badge>
+                          </div>
+                          <div className="grid gap-4 md:grid-cols-3">
+                            {lyceeClasses.sort(sortClasses).map(renderClassCard)}
+                          </div>
+                        </div>
                       )}
-                    </GlassCard>
+
+                      {/* Other Classes */}
+                      {otherClasses.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-8 h-8 rounded-lg bg-gray-500/10 flex items-center justify-center">
+                              <Briefcase className="h-4 w-4 text-gray-500" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-foreground">Autres</h3>
+                              <p className="text-xs text-muted-foreground">{otherClasses.length} classes</p>
+                            </div>
+                          </div>
+                          <div className="grid gap-4 md:grid-cols-3">
+                            {otherClasses.map(renderClassCard)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   );
-                })}
-              </div>
+                })()}
+              </>
             )}
           </TabsContent>
 
@@ -1255,6 +1486,16 @@ const EstablishmentConfig = () => {
                 </div>
               </GlassCard>
             </div>
+          </TabsContent>
+
+          {/* HR Config Tab */}
+          <TabsContent value="hr" className="space-y-4">
+            {establishmentId && (
+              <HRConfigTab
+                establishmentId={establishmentId}
+                establishmentName={establishment?.name}
+              />
+            )}
           </TabsContent>
 
           {/* Modules Tab */}

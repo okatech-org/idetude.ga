@@ -12,12 +12,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  BookOpen, 
-  Languages, 
-  Palette, 
-  Music, 
-  Dumbbell, 
+import {
+  BookOpen,
+  Languages,
+  Palette,
+  Music,
+  Dumbbell,
   Wrench,
   Plus,
   Trash2,
@@ -126,13 +126,13 @@ export const SubjectConfigModal = ({
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [activeTab, setActiveTab] = useState("list");
   const [editingSubject, setEditingSubject] = useState<Partial<Subject> | null>(null);
-  
+
   // CSV Import state
   const [csvSubjects, setCsvSubjects] = useState<CSVSubject[]>([]);
   const [csvImporting, setCsvImporting] = useState(false);
   const [csvProgress, setCsvProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [form, setForm] = useState({
     name: "",
     code: "",
@@ -149,15 +149,15 @@ export const SubjectConfigModal = ({
 
   const fetchSubjects = async () => {
     try {
-      const { data, error } = await supabase
-        .from("subjects")
-        .select("*")
-        .eq("establishment_id", establishmentId)
-        .order("category")
-        .order("order_index");
-
-      if (error) throw error;
-      setSubjects(data || []);
+      const response = await fetch(`/api/db/establishments/${establishmentId}/subjects`);
+      if (!response.ok) throw new Error('Failed to fetch subjects');
+      const data = await response.json();
+      // Sort by category then order_index
+      const sorted = (data || []).sort((a: Subject, b: Subject) => {
+        if (a.category !== b.category) return (a.category || '').localeCompare(b.category || '');
+        return (a.order_index || 0) - (b.order_index || 0);
+      });
+      setSubjects(sorted);
     } catch (error) {
       console.error("Error fetching subjects:", error);
     }
@@ -216,15 +216,20 @@ export const SubjectConfigModal = ({
       };
 
       if (editingSubject?.id) {
-        const { error } = await supabase
-          .from("subjects")
-          .update(subjectData)
-          .eq("id", editingSubject.id);
-        if (error) throw error;
+        const response = await fetch(`/api/db/subjects/${editingSubject.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subjectData),
+        });
+        if (!response.ok) throw new Error('Failed to update subject');
         toast.success("Matière modifiée avec succès");
       } else {
-        const { error } = await supabase.from("subjects").insert(subjectData);
-        if (error) throw error;
+        const response = await fetch(`/api/db/establishments/${establishmentId}/subjects`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subjectData),
+        });
+        if (!response.ok) throw new Error('Failed to create subject');
         toast.success("Matière ajoutée avec succès");
       }
 
@@ -241,10 +246,12 @@ export const SubjectConfigModal = ({
 
   const handleDeleteSubject = async (id: string) => {
     if (!confirm("Supprimer cette matière ?")) return;
-    
+
     try {
-      const { error } = await supabase.from("subjects").delete().eq("id", id);
-      if (error) throw error;
+      const response = await fetch(`/api/db/subjects/${id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete subject');
       toast.success("Matière supprimée");
       fetchSubjects();
     } catch (error) {
@@ -285,9 +292,13 @@ export const SubjectConfigModal = ({
         order_index: index,
       }));
 
-      const { error } = await supabase.from("subjects").insert(subjectsToInsert);
-      if (error) throw error;
-      
+      const response = await fetch(`/api/db/establishments/${establishmentId}/subjects/bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subjectsToInsert),
+      });
+      if (!response.ok) throw new Error('Failed to add default subjects');
+
       toast.success("Matières par défaut ajoutées");
       fetchSubjects();
     } catch (error) {
@@ -305,10 +316,10 @@ export const SubjectConfigModal = ({
 
     const headerLine = lines[0].toLowerCase();
     const headers = headerLine.split(/[,;]/).map(h => h.trim().replace(/"/g, ''));
-    
+
     // Flexible column detection
     const findColumnIndex = (possibleNames: string[]): number => {
-      return headers.findIndex(h => 
+      return headers.findIndex(h =>
         possibleNames.some(name => h.includes(name))
       );
     };
@@ -326,7 +337,7 @@ export const SubjectConfigModal = ({
     }
 
     const existingNames = new Set(subjects.map(s => s.name.toLowerCase()));
-    
+
     return lines.slice(1).map((line, idx) => {
       const values = line.split(/[,;]/).map(v => v.trim().replace(/"/g, ''));
       const name = values[nameIdx] || '';
@@ -334,9 +345,9 @@ export const SubjectConfigModal = ({
       const categoryRaw = categoryIdx >= 0 ? values[categoryIdx]?.toLowerCase() : 'general';
       const coeffRaw = coefficientIdx >= 0 ? parseFloat(values[coefficientIdx]) : 1;
       const hoursRaw = hoursIdx >= 0 ? parseFloat(values[hoursIdx]) : 2;
-      const mandatoryRaw = mandatoryIdx >= 0 ? 
+      const mandatoryRaw = mandatoryIdx >= 0 ?
         ['oui', 'yes', 'true', '1', 'o', 'y'].includes(values[mandatoryIdx]?.toLowerCase()) : true;
-      
+
       // Map category
       const categoryMap: Record<string, string> = {
         'général': 'general', 'general': 'general', 'enseignement général': 'general',
@@ -351,7 +362,7 @@ export const SubjectConfigModal = ({
       // Validation
       const isValid = name.length >= 2;
       const isDuplicate = existingNames.has(name.toLowerCase());
-      
+
       return {
         name,
         code: code.toUpperCase(),
@@ -374,14 +385,14 @@ export const SubjectConfigModal = ({
       const text = event.target?.result as string;
       const parsed = parseCSV(text);
       setCsvSubjects(parsed);
-      
+
       if (parsed.length > 0) {
         const validCount = parsed.filter(s => s.isValid).length;
         toast.success(`${parsed.length} matières détectées (${validCount} valides)`);
       }
     };
     reader.readAsText(file);
-    
+
     // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -414,12 +425,12 @@ export const SubjectConfigModal = ({
       // Insert in batches
       const batchSize = 10;
       let inserted = 0;
-      
+
       for (let i = 0; i < subjectsToInsert.length; i += batchSize) {
         const batch = subjectsToInsert.slice(i, i + batchSize);
         const { error } = await supabase.from("subjects").insert(batch);
         if (error) throw error;
-        
+
         inserted += batch.length;
         setCsvProgress((inserted / subjectsToInsert.length) * 100);
       }
@@ -451,7 +462,7 @@ Physique-Chimie,PC,Général,3,3,Oui
 SVT,SVT,Général,2,2,Oui
 EPS,EPS,Sport,2,2,Oui
 Arts Plastiques,ARTS,Arts,1,1,Non`;
-    
+
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
@@ -512,7 +523,7 @@ Arts Plastiques,ARTS,Arts,1,1,Non`;
                 Object.entries(groupedSubjects).map(([category, categorySubjects]) => {
                   const categoryInfo = CATEGORIES.find(c => c.value === category);
                   const Icon = categoryInfo?.icon || BookOpen;
-                  
+
                   return (
                     <GlassCard key={category} className="p-4" solid>
                       <div className="flex items-center gap-2 mb-3">
@@ -522,7 +533,7 @@ Arts Plastiques,ARTS,Arts,1,1,Non`;
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         {categorySubjects.map(subject => (
-                          <div 
+                          <div
                             key={subject.id}
                             className={cn(
                               "flex items-center justify-between p-3 rounded-lg border",
@@ -579,8 +590,8 @@ Arts Plastiques,ARTS,Arts,1,1,Non`;
                       Configurez les langues proposées (LV1, LV2, LV3, Options)
                     </p>
                   </div>
-                  <GlassButton 
-                    size="sm" 
+                  <GlassButton
+                    size="sm"
                     onClick={() => {
                       setForm({ ...form, is_language: true, category: "language" });
                       setActiveTab("add");
@@ -596,7 +607,7 @@ Arts Plastiques,ARTS,Arts,1,1,Non`;
                   const levelSubjects = subjects.filter(
                     s => s.is_language && s.language_level === level.value
                   );
-                  
+
                   return (
                     <GlassCard key={level.value} className="p-4" solid>
                       <div className="flex items-center justify-between mb-2">
@@ -609,8 +620,8 @@ Arts Plastiques,ARTS,Arts,1,1,Non`;
                       {levelSubjects.length > 0 ? (
                         <div className="flex flex-wrap gap-2 mt-2">
                           {levelSubjects.map(subject => (
-                            <Badge 
-                              key={subject.id} 
+                            <Badge
+                              key={subject.id}
                               variant="secondary"
                               className="gap-2 pr-1"
                             >
@@ -698,8 +709,8 @@ Arts Plastiques,ARTS,Arts,1,1,Non`;
                 <Checkbox
                   id="is_language"
                   checked={form.is_language}
-                  onCheckedChange={(checked) => setForm({ 
-                    ...form, 
+                  onCheckedChange={(checked) => setForm({
+                    ...form,
                     is_language: !!checked,
                     category: checked ? "language" : form.category
                   })}
@@ -717,8 +728,8 @@ Arts Plastiques,ARTS,Arts,1,1,Non`;
                       value={form.language_code}
                       onValueChange={(v) => {
                         const lang = LANGUAGES.find(l => l.value === v);
-                        setForm({ 
-                          ...form, 
+                        setForm({
+                          ...form,
                           language_code: v,
                           name: form.name || lang?.label || ""
                         });
@@ -810,7 +821,7 @@ Arts Plastiques,ARTS,Arts,1,1,Non`;
                     Modèle CSV
                   </GlassButton>
                 </div>
-                
+
                 {/* Hidden file input */}
                 <input
                   ref={fileInputRef}
@@ -819,7 +830,7 @@ Arts Plastiques,ARTS,Arts,1,1,Non`;
                   className="hidden"
                   onChange={handleCSVFileSelect}
                 />
-                
+
                 {/* Drop zone */}
                 <div
                   onClick={() => fileInputRef.current?.click()}
@@ -958,7 +969,7 @@ Arts Plastiques,ARTS,Arts,1,1,Non`;
                             });
                           }
                         });
-                        
+
                         if (result.data.length > 0) {
                           toast.success(`${result.data.length} matière(s) détectée(s). Vérifiez et ajoutez-les.`);
                           setActiveTab("add");
@@ -977,8 +988,8 @@ Arts Plastiques,ARTS,Arts,1,1,Non`;
             Fermer
           </GlassButton>
           {activeTab === "import" && csvSubjects.length > 0 && (
-            <GlassButton 
-              onClick={handleCSVBulkImport} 
+            <GlassButton
+              onClick={handleCSVBulkImport}
               disabled={csvImporting || csvSubjects.filter(s => s.isValid).length === 0}
             >
               {csvImporting ? "Import en cours..." : `Importer ${csvSubjects.filter(s => s.isValid).length} matières`}

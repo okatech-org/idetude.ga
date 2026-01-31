@@ -184,7 +184,7 @@ const SchoolGroupsManagement = () => {
     },
   });
 
-  const filteredGroups = groups.filter((group) => {
+  const filteredGroups = (groups || []).filter((group) => {
     const matchesSearch =
       group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (group.code?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
@@ -274,8 +274,8 @@ const SchoolGroupsManagement = () => {
                   Groupes Scolaires
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {groups.length} groupes répartis dans {
-                    new Set(groups.map((g) => g.country_code)).size
+                  {(groups || []).length} groupes répartis dans {
+                    new Set((groups || []).map((g) => g.country_code)).size
                   } pays
                 </p>
               </div>
@@ -290,7 +290,7 @@ const SchoolGroupsManagement = () => {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {COUNTRIES.slice(0, 3).map((country) => {
-            const countryGroups = groups.filter(
+            const countryGroups = (groups || []).filter(
               (g) => g.country_code === country.code
             );
             const totalEstablishments = countryGroups.reduce(
@@ -560,8 +560,8 @@ const SchoolGroupsManagement = () => {
                 {createMutation.isPending || updateMutation.isPending
                   ? "Enregistrement..."
                   : editingGroup
-                  ? "Enregistrer"
-                  : "Créer"}
+                    ? "Enregistrer"
+                    : "Créer"}
               </Button>
             </DialogFooter>
           </DialogContent>

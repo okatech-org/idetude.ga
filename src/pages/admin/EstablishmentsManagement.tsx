@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ViewEstablishmentModal } from "@/components/admin/ViewEstablishmentModal";
 import { CreateEstablishmentModalEnhanced, ArchiveEstablishmentModal, type ArchiveAction } from "@/components/admin/establishment";
 import { CreateGroupModal } from "@/components/admin/CreateGroupModal";
-import { supabase } from "@/integrations/supabase/client";
+import { cloudSql } from "@/integrations/cloudsql/client";
 import { toast } from "sonner";
 import {
   Search,
@@ -29,6 +29,8 @@ import {
   Archive,
   Trash2,
   Undo2,
+  FileEdit,
+  Briefcase,
 } from "lucide-react";
 import { countries, type Country, type School as SchoolType, type SchoolGroup } from "@/data/demo-accounts";
 
@@ -111,32 +113,27 @@ const EstablishmentsManagement = () => {
   const fetchDbData = async () => {
     setLoadingDb(true);
     try {
-      // Fetch groups
-      const { data: groupsData, error: groupsError } = await supabase
-        .from("establishment_groups")
-        .select("*")
-        .order("name");
+      // Fetch groups via Cloud SQL Proxy
+      const { data: groupsData, error: groupsError } = await cloudSql.getEstablishmentGroups();
 
       if (groupsError) throw groupsError;
       setDbGroups(groupsData || []);
 
-      // Fetch all establishments
-      const { data: estData, error: estError } = await supabase
-        .from("establishments")
-        .select("*")
-        .order("name");
+      // Fetch all establishments via Cloud SQL Proxy
+      const { data: estData, error: estError } = await cloudSql.getEstablishments(true);
 
       if (estError) throw estError;
 
       // Separate active and archived establishments
       const allEstablishments = estData || [];
-      const active = allEstablishments.filter((e: DbEstablishment) => !e.is_archived);
-      const archived = allEstablishments.filter((e: DbEstablishment) => e.is_archived);
+      const active = allEstablishments.filter((e: any) => !e.is_archived);
+      const archived = allEstablishments.filter((e: any) => e.is_archived);
 
-      setDbEstablishments(active);
-      setArchivedEstablishments(archived);
+      setDbEstablishments(active as any);
+      setArchivedEstablishments(archived as any);
     } catch (error) {
       console.error("Error fetching data:", error);
+      toast.error("Erreur lors du chargement des données Cloud SQL");
     } finally {
       setLoadingDb(false);
     }
@@ -412,6 +409,22 @@ const EstablishmentsManagement = () => {
                                 {est.student_capacity}
                               </Badge>
                             )}
+                            {/* Modifier - Base data */}
+                            <GlassButton
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // TODO: Open EditEstablishmentModal
+                                toast.info("Modification: à implémenter");
+                              }}
+                              className="gap-1"
+                              title="Modifier les informations de base"
+                            >
+                              <FileEdit className="h-3.5 w-3.5" />
+                              Modifier
+                            </GlassButton>
+                            {/* Configurer - Organizational structure */}
                             <GlassButton
                               variant="outline"
                               size="sm"
@@ -420,10 +433,26 @@ const EstablishmentsManagement = () => {
                                 navigate(`/admin/establishments/config?id=${est.id}`);
                               }}
                               className="gap-1"
+                              title="Configurer la structure"
                             >
                               <Cog className="h-3.5 w-3.5" />
-                              Gestion
+                              Configurer
                             </GlassButton>
+                            {/* Gérer - Operational functions */}
+                            <GlassButton
+                              variant="primary"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/admin/establishments/manage?id=${est.id}`);
+                              }}
+                              className="gap-1"
+                              title="Gestion opérationnelle"
+                            >
+                              <Briefcase className="h-3.5 w-3.5" />
+                              Gérer
+                            </GlassButton>
+                            {/* Archive */}
                             <GlassButton
                               variant="ghost"
                               size="sm"
